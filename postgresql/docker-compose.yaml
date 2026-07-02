@@ -1,0 +1,35 @@
+services:
+  db:
+    container_name: PostgreSQL
+    image: postgres
+    mem_limit: 256m
+    cpu_shares: 768
+    healthcheck:
+      test: ['CMD', 'pg_isready', '-q', '-d', 'thunder_db', '-U', 'root']
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: REMOVED-PASSWORD
+      POSTGRES_DB: thunder_db
+    volumes:
+      - /volume1/docker/postgresql:/var/lib/postgresql:rw
+    ports:
+      - 2665:5454
+    restart: on-failure:5
+
+  pgadmin:
+    container_name: pgAdmin
+    image: dpage/pgadmin4:latest
+    user: 0:0
+    mem_limit: 256m
+    cpu_shares: 768
+    healthcheck:
+      test: wget --no-verbose --tries=1 --spider http://localhost:5050
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ikehle@pm.me
+      PGADMIN_DEFAULT_PASSWORD: REMOVED-PASSWORD
+      PGADMIN_LISTEN_PORT: 5050
+    ports:
+      - 2660:5050
+    volumes:
+      - /volume1/docker/postgresadmin:/var/lib/pgadmin:rw
+    restart: on-failure:5

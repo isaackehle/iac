@@ -1,0 +1,16 @@
+{
+  "TCP": {
+    "443": {
+      "HTTPS": true
+    }
+  },
+  "Web": {
+    "syncthing.<tailnet>.ts.net:443": {
+      "Handlers": {
+        "/": {
+          "Proxy": "http://syncthing:8384"
+        }
+      }
+    }
+  }
+}

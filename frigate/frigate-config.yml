@@ -1,0 +1,64 @@
+# Frigate config — see https://docs.frigate.video/configuration/reference/
+# Secrets referenced via {FRIGATE_*} substitution, values come from the
+# compose file's environment: section (sourced from .env). Never hardcode
+# real credentials in this file.
+
+mqtt:
+  enabled: true
+  host: "{FRIGATE_MQTT_HOST}"       # your existing broker's host/IP
+  port: 1883
+  user: "{FRIGATE_MQTT_USER}"
+  password: "{FRIGATE_MQTT_PASSWORD}"
+
+detectors:
+  cpu1:
+    type: cpu
+    num_threads: 3
+
+# CPU-only detection across 7-10 cameras is a real load — rough math is
+# ~1 CPU core per 2-3 cameras at 5fps detection, so expect 3-4+ cores
+# dedicated just to detection, on top of ffmpeg decode for every stream.
+# Worth watching actual CPU usage after this is running for a few days.
+# A Coral TPU (~$30-60, USB or PCIe) is a config change away if it's too
+# much — swap the detectors block for a `coral: type: edgetpu` block,
+# nothing else has to change.
+
+record:
+  enabled: true
+  retain:
+    days: 7
+    mode: motion
+  alerts:
+    retain:
+      days: 30
+  detections:
+    retain:
+      days: 30
+
+# One block per camera — duplicate for all 7-10. Names below are placeholders.
+cameras:
+  front_door:
+    ffmpeg:
+      inputs:
+        - path: "rtsp://{FRIGATE_RTSP_USER}:{FRIGATE_RTSP_PASSWORD}@192.168.1.101:554/stream1"
+          roles:
+            - detect
+            - record
+    detect:
+      width: 1280
+      height: 720
+      fps: 5
+
+  driveway:
+    ffmpeg:
+      inputs:
+        - path: "rtsp://{FRIGATE_RTSP_USER}:{FRIGATE_RTSP_PASSWORD}@192.168.1.102:554/stream1"
+          roles:
+            - detect
+            - record
+    detect:
+      width: 1280
+      height: 720
+      fps: 5
+
+  # ... repeat for remaining cameras (up to ~7-10 total)

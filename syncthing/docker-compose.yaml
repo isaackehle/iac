@@ -1,0 +1,38 @@
+services:
+  syncthing:
+    image: syncthing/syncthing:latest
+    container_name: syncthing
+    restart: unless-stopped
+    hostname: synology-nas
+    environment:
+      - PUID=${SYNC_PUID}
+      - PGID=${SYNC_PGID}
+    volumes:
+      - /volume1/docker/syncthing/config:/var/syncthing/config
+      - /volume1/docker/syncthing/data:/var/syncthing/data
+    ports:
+      - '8384:8384' # GUI — still reachable directly via voyager.<tailnet>.ts.net:8384 too
+      - '22000:22000/tcp' # sync protocol
+      - '22000:22000/udp'
+      - '21027:21027/udp' # discovery
+
+  ts-syncthing:
+    image: tailscale/tailscale:latest
+    container_name: ts-syncthing
+    hostname: syncthing # <-- this is what makes it syncthing.<tailnet>.ts.net
+    restart: unless-stopped
+    environment:
+      - TS_AUTHKEY=${TS_AUTHKEY_SYNCTHING}
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_AUTH_ONCE=true # only re-auth if not already authenticated — state is persisted below
+      - TS_SERVE_CONFIG=/config/serve.json
+    volumes:
+      - /volume1/docker/syncthing/ts-state:/var/lib/tailscale # persisted — losing this means re-authenticating from scratch
+      - ./ts-config:/config
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    depends_on:
+      - syncthing
