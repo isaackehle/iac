@@ -19,15 +19,19 @@ services:
   ts-syncthing:
     image: tailscale/tailscale:latest
     container_name: ts-syncthing
-    hostname: syncthing # <-- this is what makes it syncthing.<tailnet>.ts.net
     restart: unless-stopped
     environment:
+      - TS_HOSTNAME=syncthing # tailnet-facing name only — does NOT create a
+        # Docker network DNS alias, unlike the compose
+        # `hostname:` field (which caused a real
+        # collision with the syncthing service's own
+        # DNS name — see CLAUDE.md)
       - TS_AUTHKEY=${TS_AUTHKEY_SYNCTHING}
       - TS_STATE_DIR=/var/lib/tailscale
-      - TS_AUTH_ONCE=true # only re-auth if not already authenticated — state is persisted below
+      - TS_AUTH_ONCE=true
       - TS_SERVE_CONFIG=/config/serve.json
     volumes:
-      - /volume1/docker/syncthing/ts-state:/var/lib/tailscale # persisted — losing this means re-authenticating from scratch
+      - /volume1/docker/syncthing/ts-state:/var/lib/tailscale
       - /volume1/docker/syncthing/ts-config:/config
     devices:
       - /dev/net/tun:/dev/net/tun
