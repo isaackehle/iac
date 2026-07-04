@@ -1,0 +1,70 @@
+services:
+  db:
+    image: mariadb:11.4
+    container_name: nextcloud-db
+    restart: unless-stopped
+    command: --transaction-isolation=READ-COMMITTED --log-bin=binlog --binlog-format=ROW
+    environment:
+      - MYSQL_ROOT_PASSWORD=${NC_DB_ROOT_PASSWORD}
+      - MYSQL_DATABASE=nextcloud
+      - MYSQL_USER=nextcloud
+      - MYSQL_PASSWORD=${NC_DB_PASSWORD}
+    volumes:
+      - /volume1/docker/nextcloud/db:/var/lib/mysql
+
+  redis:
+    image: redis:7-alpine
+    container_name: nextcloud-redis
+    restart: unless-stopped
+
+  nextcloud:
+    # Pinned to a specific major version deliberately — Nextcloud does NOT
+    # support skipping major versions on upgrade, and `:latest` pulling a
+    # new major on container recreation can break the instance outright.
+    # Check https://github.com/nextcloud/server/releases for current major
+    # before deploying; bump this pin on purpose, not automatically.
+    image: nextcloud:30-apache
+    container_name: nextcloud-app
+    restart: unless-stopped
+    depends_on:
+      - db
+      - redis
+    environment:
+      - MYSQL_HOST=db
+      - MYSQL_DATABASE=nextcloud
+      - MYSQL_USER=nextcloud
+      - MYSQL_PASSWORD=${NC_DB_PASSWORD}
+      - REDIS_HOST=redis
+      - NEXTCLOUD_ADMIN_USER=${NC_ADMIN_USER}
+      - NEXTCLOUD_ADMIN_PASSWORD=${NC_ADMIN_PASSWORD}
+      - NEXTCLOUD_TRUSTED_DOMAINS=nextcloud.<tailnet>.ts.net
+      - OVERWRITEPROTOCOL=https
+      - OVERWRITECLIURL=https://nextcloud.<tailnet>.ts.net
+      - PHP_MEMORY_LIMIT=1G
+      - PHP_UPLOAD_LIMIT=10G
+    volumes:
+      - /volume1/docker/nextcloud/app:/var/www/html
+      - /volume1/docker/nextcloud/data:/var/www/html/data
+
+  ts-nextcloud:
+    image: tailscale/tailscale:latest
+    container_name: ts-nextcloud
+    restart: unless-stopped
+    environment:
+      - TS_HOSTNAME=nextcloud   # env var, NOT the compose `hostname:` field —
+                                 # that caused a real DNS collision with the
+                                 # Syncthing sidecar, see CLAUDE.md
+      - TS_AUTHKEY=${TS_AUTHKEY_NEXTCLOUD}
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_AUTH_ONCE=true
+      - TS_SERVE_CONFIG=/config/serve.json
+    volumes:
+      - /volume1/docker/nextcloud/ts-state:/var/lib/tailscale
+      - /volume1/docker/nextcloud/ts-config:/config
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    depends_on:
+      - nextcloud

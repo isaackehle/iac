@@ -1,0 +1,16 @@
+{
+  "TCP": {
+    "443": {
+      "HTTPS": true
+    }
+  },
+  "Web": {
+    "nextcloud.<tailnet>.ts.net:443": {
+      "Handlers": {
+        "/": {
+          "Proxy": "http://nextcloud:80"
+        }
+      }
+    }
+  }
+}
