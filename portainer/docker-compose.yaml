@@ -1,0 +1,14 @@
+services:
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: portainer
+    restart: always
+    security_opt:
+      - no-new-privileges:true
+    ports:
+      - "8000:8000"    # Edge agent (keep if using Portainer Edge)
+      - "9000:9000"    # HTTP UI (used by Tailscale serve as fallback)
+      - "19443:9443"   # HTTPS UI — remapped from 9443 (host 9443 owned by Synology Container Manager)
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /volume1/docker/portainer:/data
