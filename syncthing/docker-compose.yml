@@ -11,7 +11,7 @@ services:
       - /volume1/docker/syncthing/config:/var/syncthing/config
       - /volume1/docker/syncthing/data:/var/syncthing/data
     ports:
-      - "8384:8384" # GUI — still reachable directly via voyager.tail303fda.ts.net:8384 too
+      - "8384:8384" # GUI — still reachable directly via voyager.<tailnet>.ts.net:8384 too
       - "22000:22000/tcp" # sync protocol
       - "22000:22000/udp"
       - "21027:21027/udp" # discovery

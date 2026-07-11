@@ -5,10 +5,10 @@
     }
   },
   "Web": {
-    "syncthing.tail303fda.ts.net:443": {
+    "${TS_CERT_DOMAIN}:443": {
       "Handlers": {
         "/": {
-          "Proxy": "http://syncthing:8384"
+          "Proxy": "http://127.0.0.1:5050"
         }
       }
     }

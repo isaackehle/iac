@@ -1,23 +1,23 @@
-# voyager — Infrastructure as Code
+# Infrastructure as Code
 
 This repo contains Docker Compose stacks and Tailscale serve configuration for
-**voyager** (`voyager.tail303fda.ts.net`), a self-hosted Linux server running on
-the `tail303fda.ts.net` tailnet.
+**NAS** (`nas.<tailnet>.ts.net`), a self-hosted Linux server running on
+the `<tailnet>.ts.net` tailnet.
 
 ---
 
 ## Stacks
 
-| Stack            | Tailscale URL                                      | Pattern    | Port(s)                                |
-| ---------------- | -------------------------------------------------- | ---------- | -------------------------------------- |
-| `affine`         | `https://voyager.tail303fda.ts.net:3010`           | host serve | 3010                                   |
-| `frigate`        | `https://voyager.tail303fda.ts.net:8971`           | host serve | 8971 (web), 8554 (rtsp), 8555 (webrtc) |
-| `homeassistant`  | `https://voyager.tail303fda.ts.net:8123`           | host serve | 8123                                   |
-| `nextcloud`      | `https://nextcloud.tail303fda.ts.net`              | TS sidecar | 443 → container:80                     |
-| `pihole`         | `https://voyager.tail303fda.ts.net:8080` / `:8443` | host serve | 8080→80, 8443→443                      |
-| `plex`           | `https://plex.tail303fda.ts.net`                   | TS sidecar | 443 → container:32400                  |
-| `postgresql`     | `https://voyager.tail303fda.ts.net:2660`           | host serve | 2660→5050 (pgAdmin)                    |
-| `syncthing`      | `https://syncthing.tail303fda.ts.net`              | TS sidecar | 443 → container:8384                   |
+| Stack           | Tailscale URL                                 | Pattern    | Port(s)                                |
+| --------------- | --------------------------------------------- | ---------- | -------------------------------------- |
+| `affine`        | `https://nas.<tailnet>.ts.net:3010`           | host serve | 3010                                   |
+| `frigate`       | `https://nas.<tailnet>.ts.net:8971`           | host serve | 8971 (web), 8554 (rtsp), 8555 (webrtc) |
+| `homeassistant` | `https://nas.<tailnet>.ts.net:8123`           | host serve | 8123                                   |
+| `nextcloud`     | `https://nextcloud.<tailnet>.ts.net`         | TS sidecar | 443 → container:80                     |
+| `pihole`        | `https://nas.<tailnet>.ts.net:8080` / `:8443` | host serve | 8080→80, 8443→443                      |
+| `plex`          | `https://plex.<tailnet>.ts.net`              | TS sidecar | 443 → container:32400                  |
+| `postgresql`    | `https://nas.<tailnet>.ts.net:2660`           | host serve | 2660→5050 (pgAdmin)                    |
+| `syncthing`     | `https://syncthing.<tailnet>.ts.net`         | TS sidecar | 443 → container:8384                   |
 
 ---
 
@@ -25,13 +25,13 @@ the `tail303fda.ts.net` tailnet.
 
 Two patterns are used across this repo. Do not mix them for the same service.
 
-### Pattern A — Host-level `tailscale serve` (voyager node)
+### Pattern A — Host-level `tailscale serve` (NAS node)
 
 Used by: `affine`, `frigate`, `homeassistant`, `pihole`, `postgresql`
 
-The container binds a port on the host. The `voyager` host's Tailscale daemon
+The container binds a port on the host. The `NAS` host's Tailscale daemon
 reverse-proxies that port over HTTPS via `tailscale serve --bg`. Access is via
-`voyager.tail303fda.ts.net:<port>`.
+`nas.<tailnet>.ts.net:<port>`.
 
 Each stack has an `apply-serve.sh` that registers its port(s). The top-level
 `apply-serve.sh` at the repo root traverses all subdirectories and calls each
@@ -53,8 +53,8 @@ That means the Home Assistant container is **not** its own Tailscale node.
 Instead:
 
 1. Home Assistant publishes its web UI on the host, typically on port `8123`.
-2. The `voyager` host joins the tailnet and runs `tailscaled`.
-3. `tailscale serve --bg` terminates HTTPS on the `voyager` node and proxies
+2. The `NAS` host joins the tailnet and runs `tailscaled`.
+3. `tailscale serve --bg` terminates HTTPS on the `NAS` node and proxies
    requests to the Home Assistant backend on the local host.
 
 Example:
@@ -66,7 +66,7 @@ tailscale serve --bg https:8123 http://127.0.0.1:8123
 Clients on the tailnet then reach Home Assistant at:
 
 ```text
-https://voyager.tail303fda.ts.net:8123
+https://nas.<tailnet>.ts.net:8123
 ```
 
 If the backend container uses plain HTTP, use `http://127.0.0.1:<port>`.
@@ -77,7 +77,7 @@ If the backend container serves HTTPS with a self-signed certificate, use
 
 “Add the container to Tailscale” can mean two different things in this repo:
 
-- **Host serve pattern:** the container publishes a port on `voyager`, and the
+- **Host serve pattern:** the container publishes a port on `NAS`, and the
   host's Tailscale daemon proxies traffic to it. The container itself does not
   join the tailnet.
 - **Sidecar pattern:** a dedicated `tailscale/tailscale` container joins the
@@ -93,7 +93,7 @@ Used by: `nextcloud`, `plex`, `syncthing`
 
 Each stack includes a `ts-<name>` sidecar container running
 `tailscale/tailscale:latest`. The sidecar registers as its own node on the
-tailnet (e.g. `plex.tail303fda.ts.net`) and applies a `serve.json` config that
+tailnet (e.g. `plex.<tailnet>.ts.net`) and applies a `serve.json` config that
 proxies HTTPS traffic to the app container via `network_mode: service:ts-<name>`.
 
 Each stack's `ts-config-serve.json` is mounted into the sidecar at

@@ -23,7 +23,7 @@ services:
     container_name: ts-plex
     restart: unless-stopped
     environment:
-      - TS_HOSTNAME=plex                # registers as plex.tail303fda.ts.net
+      - TS_HOSTNAME=plex                # registers as plex.<tailnet>.ts.net
                                         # use TS_HOSTNAME, NOT compose `hostname:` —
                                         # hostname: causes DNS collisions with other
                                         # sidecar nodes (see CLAUDE.md)

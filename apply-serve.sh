@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# apply-serve.sh — top-level runner for voyager IAC repo
+# apply-serve.sh — top-level runner for NAS IAC repo
 # Traverses every subdirectory and executes apply-serve.sh if found.
 # Idempotent — safe to re-run at any time.
 #
@@ -10,9 +10,12 @@
 # Structure expected:
 #   ./<stack>/apply-serve.sh
 
-set -euo pipefail
+set -uo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+RESET="${1:-}"
+
+failed=0
 
 if [[ "${1:-}" == "--reset" ]]; then
   echo "Resetting all tailscale serve config..."
@@ -20,31 +23,22 @@ if [[ "${1:-}" == "--reset" ]]; then
   echo ""
 fi
 
-echo "Applying tailscale serve config — scanning $(basename "$SCRIPT_DIR")/"
+echo "Applying tailscale serve config — scanning $(basename "$ROOT_DIR")/"
 echo ""
 
-found=0
-failed=0
+while IFS= read -r script; do
+  echo "==> Running ${script#$ROOT_DIR/}"
 
-for stack_dir in "$SCRIPT_DIR"/*/; do
-  stack="$(basename "$stack_dir")"
-  script="$stack_dir/apply-serve.sh"
-
-  if [[ -x "$script" ]]; then
-    echo "── $stack"
-    if bash "$script"; then
-      (( found++ ))
-    else
-      echo "  ✗ FAILED: $stack"
-      (( failed++ ))
-    fi
-    echo ""
+  if [[ "$RESET" == "--reset" ]]; then
+    bash "$script" --reset || failed=1
+  else
+    bash "$script" || failed=1
   fi
-done
 
+  echo
+done < <(find "$ROOT_DIR" -mindepth 2 -maxdepth 2 -type f -name 'apply-serve.sh' | sort)
 
-echo "────────────────────────────────────────"
-echo "Applied: $found stack(s)  |  Failed: $failed"
-echo ""
 echo "Current tailscale serve status:"
 tailscale serve status
+
+exit "$failed"

@@ -37,9 +37,9 @@ services:
       - REDIS_HOST=redis
       - NEXTCLOUD_ADMIN_USER=${NC_ADMIN_USER}
       - NEXTCLOUD_ADMIN_PASSWORD=${NC_ADMIN_PASSWORD}
-      - NEXTCLOUD_TRUSTED_DOMAINS=nextcloud.tail303fda.ts.net
+      - NEXTCLOUD_TRUSTED_DOMAINS=nextcloud.<tailnet>.ts.net
       - OVERWRITEPROTOCOL=https
-      - OVERWRITECLIURL=https://nextcloud.tail303fda.ts.net
+      - OVERWRITECLIURL=https://nextcloud.<tailnet>.ts.net
       - PHP_MEMORY_LIMIT=1G
       - PHP_UPLOAD_LIMIT=10G
     volumes:
