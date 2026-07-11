@@ -18,4 +18,4 @@ echo "If you are using docker-compose.yaml with ts-plex, skip this script."
 echo ""
 
 tailscale serve --bg --https=32400 http://127.0.0.1:32400
-echo "✓ Plex  https://voyager:32400 → http://127.0.0.1:32400"
+echo "✓ Plex  https://[host-nas]:32400 → http://127.0.0.1:32400"

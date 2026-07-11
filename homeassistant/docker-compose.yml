@@ -1,0 +1,24 @@
+services:
+
+  ts-homeassistant:
+    image: tailscale/tailscale:latest
+    container_name: ts-homeassistant
+    restart: unless-stopped
+    environment:
+      - TS_HOSTNAME=homeassistant   # env var, NOT the compose `hostname:` field —
+                                 # that caused a real DNS collision with the
+                                 # Syncthing sidecar, see CLAUDE.md
+      - TS_AUTHKEY=${TS_AUTHKEY_HOMEASSISTANT}
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_AUTH_ONCE=true
+      - TS_SERVE_CONFIG=/config/serve.json
+    volumes:
+      - /volume1/docker/homeassistant/ts-state:/var/lib/tailscale
+      - /volume1/docker/homeassistant/ts-config:/config
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    depends_on:
+      - nextcloud
