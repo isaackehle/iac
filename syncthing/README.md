@@ -19,10 +19,9 @@ On the Docker host, create folders for Syncthing’s persistent data.
 
 ```bash
 mkdir -p /volume1/docker/syncthing/{config,sync,data}
+mkdir -p /volume1/docker/syncthing/{ts-state,ts-config}
 sudo chown -R $UID:${GROUPS[0]} /volume1/docker/syncthing
 
-touch /volume1/docker/syncthing/ts-state
-touch /volume1/docker/syncthing/ts-config
 
 ```
 

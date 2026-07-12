@@ -24,6 +24,7 @@ services:
   ts-syncthing:
     image: tailscale/tailscale:latest
     container_name: ts-syncthing
+    network_mode: service:syncthing
     restart: unless-stopped
     environment:
       - TS_HOSTNAME=syncthing # tailnet-facing name only — does NOT create a
@@ -36,9 +37,9 @@ services:
       - TS_AUTH_ONCE=true
       - TS_SERVE_CONFIG=/config/serve.json
     volumes:
-      - /volume1/docker/syncthing/ts-state:/var/lib/tailscale
       - /volume1/docker/syncthing/ts-config:/config
-      - ./serve.json:/config/serve.json:ro
+      - /volume1/docker/stacks/syncthing/serve.json:/config/serve.json:ro
+      - /volume1/docker/syncthing/ts-state:/var/lib/tailscale
     devices:
       - /dev/net/tun:/dev/net/tun
     cap_add:
