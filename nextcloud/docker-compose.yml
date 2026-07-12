@@ -59,13 +59,13 @@ services:
       - /volume1/docker/stacks/nextcloud/ts-config:/config
       - /volume1/docker/stacks/nextcloud/serve.json:/config/serve.json:ro
       - /volume1/docker/stacks/nextcloud/ts-state:/var/lib/tailscale
-    devices:
       - /dev/net/tun:/dev/net/tun
     cap_add:
       - NET_ADMIN
       - NET_RAW
-    # on nextcloud-net so `nextcloud` (which borrows this container's netns)
-    # can still resolve/reach db and redis by name
+    ports:
+      - "30080:80"
+      - "30443:443"
     networks:
       - nextcloud-net
 
