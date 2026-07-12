@@ -49,11 +49,12 @@ services:
   ts-nextcloud:
     image: tailscale/tailscale:latest
     container_name: ts-nextcloud
+    network_mode: service:nextcloud
     restart: unless-stopped
     environment:
       - TS_HOSTNAME=nextcloud   # env var, NOT the compose `hostname:` field —
                                  # that caused a real DNS collision with the
-                                 # Syncthing sidecar, see CLAUDE.md
+                                 # Nextcloud sidecar, see CLAUDE.md
       - TS_AUTHKEY=${TS_AUTHKEY_NEXTCLOUD}
       - TS_STATE_DIR=/var/lib/tailscale
       - TS_AUTH_ONCE=true
