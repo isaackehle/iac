@@ -38,6 +38,7 @@ services:
     volumes:
       - /volume1/docker/syncthing/ts-state:/var/lib/tailscale
       - /volume1/docker/syncthing/ts-config:/config
+      - ./serve.json:/config/serve.json:ro
     devices:
       - /dev/net/tun:/dev/net/tun
     cap_add:

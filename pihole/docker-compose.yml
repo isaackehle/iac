@@ -18,3 +18,27 @@ services:
 
     volumes:
       - ./etc-pihole:/etc/pihole
+
+
+  ts-pihole:
+    image: tailscale/tailscale:latest
+    container_name: ts-pihole
+    restart: unless-stopped
+    environment:
+      - TS_HOSTNAME=pihole                # registers as pihole.<tailnet>.ts.net
+                                        # use TS_HOSTNAME, NOT compose `hostname:` —
+                                        # hostname: causes DNS collisions with other
+                                        # sidecar nodes (see CLAUDE.md)
+      - TS_AUTHKEY=${TS_AUTHKEY_PIHOLE}
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_AUTH_ONCE=true
+      - TS_SERVE_CONFIG=/config/serve.json
+    volumes:
+      - /volume1/docker/pihole/ts-state:/var/lib/tailscale
+      - /volume1/docker/pihole/ts-config:/config
+      - ./serve.json:/config/serve.json:ro
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW

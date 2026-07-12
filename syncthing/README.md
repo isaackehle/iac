@@ -18,8 +18,12 @@ Example directory layout on the host:
 On the Docker host, create folders for Syncthing’s persistent data.
 
 ```bash
-mkdir -p /volume1/docker/syncthing/{config, sync}
-sudo chown -R 1000:1000 /volume1/docker/syncthing
+mkdir -p /volume1/docker/syncthing/{config,sync,data}
+sudo chown -R $UID:${GROUPS[0]} /volume1/docker/syncthing
+
+touch /volume1/docker/syncthing/ts-state
+touch /volume1/docker/syncthing/ts-config
+
 ```
 
 Using a non‑root UID/GID that matches your `docker user` prevents permission issues inside the container.
