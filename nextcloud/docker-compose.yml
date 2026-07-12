@@ -19,6 +19,30 @@ services:
     networks:
       - nextcloud-net
 
+  nextcloud-ts:
+    image: tailscale/tailscale:latest
+    container_name: nextcloud-ts
+    restart: unless-stopped
+    environment:
+      - TS_HOSTNAME=nextcloud
+      - TS_AUTHKEY=${TS_AUTHKEY_NEXTCLOUD}
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_AUTH_ONCE=true
+      - TS_SERVE_CONFIG=/config/serve.json
+    volumes:
+      - /volume1/docker/stacks/nextcloud/ts-config:/config
+      - /volume1/docker/stacks/nextcloud/serve.json:/config/serve.json:ro
+      - /volume1/docker/stacks/nextcloud/ts-state:/var/lib/tailscale
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    ports:
+      - "30080:80"
+      - "30443:443"
+    networks:
+      - nextcloud-net
+
   nextcloud:
     image: nextcloud:apache
     container_name: nextcloud
@@ -44,30 +68,6 @@ services:
       - db
       - redis
       - nextcloud-ts
-
-  nextcloud-ts:
-    image: tailscale/tailscale:latest
-    container_name: nextcloud-ts
-    restart: unless-stopped
-    environment:
-      - TS_HOSTNAME=nextcloud
-      - TS_AUTHKEY=${TS_AUTHKEY_NEXTCLOUD}
-      - TS_STATE_DIR=/var/lib/tailscale
-      - TS_AUTH_ONCE=true
-      - TS_SERVE_CONFIG=/config/serve.json
-    volumes:
-      - /volume1/docker/stacks/nextcloud/ts-config:/config
-      - /volume1/docker/stacks/nextcloud/serve.json:/config/serve.json:ro
-      - /volume1/docker/stacks/nextcloud/ts-state:/var/lib/tailscale
-      - /dev/net/tun:/dev/net/tun
-    cap_add:
-      - NET_ADMIN
-      - NET_RAW
-    ports:
-      - "30080:80"
-      - "30443:443"
-    networks:
-      - nextcloud-net
 
 networks:
   nextcloud-net:
