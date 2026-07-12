@@ -7,7 +7,9 @@
 
 set -euo pipefail
 
-tailscale serve --bg --https 9443 https+insecure://127.0.0.1:19443
+tailscale serve --bg --https 9443 https+insecure://127.0.0.1:9443
+# tailscale serve --bg --https 19443 https+insecure://127.0.0.1:9443
 
 echo "Portainer serve mapping applied:"
 echo "✓ https://[host-nas]:9443 → https+insecure://127.0.0.1:19443"
+

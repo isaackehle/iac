@@ -1,38 +1,42 @@
-version: "3.8"
-
 services:
+  portainer-ts:
+    image: tailscale/tailscale:latest
+    container_name: portainer-ts
+    restart: always
+    hostname: portainer
+    environment:
+      - TS_HOSTNAME=${TS_HOSTNAME_PORTAINER:-portainer}
+      - TS_AUTHKEY=${TS_AUTHKEY_PORTAINER}
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_AUTH_ONCE=true
+      - TS_SERVE_CONFIG=/config/serve.json
+    volumes:
+      - /volume1/docker/portainer/ts-state:/var/lib/tailscale
+      - /volume1/docker/stacks/portainer/serve.json:/config/serve.json:ro
+      - /volume1/docker/portainer/ts-config:/config
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    ports:
+      - "19443:9443"
+      - "9000:9000"
+      - "8000:8000"
+    networks:
+      - portainer_net
+
   portainer:
     image: portainer/portainer-ce:latest
     container_name: portainer
     restart: always
     security_opt:
       - no-new-privileges:true
-    ports:
-      - "8000:8000"    # Edge agent (keep if using Portainer Edge)
-      - "9000:9000"    # HTTP UI (used by Tailscale serve as fallback)
-      - "19443:9443"   # HTTPS UI — remapped from 9443 (host 9443 owned by Synology Container Manager)
+    network_mode: service:portainer-ts
+    depends_on:
+      - portainer-ts
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - /volume1/docker/portainer:/data
-    networks:
-      - portainer_net
-
-  tailscale:
-    image: tailscale/tailscale:latest
-    container_name: portainer-ts
-    restart: always
-    environment:
-      - TS_AUTHKEY=${TS_AUTHKEY_PORTAINER}
-      - TS_HOSTNAME=portainer
-      - TS_STATE_DIR=/var/lib/tailscale
-      - TS_SERVE_CONFIG=/config/serve.json
-    volumes:
-      - /volume1/docker/portainer/ts-state:/var/lib/tailscale
-      - ./serve.json:/config/serve.json:ro
-    cap_add:
-      - NET_ADMIN
-      - SYS_MODULE
-    network_mode: service:portainer
 
 networks:
   portainer_net:
