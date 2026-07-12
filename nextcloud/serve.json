@@ -3,7 +3,7 @@
     "443": { "HTTPS": true }
   },
   "Web": {
-    "${TS_CERT_DOMAIN}:443": {
+    "nextcloud.tail303fda.ts.net:443": {
       "Handlers": {
         "/": { "Proxy": "http://127.0.0.1:30080" }
       }

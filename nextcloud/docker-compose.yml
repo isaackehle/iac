@@ -57,6 +57,8 @@ services:
       - TS_STATE_DIR=/var/lib/tailscale
       - TS_AUTH_ONCE=true
       - TS_SERVE_CONFIG=/config/serve.json
+      - NEXTCLOUD_TRUSTED_DOMAINS=nextcloud.tail303fda.ts.net
+      - OVERWRITECLIURL=https://nextcloud.tail303fda.ts.net
     volumes:
       - /volume1/docker/stacks/nextcloud/ts-config:/config
       - /volume1/docker/stacks/nextcloud/serve.json:/config/serve.json:ro
