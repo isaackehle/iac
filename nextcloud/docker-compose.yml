@@ -9,19 +9,17 @@ services:
       - POSTGRES_PASSWORD=${NC_DB_PASSWORD}
     volumes:
       - /volume1/docker/nextcloud/postgres:/var/lib/postgresql/data
+    networks:
+      - nextcloud-net
 
   redis:
     image: redis:7-alpine
     container_name: nextcloud-redis
-    network_mode: service:nextcloud
     restart: unless-stopped
+    networks:
+      - nextcloud-net
 
   nextcloud:
-    # Pinned to a specific major version deliberately — Nextcloud does NOT
-    # support skipping major versions on upgrade, and `:latest` pulling a
-    # new major on container recreation can break the instance outright.
-    # Check https://github.com/nextcloud/server/releases for current major
-    # before deploying; bump this pin on purpose, not automatically.
     image: nextcloud:apache
     container_name: nextcloud
     restart: unless-stopped
@@ -44,6 +42,8 @@ services:
     volumes:
       - /volume1/docker/nextcloud/app:/var/www/html
       - /volume1/docker/nextcloud/data:/var/www/html/data
+    networks:
+      - nextcloud-net
 
   ts-nextcloud:
     image: tailscale/tailscale:latest
@@ -51,9 +51,7 @@ services:
     network_mode: service:nextcloud
     restart: unless-stopped
     environment:
-      - TS_HOSTNAME=nextcloud   # env var, NOT the compose `hostname:` field —
-                                 # that caused a real DNS collision with the
-                                 # Nextcloud sidecar, see CLAUDE.md
+      - TS_HOSTNAME=nextcloud
       - TS_AUTHKEY=${TS_AUTHKEY_NEXTCLOUD}
       - TS_STATE_DIR=/var/lib/tailscale
       - TS_AUTH_ONCE=true
@@ -69,3 +67,7 @@ services:
       - NET_RAW
     depends_on:
       - nextcloud
+
+networks:
+  nextcloud-net:
+    driver: bridge
