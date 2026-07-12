@@ -60,9 +60,9 @@ services:
       - TS_AUTH_ONCE=true
       - TS_SERVE_CONFIG=/config/serve.json
     volumes:
-      - /volume1/docker/nextcloud/ts-state:/var/lib/tailscale
       - /volume1/docker/nextcloud/ts-config:/config
-      - ./serve.json:/config/serve.json:ro
+      - /volume1/docker/stacks/nextcloud/serve.json:/config/serve.json:ro
+      - /volume1/docker/nextcloud/ts-state:/var/lib/tailscale
     devices:
       - /dev/net/tun:/dev/net/tun
     cap_add:
