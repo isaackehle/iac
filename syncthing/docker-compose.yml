@@ -13,6 +13,7 @@ services:
       - PGID=${SYNC_PGID}
     volumes:
       - /volume1/docker/syncthing/config:/var/syncthing/config:rw
+      - /volume1/docker/syncthing/sync:/var/syncthing/sync:rw
       - /volume1/docker/syncthing/data:/var/syncthing/data:rw
     ports:
       - "8384:8384" # GUI — still reachable directly via voyager.<tailnet>.ts.net:8384 too
