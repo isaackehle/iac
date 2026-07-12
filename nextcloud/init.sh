@@ -1,9 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-mkdir -p /volume1/docker/nextcloud/{app,data,postgres,ts-state,ts-config}
-mkdir -p /volume1/docker/stacks/nextcloud
-sudo chown -R "$UID":"${GROUPS[0]}" /volume1/docker/nextcloud
+mkdir -p /volume1/docker/stacks/nextcloud/{app,data,postgres,ts-state,ts-config}
 sudo chown -R "$UID":"${GROUPS[0]}" /volume1/docker/stacks/nextcloud
 
 # deploy the Tailscale sidecar's serve.json

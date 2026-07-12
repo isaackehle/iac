@@ -8,7 +8,7 @@ services:
       - POSTGRES_USER=nextcloud
       - POSTGRES_PASSWORD=${NC_DB_PASSWORD}
     volumes:
-      - /volume1/docker/nextcloud/postgres:/var/lib/postgresql/data
+      - /volume1/docker/stacks/nextcloud/postgres:/var/lib/postgresql/data
     networks:
       - nextcloud-net
 
@@ -37,8 +37,8 @@ services:
       - PHP_MEMORY_LIMIT=1G
       - PHP_UPLOAD_LIMIT=10G
     volumes:
-      - /volume1/docker/nextcloud/app:/var/www/html
-      - /volume1/docker/nextcloud/data:/var/www/html/data
+      - /volume1/docker/stacks/nextcloud/app:/var/www/html
+      - /volume1/docker/stacks/nextcloud/data:/var/www/html/data
     network_mode: service:nextcloud-ts
     depends_on:
       - db
@@ -56,9 +56,9 @@ services:
       - TS_AUTH_ONCE=true
       - TS_SERVE_CONFIG=/config/serve.json
     volumes:
-      - /volume1/docker/nextcloud/ts-config:/config
+      - /volume1/docker/stacks/nextcloud/ts-config:/config
       - /volume1/docker/stacks/nextcloud/serve.json:/config/serve.json:ro
-      - /volume1/docker/nextcloud/ts-state:/var/lib/tailscale
+      - /volume1/docker/stacks/nextcloud/ts-state:/var/lib/tailscale
     devices:
       - /dev/net/tun:/dev/net/tun
     cap_add:
