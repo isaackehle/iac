@@ -23,9 +23,6 @@ services:
     image: nextcloud:apache
     container_name: nextcloud
     restart: unless-stopped
-    depends_on:
-      - db
-      - redis
     environment:
       - POSTGRES_HOST=db
       - POSTGRES_DB=nextcloud
@@ -42,13 +39,15 @@ services:
     volumes:
       - /volume1/docker/nextcloud/app:/var/www/html
       - /volume1/docker/nextcloud/data:/var/www/html/data
-    networks:
-      - nextcloud-net
+    network_mode: service:nextcloud-ts
+    depends_on:
+      - db
+      - redis
+      - nextcloud-ts
 
-  ts-nextcloud:
+  nextcloud-ts:
     image: tailscale/tailscale:latest
-    container_name: ts-nextcloud
-    network_mode: service:nextcloud
+    container_name: nextcloud-ts
     restart: unless-stopped
     environment:
       - TS_HOSTNAME=nextcloud
@@ -65,8 +64,10 @@ services:
     cap_add:
       - NET_ADMIN
       - NET_RAW
-    depends_on:
-      - nextcloud
+    # on nextcloud-net so `nextcloud` (which borrows this container's netns)
+    # can still resolve/reach db and redis by name
+    networks:
+      - nextcloud-net
 
 networks:
   nextcloud-net:

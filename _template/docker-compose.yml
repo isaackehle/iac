@@ -1,0 +1,65 @@
+# _template — Tailscale sidecar pattern (Pattern B, see README)
+#
+# Replace every `app` / `APP` below with the real stack name (e.g. `jellyfin` /
+# `JELLYFIN`), then delete this comment block.
+#
+# If the app needs more than one container (e.g. its own db), give the extra
+# containers `networks: [app-net]` like `db` below, and put the sidecar on
+# `app-net` too instead of leaving it off — that's what lets `app` (which
+# borrows the sidecar's network namespace) still reach them by name. See
+# nextcloud/docker-compose.yml for a real example of this.
+
+services:
+  app:
+    image: change-me:latest
+    container_name: app
+    restart: unless-stopped
+    environment:
+      - TZ=${TZ}
+    volumes:
+      - /volume1/docker/app/config:/config
+    # The app container has no `ports:` and no `networks:` of its own — it
+    # borrows the sidecar's network namespace entirely. If the app needs a
+    # host/LAN port in addition to the tailnet, put that `ports:` entry on
+    # app-ts below instead (see pihole/docker-compose.yml for an example).
+    network_mode: service:app-ts
+    depends_on:
+      - app-ts
+
+  # db:                         # example second container, delete if unused
+  #   image: postgres:16
+  #   container_name: app-db
+  #   restart: unless-stopped
+  #   volumes:
+  #     - /volume1/docker/app/postgres:/var/lib/postgresql/data
+  #   networks:
+  #     - app-net
+
+  app-ts:
+    image: tailscale/tailscale:latest
+    container_name: app-ts
+    restart: unless-stopped
+    environment:
+      - TS_HOSTNAME=app # tailnet-facing name only — set via env, NOT the
+                         # compose `hostname:` field (which causes a real DNS
+                         # collision with other sidecar nodes — see README
+                         # "known DNS collision")
+      - TS_AUTHKEY=${TS_AUTHKEY_APP}
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_AUTH_ONCE=true
+      - TS_SERVE_CONFIG=/config/serve.json
+    volumes:
+      - /volume1/docker/app/ts-state:/var/lib/tailscale
+      - /volume1/docker/app/ts-config:/config
+      - /volume1/docker/stacks/app/serve.json:/config/serve.json:ro
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    # networks:                 # only needed if `app` has sibling containers
+    #   - app-net
+
+# networks:                     # only needed if `app` has sibling containers
+#   app-net:
+#     driver: bridge
