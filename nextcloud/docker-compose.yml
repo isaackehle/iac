@@ -3,6 +3,7 @@ services:
     image: mariadb:11.4
     container_name: nextcloud-db
     restart: unless-stopped
+    network_mode: service:nextcloud
     command: --transaction-isolation=READ-COMMITTED --log-bin=binlog --binlog-format=ROW
     environment:
       - MYSQL_ROOT_PASSWORD=${NC_DB_ROOT_PASSWORD}
@@ -15,6 +16,7 @@ services:
   redis:
     image: redis:7-alpine
     container_name: nextcloud-redis
+    network_mode: service:nextcloud
     restart: unless-stopped
 
   nextcloud:
@@ -25,6 +27,7 @@ services:
     # before deploying; bump this pin on purpose, not automatically.
     image: nextcloud:30-apache
     container_name: nextcloud-app
+    network_mode: service:nextcloud
     restart: unless-stopped
     depends_on:
       - db
@@ -37,9 +40,9 @@ services:
       - REDIS_HOST=redis
       - NEXTCLOUD_ADMIN_USER=${NC_ADMIN_USER}
       - NEXTCLOUD_ADMIN_PASSWORD=${NC_ADMIN_PASSWORD}
-      - NEXTCLOUD_TRUSTED_DOMAINS=nextcloud.<tailnet>.ts.net
+      - NEXTCLOUD_TRUSTED_DOMAINS=${TS_CERT_DOMAIN}
       - OVERWRITEPROTOCOL=https
-      - OVERWRITECLIURL=https://nextcloud.<tailnet>.ts.net
+      - OVERWRITECLIURL=https://${TS_CERT_DOMAIN}
       - PHP_MEMORY_LIMIT=1G
       - PHP_UPLOAD_LIMIT=10G
     volumes:
