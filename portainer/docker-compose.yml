@@ -11,9 +11,9 @@ services:
       - TS_AUTH_ONCE=true
       - TS_SERVE_CONFIG=/config/serve.json
     volumes:
-      - /volume1/docker/portainer/ts-state:/var/lib/tailscale
+      - /volume1/docker/stacks/portainer/ts-state:/var/lib/tailscale
       - /volume1/docker/stacks/portainer/serve.json:/config/serve.json:ro
-      - /volume1/docker/portainer/ts-config:/config
+      - /volume1/docker/stacks/portainer/ts-config:/config
       - /dev/net/tun:/dev/net/tun
     cap_add:
       - NET_ADMIN
@@ -36,7 +36,7 @@ services:
       - portainer-ts
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - /volume1/docker/portainer:/data
+      - /volume1/docker/stacks/portainer:/data
 
 networks:
   portainer_net:

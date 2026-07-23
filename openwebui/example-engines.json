@@ -1,0 +1,29 @@
+{
+  "description": "Example Ollama backend configuration for OpenWebUI named connections",
+  "usage_notes": [
+    "Set environment variables before running configure-ollama.sh:",
+    "  - OPENWEBUI_API_URL=https://openwebui.<tailnet>.ts.net",
+    "  - OPENWEBUI_API_KEY=sk-your-admin-api-key-here",
+    "  - OLLAMA_ENGINES='[...]' (paste this JSON content)",
+    "",
+    "Then run: bash configure-ollama.sh"
+  ],
+  "engines": [
+    {
+      "name": "local",
+      "url": "http://host.docker.internal:11434",
+      "description": "Local Ollama instance on host machine"
+    },
+    {
+      "name": "ds9",
+      "url": "https://ds9.<tailnet>.ts.net:8080",
+      "description": "DS9 NAS via Tailscale (HTTPS with port)"
+    },
+    {
+      "name": "enterprise",
+      "url": "https://enterprise.<tailnet>.ts.net:8080",
+      "description": "Enterprise server via Tailscale"
+    }
+  ],
+  "example_env_vars": "OPENWEBUI_API_URL=https://openwebui.<tailnet>.ts.net\nOLLAMA_ENGINES='{\"name\":\"local\",\"url\":\"http://host.docker.internal:11434\"},{\"name\":\"ds9\",\"url\":\"https://ds9.<tailnet>.ts.net:8080\"}'\nOPENWEBUI_API_KEY=sk-xxx"
+}

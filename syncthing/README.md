@@ -10,16 +10,16 @@ Decide where you want Syncthing’s config and data to live, e.g. on your NAS vo
 
 Example directory layout on the host:
 
-- /volume1/docker/syncthing/config – Syncthing config
-- /volume1/docker/syncthing/sync – root of synced data
+- /volume1/docker/stacks/syncthing/config – Syncthing config
+- /volume1/docker/stacks/syncthing/sync – root of synced data
 
 ## Create host folders
 
 On the Docker host, create folders for Syncthing’s persistent data.
 
 ```bash
-mkdir -p /volume1/docker/syncthing/{config,sync,data,ts-state,ts-config}
-sudo chown -R $UID:${GROUPS[0]} /volume1/docker/syncthing
+mkdir -p /volume1/docker/stacks/syncthing/{config,sync,data,ts-state,ts-config}
+sudo chown -R $UID:${GROUPS[0]} /volume1/docker/stacks/syncthing
 ```
 
 Using a non‑root UID/GID that matches your `docker user` prevents permission issues inside the container.
@@ -34,28 +34,28 @@ In Portainer:
 
 3. Paste a compose spec like:
 
-    ```text
-    version: "2.1"
-    services:
-    syncthing:
-        image: ghcr.io/linuxserver/syncthing:latest
-        container_name: syncthing
-        hostname: syncthing
-        environment:
-        - PUID=1000        # your user id
-        - PGID=1000        # your group id
-        - TZ=America/New_York
-        volumes:
-        - /volume1/docker/syncthing/config:/config
-        - /volume1/docker/syncthing/sync:/data1
-        ports:
-        - 8384:8384        # Web GUI
-        - 22000:22000      # Sync protocol
-        - 21027:21027/udp  # Local discovery
-        restart: unless-stopped
-    ```
+   ```text
+   version: "2.1"
+   services:
+   syncthing:
+       image: ghcr.io/linuxserver/syncthing:latest
+       container_name: syncthing
+       hostname: syncthing
+       environment:
+       - PUID=1000        # your user id
+       - PGID=1000        # your group id
+       - TZ=America/New_York
+       volumes:
+       - /volume1/docker/stacks/syncthing/config:/config
+       - /volume1/docker/stacks/syncthing/sync:/data1
+       ports:
+       - 8384:8384        # Web GUI
+       - 22000:22000      # Sync protocol
+       - 21027:21027/udp  # Local discovery
+       restart: unless-stopped
+   ```
 
-    LinuxServer’s image is the de‑facto standard and exposes /config and /data1 for config and data respectively.
+   LinuxServer’s image is the de‑facto standard and exposes /config and /data1 for config and data respectively.
 
 4. Click **Deploy the stack**, wait for “Stack successfully deployed”.
 

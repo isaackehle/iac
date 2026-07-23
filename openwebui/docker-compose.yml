@@ -1,0 +1,63 @@
+# openwebui — Tailscale sidecar pattern (Pattern B, see README)
+#
+# Replace every `openwebui` / `OPENWEBUI` below with the real stack name if needed.
+
+services:
+  openwebui-config:
+    image: alpine:3.20
+    container_name: openwebui-config
+    restart: "no"
+    environment:
+      - OPENWEBUI_API_URL=${OPENWEBUI_API_URL:-http://localhost:8080}
+      - OPENWEBUI_API_KEY=${OPENWEBUI_API_KEY:?Set this to your admin API key}
+      # OLLAMA_ENGINES must be a JSON array of objects with "name" and "url" fields
+      # Example: '[{"name":"local","url":"http://host.docker.internal:11434"},{"name":"ds9","url":"https://ds9.ts.net"}]'
+      - OLLAMA_ENGINES=${OLLAMA_ENGINES:-'[]'}
+    volumes:
+      - ./configure-ollama.sh:/scripts/configure-ollama.sh:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    command: >
+      sh -c "chmod +x /scripts/configure-ollama.sh && 
+             timeout 30 /bin/sh -c 'until curl -sf ${OPENWEBUI_API_URL}/api/models >/dev/null 2>&1; do sleep 2; done' &&
+             /scripts/configure-ollama.sh"
+
+  openwebui:
+    image: ghcr.io/open-webui/open-webui:latest
+    container_name: openwebui
+    restart: unless-stopped
+    environment:
+      - TZ=${TZ}
+      # Ollama endpoints are configured via OpenWebUI's admin API or UI, not here.
+      # This allows dynamic configuration of multiple inference engines without rebuilds.
+    volumes:
+      - /volume1/docker/stacks/openwebui/data:/app/backend/data
+    # The app container has no `ports:` and no `networks:` of its own — it
+    # borrows the sidecar's network namespace entirely. If the app needs a
+    # host/LAN port in addition to the tailnet, put that `ports:` entry on
+    # openwebui-ts below instead (see pihole/docker-compose.yml for an example).
+    network_mode: service:openwebui-ts
+    depends_on:
+      - openwebui-ts
+
+  openwebui-ts:
+    image: tailscale/tailscale:latest
+    container_name: openwebui-ts
+    restart: unless-stopped
+    environment:
+      - TS_HOSTNAME=openwebui # tailnet-facing name only — set via env, NOT the
+                             # compose `hostname:` field (which causes a real DNS
+                             # collision with other sidecar nodes — see README
+                             # "known DNS collision")
+      - TS_AUTHKEY=${TS_AUTHKEY_OPENWEBUI}
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_AUTH_ONCE=true
+      - TS_SERVE_CONFIG=/config/serve.json
+    volumes:
+      - /volume1/docker/stacks/openwebui/ts-state:/var/lib/tailscale
+      - /volume1/docker/stacks/openwebui/ts-config:/config
+      - /volume1/docker/stacks/openwebui/serve.json:/config/serve.json:ro
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW

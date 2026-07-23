@@ -6,15 +6,15 @@ services:
     restart: unless-stopped
     hostname: synology-nas
     healthcheck:
-     test: curl -f http://localhost:8384/ || exit 1
+      test: curl -f http://localhost:8384/ || exit 1
     environment:
       - TZ=${TZ}
       - PUID=${SYNC_PUID}
       - PGID=${SYNC_PGID}
     volumes:
-      - /volume1/docker/syncthing/config:/config:rw
-      - /volume1/docker/syncthing/sync:/var/syncthing/sync:rw
-      - /volume1/docker/syncthing/data:/var/syncthing/data:rw
+      - /volume1/docker/stacks/syncthing/config:/config:rw
+      - /volume1/docker/stacks/syncthing/sync:/var/syncthing/sync:rw
+      - /volume1/docker/stacks/syncthing/data:/var/syncthing/data:rw
     ports:
       - "8384:8384" # GUI — still reachable directly via voyager.<tailnet>.ts.net:8384 too
       - "22000:22000/tcp" # sync protocol
@@ -37,9 +37,9 @@ services:
       - TS_AUTH_ONCE=true
       - TS_SERVE_CONFIG=/config/serve.json
     volumes:
-      - /volume1/docker/syncthing/ts-config:/config
+      - /volume1/docker/stacks/syncthing/ts-config:/config
       - /volume1/docker/stacks/syncthing/serve.json:/config/serve.json:ro
-      - /volume1/docker/syncthing/ts-state:/var/lib/tailscale
+      - /volume1/docker/stacks/syncthing/ts-state:/var/lib/tailscale
     devices:
       - /dev/net/tun:/dev/net/tun
     cap_add:
