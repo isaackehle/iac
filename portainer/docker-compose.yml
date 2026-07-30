@@ -30,5 +30,9 @@ services:
     networks:
       - portainer_net
 
+networks:
+  portainer_net:
+    driver: bridge
+
 volumes:
   ts-portainer-proxy-data:
