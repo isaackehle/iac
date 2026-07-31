@@ -17,7 +17,7 @@ services:
       FTLCONF_dns_upstreams: ${PIHOLE_UPSTREAMS}
 
     volumes:
-      - ./etc-pihole:/etc/pihole
+      - /volume1/docker/stacks/pihole/etc-pihole:/etc/pihole
 
   ts-pihole:
     image: tailscale/tailscale:latest
@@ -30,8 +30,8 @@ services:
       - TS_AUTH_ONCE=true
       - TS_SERVE_CONFIG=/config/serve.json
     volumes:
-      - /volume1/docker/pihole/ts-state:/var/lib/tailscale
-      - /volume1/docker/pihole/ts-config:/config
+      - /volume1/docker/stacks/pihole/ts-state:/var/lib/tailscale
+      - /volume1/docker/stacks/pihole/ts-config:/config
     devices:
       - /dev/net/tun:/dev/net/tun
     cap_add:

@@ -18,15 +18,15 @@ ALL_STACKS=(
 declare -A STACK_REMOTE_DIR=(
   [affine]="/volume1/docker/stacks/affine"
   [frigate]="/volume1/docker/stacks/frigate"
-  [homeassistant]="/volume1/docker/homeassistant"   # legacy path, has real data
+  [homeassistant]="/volume1/docker/stacks/homeassistant"
   [mosquitto]="/volume1/docker/stacks/mosquitto"
   [n8n]="/volume1/docker/stacks/n8n"
   [nextcloud]="/volume1/docker/stacks/nextcloud"
   [openwebui]="/volume1/docker/stacks/openwebui"
-  [pihole]="/volume1/docker/pihole"                 # legacy path, has real data
-  [plex]="/volume1/docker/plex"                     # legacy path, has real data
+  [pihole]="/volume1/docker/stacks/pihole"
+  [plex]="/volume1/docker/stacks/plex"
   [portainer]="/volume1/docker/stacks/portainer"
-  [postgresql]="/volume1/docker/postgresql"         # legacy path, has real data
+  [postgresql]="/volume1/docker/stacks/postgresql"
   [syncthing]="/volume1/docker/stacks/syncthing"
 )
 

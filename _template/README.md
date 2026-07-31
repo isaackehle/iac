@@ -14,6 +14,11 @@ token in the `.tmpl` and that key in `./iac-secrets.env (repo root, gitignored)`
 `portainer/serve.json.tmpl` for a real example. Remember to add the
 rendered `serve.json` path to `.gitignore` for your new stack.
 
+`DEBUG.md` is a template for troubleshooting commands — replace the `<stack>` /
+`ts-<stack>` / `/volume1/docker/stacks/<stack>` placeholders with real values.
+
+Run `scripts/deploy.sh info <stack>` anytime to see step-by-step deploy instructions.
+
 ## After scaffolding
 
 1. Add any secrets the new stack needs to `iac-secrets.env.example` (repo)

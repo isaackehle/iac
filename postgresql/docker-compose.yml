@@ -11,7 +11,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: thunder_db
     volumes:
-      - /volume1/docker/postgresql:/var/lib/postgresql:rw
+      - /volume1/docker/stacks/postgresql:/var/lib/postgresql:rw
     ports:
       - 2665:5454
     restart: on-failure:5
@@ -31,5 +31,5 @@ services:
     ports:
       - 2660:5050
     volumes:
-      - /volume1/docker/postgresadmin:/var/lib/pgadmin:rw
+      - /volume1/docker/stacks/postgresql/pgadmin:/var/lib/pgadmin:rw
     restart: on-failure:5
