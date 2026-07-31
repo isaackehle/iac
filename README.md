@@ -97,7 +97,8 @@ scripts/serve-all.sh <ssh-host> --reset      # reset first, then apply all
    `./iac-secrets.env (repo root, gitignored)`.
 3. Add an entry for it in `scripts/lib.sh` (`ALL_STACKS`, `STACK_REMOTE_DIR`,
    `STACK_DIRS`, and `STACK_EXTRA_FILES`/`STACK_SERVE_PORTS` if needed).
-4. `scripts/deploy.sh all <new-stack> <ssh-host>`.
+4. `scripts/deploy.sh info <new-stack>` to preview the deploy steps.
+5. `scripts/deploy.sh all <new-stack> <ssh-host>`.
 
 ---
 
@@ -180,21 +181,11 @@ for a new stack; pick one pattern instead.
 
 ---
 
-## Legacy directory paths
+## Directory layout
 
-Four stacks were deployed before the `/volume1/docker/stacks/<name>`
-convention existed and still hold real data at their original path.
-`scripts/lib.sh` (`STACK_REMOTE_DIR`) knows about these — don't "fix" them
-without manually migrating data on the NAS first:
-
-| Stack           | Actual path                                                   |
-| --------------- | ------------------------------------------------------------- |
-| `homeassistant` | `/volume1/docker/homeassistant`                               |
-| `pihole`        | `/volume1/docker/pihole`                                      |
-| `plex`          | `/volume1/docker/plex`                                        |
-| `postgresql`    | `/volume1/docker/postgresql`, `/volume1/docker/postgresadmin` |
-
-Every other stack uses `/volume1/docker/stacks/<name>`.
+All stacks live under `/volume1/docker/stacks/<name>`. Each stack's directory
+contains its compose file, generated `.env`, and any extra config (serve.json,
+etc.). The `scripts/lib.sh` file is the single source of truth for paths.
 
 ---
 

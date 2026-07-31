@@ -19,6 +19,14 @@ stack's real `.env` is generated from it.
 
 ## Per-stack deploy
 
+Preview the steps for any stack:
+
+```bash
+scripts/deploy.sh info <stack>
+```
+
+Run the full deploy in one command:
+
 ```bash
 scripts/deploy.sh all <stack> <ssh-host>
 ```

@@ -13,8 +13,8 @@ services:
       - TS_AUTH_ONCE=true
       - TS_SERVE_CONFIG=/config/serve.json
     volumes:
-      - /volume1/docker/homeassistant/ts-state:/var/lib/tailscale
-      - /volume1/docker/homeassistant/ts-config:/config
+      - /volume1/docker/stacks/homeassistant/ts-state:/var/lib/tailscale
+      - /volume1/docker/stacks/homeassistant/ts-config:/config
     devices:
       - /dev/net/tun:/dev/net/tun
     cap_add:

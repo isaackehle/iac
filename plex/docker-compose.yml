@@ -9,7 +9,7 @@ services:
       - VERSION=docker
       - PLEX_CLAIM=${PLEX_CLAIM} # https://www.plex.tv/claim — only needed on first run
     volumes:
-      - /volume1/docker/plex/config:/config
+      - /volume1/docker/stacks/plex/config:/config
       - /volume1/media:/media # adjust to your actual media path
     # No ports: exposed — access is exclusively via the Tailscale sidecar.
     # If you need LAN access too, add: ports: ["32400:32400"]
@@ -28,8 +28,8 @@ services:
       - TS_AUTH_ONCE=true
       - TS_SERVE_CONFIG=/config/serve.json
     volumes:
-      - /volume1/docker/plex/ts-state:/var/lib/tailscale
-      - /volume1/docker/plex/ts-config:/config
+      - /volume1/docker/stacks/plex/ts-state:/var/lib/tailscale
+      - /volume1/docker/stacks/plex/ts-config:/config
     devices:
       - /dev/net/tun:/dev/net/tun
     cap_add:
