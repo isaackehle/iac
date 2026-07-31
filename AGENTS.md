@@ -1,0 +1,251 @@
+# AGENTS.md
+
+## What this repo is
+
+Infrastructure-as-code for a single self-hosted Synology NAS ("NAS") on a
+Tailscale tailnet (`${TS_TAILNET_DOMAIN}`). There is no application code,
+build step, package manager, or test suite — every stack is a
+`docker-compose.yml` plus a `.env.example`, optional Tailscale `serve.json`,
+and a `PORTAINER.md`/`README.md`. "Testing" a change means validating
+compose syntax (`docker compose config`) and, where possible, actually
+deploying and checking `docker compose ps` / logs / `tailscale serve
+status`.
+
+Read `README.md` and `QUICKSTART.md` first — they're the human-facing docs
+and are kept in sync with reality (unlike in the past — see git history if
+curious about the old host-serve-only setup).
+
+## Repo layout
+
+One directory per stack (`affine/`, `frigate/`, `homeassistant/`,
+`mosquitto/`, `n8n/`, `nextcloud/`, `openwebui/`, `pihole/`, `plex/`,
+`portainer/`, `postgresql/`, `syncthing/`), plus `_template/` (copy this to
+scaffold a new sidecar-pattern stack), `scripts/` (the deploy tooling, see
+below), and `docs/TODO.md` (known outstanding cleanup work). Each stack
+directory is self-contained: nothing is shared/imported between stacks
+except conventions and the scripts in `scripts/`.
+
+Typical files in a stack directory (not all stacks have all of these):
+
+- `docker-compose.yml` (or `.yaml` — inconsistent extension across stacks,
+  `scripts/lib.sh compose_file_for()` auto-detects either)
+- `.env.example` — template listing what env vars that stack needs; real
+  values come from the central secrets file (see below), not from editing
+  this file directly
+- `serve.json` — Tailscale sidecar serve config (sidecar-pattern stacks only)
+- `PORTAINER.md` — step-by-step deploy instructions for that specific stack
+- `README.md` — stack-specific docs (only some stacks have one)
+
+## Secrets: one central file, gitignored
+
+Real secrets (Tailscale auth keys, DB passwords, API keys) live in exactly
+one place: `iac-secrets.env` at the repo root — present in the working
+tree but gitignored, never committed (it is in `.gitignore`; verify with
+`git check-ignore iac-secrets.env` before trusting that). Override the
+path with `IAC_SECRETS_FILE=/other/path` (e.g. to keep it outside the repo
+in a synced folder).
+
+`iac-secrets.env.example` (repo root, committed, no real values) documents
+every key every stack needs, grouped by stack with `# --- stackname ---`
+comments.
+
+**`scripts/gen-env.sh <stack>`** cross-references a stack's `.env.example`
+against the central secrets file and writes a real `<stack>/.env`
+(gitignored). Resolution order per key: secrets file → derived value (only
+for `TS_CERT_DOMAIN`, computed as `<stack>.<TS_TAILNET_DOMAIN>` if
+`TS_TAILNET_DOMAIN` is set in the secrets file) → the `.env.example`
+default. Anything left as an empty string or an obvious placeholder
+(`changeme`, `tskey-auth-xxxx`, `${TS_TAILNET_DOMAIN}`, ...) is printed as a warning at
+the end — that's the todo list for that stack's secrets.
+
+If you're asked to add a new env var to a stack: add it to that stack's
+`.env.example` (with a safe placeholder/comment) *and* to
+`iac-secrets.env.example` under that stack's section. Don't add real values
+to either — those only ever go in the user's real `iac-secrets.env`,
+which you should never print or exfiltrate the contents of.
+
+Generated `<stack>/.env` files are throwaway — they are not committed and
+not kept around; `scripts/gen-env.sh` regenerates them on demand at deploy
+time. `scripts/deploy.sh env` is a no-network alias for this.
+
+### Templated files (`*.tmpl`)
+
+Every sidecar stack keeps its committed `serve.json` source as
+`serve.json.tmpl`; `scripts/gen-env.sh` (via `render_templates` in
+`scripts/lib.sh`) renders it to `serve.json` (gitignored, like `.env`) at
+deploy time. For most stacks the render just copies the file through —
+Tailscale's own `${TS_CERT_DOMAIN}` runtime substitution covers the node's
+own domain. `{{KEY}}` tokens (filled from the secrets file) are only needed
+for values Tailscale can't substitute, e.g. a backend on a *different*
+tailnet node — `portainer/serve.json.tmpl` (backend is the separate
+`voyager` node) is the only stack using a token today. New `.tmpl` files
+need their rendered output path added to `.gitignore` manually — the
+ignore list isn't automatic.
+
+## Deploy tooling (`scripts/`)
+
+This replaces what used to be bespoke per-stack `init.sh` / `apply-serve.sh`
+/ `deploy-*.sh` scripts (removed). Everything is driven by config tables in
+`scripts/lib.sh`:
+
+- `ALL_STACKS` — canonical stack list
+- `STACK_REMOTE_DIR` — where each stack lives on the NAS (see "legacy
+  paths" below — most are `/volume1/docker/stacks/<name>`, four are not)
+- `STACK_DIRS` — subdirectories to `mkdir -p` under that path
+- `STACK_EXTRA_FILES` — `local:remote` file pairs to copy beyond the
+  compose file and `.env` (mostly `serve.json`)
+- `STACK_CHOWN_OVERRIDES` — `dir:uid:gid` for the few stacks that need a
+  non-session-user owner (nextcloud's `app`/`data` need `33:33` for
+  Apache's `www-data`; n8n's `config` needs `1000:1000`)
+- `STACK_SERVE_PORTS` — host-level `tailscale serve` mappings for Pattern
+  A/hybrid stacks
+
+`scripts/deploy.sh <command> <stack> [ssh-host]` has subcommands `env`,
+`dirs`, `push`, `serve`, `up`, `all` — see README.md for usage. `ssh`/`scp`
+are in this sandbox's banned-commands list, so these scripts are meant to
+be run by the user on their own machine, not executed by an agent in this
+environment — don't try to actually run `scripts/deploy.sh dirs/push/serve/up`
+here; `scripts/gen-env.sh` and `scripts/deploy.sh env` are safe to run
+locally since they don't touch the network.
+
+`scripts/serve-all.sh <ssh-host>` loops `STACK_SERVE_PORTS` for every stack
+(replaces the old root-level `apply-serve.sh` that scanned for per-stack
+scripts).
+
+If you add a new stack, you must add entries to all of the relevant tables
+above or `deploy.sh`/`gen-env.sh` will silently no-op for it (empty string
+default for missing map entries, not an error).
+
+## Two competing Tailscale deployment patterns — know which one applies
+
+**Pattern A — Host-level `tailscale serve` (no sidecar container)**
+Stacks: `affine`, `frigate`, `postgresql` (`pihole` is hybrid, see below)
+- Container just publishes a port on the NAS host via `ports:`.
+- `scripts/deploy.sh serve <stack> <host>` runs
+  `tailscale serve --bg --https=<port> <backend>` directly against the
+  host's own `tailscaled` — no Tailscale container involved.
+- Backend scheme matters: `http://127.0.0.1:<port>` for plain HTTP,
+  `https+insecure://127.0.0.1:<port>` for self-signed HTTPS backends.
+
+**Pattern B — Tailscale sidecar container (own tailnet node)**
+Stacks: `homeassistant`, `nextcloud`, `n8n`, `openwebui`, `plex`,
+`portainer`, `syncthing` (`pihole` is hybrid, see below)
+- A `tailscale/tailscale:latest` container joins the tailnet as its own
+  node (`<name>.${TS_TAILNET_DOMAIN}`) and the app container has **no
+  `ports:` and no `networks:` of its own** — it runs
+  `network_mode: service:<sidecar>` and borrows the sidecar's entire
+  network namespace.
+- The sidecar reads its `serve.json` (via `TS_SERVE_CONFIG=/config/serve.json`)
+  using `${TS_CERT_DOMAIN}` templating; it's re-read on sidecar container
+  start, so the file must stay present at the mounted path (not a one-shot
+  apply like Pattern A). Every sidecar stack mounts the **whole `ts-config`
+  directory** at `/config` and `deploy.sh` pushes `serve.json` into
+  `ts-config/serve.json` on the NAS — do not reintroduce single-file
+  `<stack>/serve.json:/config/serve.json` mounts (they're cwd-sensitive when
+  relative, and Docker silently creates a *directory* at the mount point if
+  the source file is missing).
+- If the app needs an extra LAN/host port besides the tailnet URL, that
+  `ports:` entry goes on the **sidecar** service, not the app (see
+  `pihole/docker-compose.yml`, `portainer/docker-compose.yml`).
+- If the app has sibling containers (a db, browserless, etc.), those
+  siblings join a dedicated bridge network (`<stack>-net`) and **the
+  sidecar also joins that same network** — that's what lets the app (which
+  has borrowed the sidecar's netns) still resolve siblings by name. Real
+  examples: `nextcloud/docker-compose.yml` (db + redis),
+  `n8n/docker-compose.yml` (browserless).
+- `syncthing` inverts the usual direction: the *app* container is primary
+  (keeps its own `ports:`/`hostname:`) and `ts-syncthing` runs
+  `network_mode: service:syncthing`, borrowing the app's netns instead of
+  the other way around. Don't assume all sidecar stacks are wired the same
+  way — check `network_mode` before editing.
+
+**⚠️ Critical gotcha — never use compose `hostname:` on a Tailscale
+sidecar.** Always set the tailnet name via `TS_HOSTNAME=<name>` env var.
+Using the compose `hostname:` field on a sidecar collides with Docker's
+internal DNS and breaks MagicDNS resolution for *every* sidecar on the
+host, not just the one you changed. This is documented inline in the
+affected compose files and in `README.md`.
+
+**`pihole` is a hybrid**, not a clean example of either pattern: it
+publishes ports 53/8080/8443 directly via `ports:` *and* runs host-level
+serve (Pattern A) *and* has a `ts-pihole` sidecar with its own `serve.json`
+(Pattern B) — all three simultaneously. Don't copy it as a template for a
+new stack.
+
+## Legacy directory paths — do not silently "fix"
+
+Four stacks were deployed before the `/volume1/docker/stacks/<name>`
+convention existed and still hold real data at their original path:
+`homeassistant` → `/volume1/docker/homeassistant`, `pihole` →
+`/volume1/docker/pihole`, `plex` → `/volume1/docker/plex`, `postgresql` →
+`/volume1/docker/postgresql` + `/volume1/docker/postgresadmin`. These are
+recorded as-is in `scripts/lib.sh` (`STACK_REMOTE_DIR`). Renaming these
+paths in compose files would orphan real data on the NAS unless someone
+manually migrates it first — don't do it as a drive-by cleanup.
+
+## Known bugs already fixed (context for git blame / history)
+
+- `postgresql/docker-compose.yml` used to have real DB/pgAdmin credentials
+  hardcoded in plaintext (now parameterized via `.env`). Those values were
+  already committed to git history before the fix — rotating the actual
+  NAS credentials is a manual follow-up, not something fixable by editing
+  files here.
+- `postgresql/.env.example` used to contain Plex's variables (copy-paste
+  bug) instead of Postgres/pgAdmin ones.
+- `homeassistant/docker-compose.yml` had a stray `depends_on: - nextcloud`
+  on its Tailscale sidecar (copy-paste leftover, removed).
+
+## Environment variable conventions
+
+- Naming: inside a stack's compose file and generated `.env`, the Tailscale
+  auth key is just `TS_AUTHKEY` (each stack has its own `.env`, so no
+  collision). The *central* secrets file keeps them distinct as
+  `TS_AUTHKEY_<STACK>` since it's a single file holding every stack's key —
+  `gen-env.sh` maps `TS_AUTHKEY_<STACK>` → `TS_AUTHKEY` at generation time.
+  `TS_CERT_DOMAIN` (full MagicDNS name used inside `serve.json` templating,
+  auto-derived by `gen-env.sh` from `TS_TAILNET_DOMAIN` + stack name),
+  `TS_HOSTNAME` (set directly in compose, not via secrets file — it's the
+  same value as the stack name, not a secret).
+- Generate Tailscale auth keys at
+  `https://login.tailscale.com/admin/settings/keys` — reusable,
+  pre-authorized keys, one per `TS_AUTHKEY_<STACK>` variable in the central
+  secrets file (some stacks currently reuse the same key across sidecars;
+  not ideal but not broken).
+
+## Working on a stack
+
+1. `cd <stack>` and read its `docker-compose.yml`, `.env.example`, and
+   `PORTAINER.md`/`README.md` if present — conventions vary per stack,
+   don't assume `_template/` is followed exactly everywhere.
+2. Validate compose changes with `docker compose config` (catches
+   YAML/interpolation errors without needing the real NAS or secrets —
+   `docker compose config` will fail if the local `.env` doesn't exist or
+   is missing a referenced var, so run `scripts/gen-env.sh <stack>` first).
+3. If adding a new env var, update both that stack's `.env.example` and
+   `iac-secrets.env.example` (see "Secrets" above).
+4. If adding a new sidecar-pattern stack, start from `_template/` and
+   follow `_template/README.md`, which lists everything to wire up in
+   `scripts/lib.sh`.
+5. There's no linter/CI wired up for compose or shell; a markdown linter
+   (`rumdl`) runs via LSP diagnostics on `.md` files but the existing docs
+   already violate its line-length rule extensively — don't treat those
+   warnings as blocking.
+
+## Commands
+
+```bash
+# Generate a stack's real .env from the central secrets file
+scripts/gen-env.sh <stack>
+scripts/gen-env.sh --all
+
+# Validate a stack's compose file without deploying (needs .env to exist)
+cd <stack> && docker compose config
+
+# Full deploy pipeline (env + dirs + push + serve + up) — requires SSH
+# access to the NAS, not runnable from this sandbox
+scripts/deploy.sh all <stack> <ssh-host>
+
+# Apply/reset all host-level Tailscale serve mappings — also requires SSH
+scripts/serve-all.sh <ssh-host>
+scripts/serve-all.sh <ssh-host> --reset
+```

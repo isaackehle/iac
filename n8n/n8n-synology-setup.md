@@ -1,22 +1,5 @@
 # N8N on Synology NAS via Portainer — Setup Guide
 
-## Quick caveat before you build this
-
-Automating a _logged-in_ Facebook session with a headless browser to scrape another person's page is against Facebook's
-Terms of Service, and Facebook actively fingerprints and flags this kind of automation. Realistic risks:
-
-- Your Facebook account can get temporarily or permanently locked/banned for "suspicious automated activity."
-- Facebook rotates DOM structure and adds bot-detection challenges (captchas, checkpoint verification) that will
-  silently break the workflow.
-- If Robert Groisman's page is public, an RSS-to-something bridge or a simple periodic `HTTP Request` node against the
-  public page (no login) is far more durable and lower-risk than driving a logged-in Chromium session.
-
-None of that stops you from building it — it's your account and your risk to take — but I'd steer you toward the
-no-login, public-page-only approach if possible, and treat the headless-browser-with-login approach as a fallback. The
-guide below covers the infrastructure either way; the workflow-specific node choice is up to you.
-
----
-
 ## 1. Prerequisites on the Synology NAS
 
 1. DSM 7.x with **Container Manager** (DSM 7.2+) or the legacy **Docker** package (DSM 7.0–7.1) installed via Package
@@ -57,8 +40,7 @@ sidecar-fronted services, with a config dir, a files dir, and the sidecar's own 
 ├── config/             # n8n's persistent config, credentials, workflow DB (SQLite by default)
 ├── files/              # shared folder for file-based nodes (exports, downloads)
 ├── ts-state/           # tailscale sidecar's persistent state
-├── ts-config/          # tailscale sidecar's config dir (holds serve.json at runtime)
-├── serve.json          # tailscale serve config, mounted read-only into the sidecar
+├── ts-config/          # tailscale sidecar's config dir (holds serve.json)
 └── docker-compose.yml
 ```
 
@@ -67,14 +49,14 @@ mkdir -p /volume1/docker/stacks/n8n/{config,files,ts-state,ts-config}
 chown -R 1000:1000 /volume1/docker/stacks/n8n/config   # n8n container runs as uid 1000 by default
 ```
 
-You'll also need `serve.json` in that directory before the stack comes up cleanly — a copy is provided alongside this
+You'll also need `serve.json` inside `ts-config/` before the stack comes up cleanly — a copy is provided alongside this
 guide, pre-filled with n8n's internal port (5678). `${TS_CERT_DOMAIN}` is filled in automatically by the Tailscale
 sidecar at runtime, so nothing to edit there.
 
 And two env vars this compose file expects, either in your Portainer stack's environment settings or a `.env` file
 alongside it:
 
-- `TS_AUTHKEY_N8N` — a fresh Tailscale auth key for this node (from the Tailscale admin console)
+- `TS_AUTHKEY` — a fresh Tailscale auth key for this node (from the Tailscale admin console)
 - `N8N_ENCRYPTION_KEY` — generate once with `openssl rand -hex 24` and keep it stable; it encrypts n8n's stored
   credentials
 - `TZ` and `TS_TAILNET_DOMAIN` if those aren't already set globally in your Portainer environment
@@ -82,10 +64,11 @@ alongside it:
 ## 4. Copy the compose file and serve.json to the NAS via SCP
 
 From your local machine (Mac/Linux/WSL terminal), with `docker-compose.yml` and `serve.json` saved locally, copy both
-into the directory you just created:
+into the directory you just created (`serve.json` goes inside `ts-config/`):
 
 ```bash
-scp docker-compose.yml serve.json your-user@nas-ip:/volume1/docker/stacks/n8n/
+scp docker-compose.yml your-user@nas-ip:/volume1/docker/stacks/n8n/
+scp serve.json your-user@nas-ip:/volume1/docker/stacks/n8n/ts-config/
 ```
 
 - Replace `your-user` with your Synology SSH account and `nas-ip` with the NAS's local IP or Tailscale hostname.
@@ -128,37 +111,12 @@ Key things the compose file sets up:
 1. From a device on your tailnet, visit `http://n8n:5678` (or whatever hostname/URL `TS_SERVE_CONFIG` exposes via
    `serve.json`) and create your owner account.
 2. Go to **Credentials** and add:
-   - **Telegram API** credential (bot token from @BotFather) for the notification step.
-   - **HTTP Request** generic credential if you go the no-login public-scrape route, or point browser-automation nodes
+   - **Telegram API** credential (bot token from @BotFather) for notifications.
+   - **HTTP Request** credential for calling external APIs, or point browser-automation nodes
      at `http://browserless:3000` if using headless Chromium.
-3. Set a **workflow-level schedule trigger** (e.g., every 4 hours) — don't poll more frequently than that; aggressive
-   polling is what gets automation flagged.
+3. Build your workflows in the n8n editor — the infrastructure is ready, the logic is yours.
 
-## 7. Workflow skeleton (build this in the n8n editor, not via code)
-
-```
-[Schedule Trigger]
-      ↓
-[HTTP Request or Browserless/Puppeteer node] → fetch page content
-      ↓
-[Code node] → diff against last-seen post IDs (store in n8n's built-in data store
-              or a small JSON file in /volume1/docker/stacks/n8n/files)
-      ↓
-[If new posts exist] → branch
-      ↓
-[HTTP Request to Claude/Anthropic API, or OpenAI node] → summarize new content
-      ↓
-[Telegram node] → send summary to your group chat
-```
-
-Notes:
-
-- The "diff against last-seen" step is what makes this "only new since last time" rather than resending everything each
-  run — store a simple timestamp or post-ID list, not the full content.
-- If you use the Anthropic API node/HTTP call, remember it needs its own API key — separate from your claude.ai login,
-  from the Claude Platform / console.anthropic.com.
-
-## 8. Remote access
+## 7. Remote access
 
 This is already handled by the `n8n-ts` sidecar in the compose file — n8n has no `ports:` of its own, so it's only
 reachable via its tailnet hostname (`n8n` on your tailnet, or whatever `TS_SERVE_CONFIG`/`serve.json` exposes). Nothing
@@ -166,7 +124,7 @@ is bound to the NAS's LAN interface or exposed publicly, consistent with your ot
 LAN access without going through Tailscale, add a `ports:` entry to `n8n-ts` (not to `n8n` itself) rather than
 reintroducing a port on the app container.
 
-## 9. Backups
+## 8. Backups
 
 Add `/volume1/docker/stacks/n8n/` (config, files, and ts-state) to your existing Synology backup task (Hyper Backup or
 your Syncthing scope) — `config` holds your workflows, credentials, and execution history, and `ts-state` holds the

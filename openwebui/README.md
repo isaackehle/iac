@@ -13,19 +13,19 @@ cd /volume1/docker/stacks/openwebui
 docker compose up -d
 ```
 
-Open Web UI at `https://openwebui.tail303fda.ts.net`, create your admin account (first user = admin), then get an API key from **Settings → Account → API Keys**.
+Open Web UI at `https://openwebui.${TS_TAILNET_DOMAIN}`, create your admin account (first user = admin), then get an API key from **Settings → Account → API Keys**.
 
 ### 2. Configure multiple Ollama backends
 
 Set environment variables and deploy:
 
 ```bash
-export OPENWEBUI_API_URL="https://openwebui.tail303fda.ts.net"
+export OPENWEBUI_API_URL="https://openwebui.${TS_TAILNET_DOMAIN}"
 export OPENWEBUI_API_KEY="sk-your-api-key-here"
 export OLLAMA_ENGINES='[
   {"name":"local","url":"http://host.docker.internal:11434"},
-  {"name":"ds9","url":"https://ds9.tail303fda.ts.net:8080"},
-  {"name":"enterprise","url":"https://enterprise.tail303fda.ts.net:8080"}
+  {"name":"ds9","url":"https://ds9.${TS_TAILNET_DOMAIN}:8080"},
+  {"name":"enterprise","url":"https://enterprise.${TS_TAILNET_DOMAIN}:8080"}
 ]'
 
 docker compose up -d openwebui-config
@@ -54,7 +54,7 @@ This deployment uses the **named connections approach**: each backend is registe
 | **Named connections** (this template) | Clear machine labels; model ownership visible; no collisions | Requires post-deploy API call               |
 | Flat env var (`OLLAMA_BASE_URLS`)     | Purely declarative; one container create                     | Single flat list; name collisions ambiguous |
 
-See the discussion in [`README.md`](#discussing-multiple-ollama-backends) for more.
+See "Why named connections vs. flat `OLLAMA_BASE_URLS`?" above for more.
 
 ### Environment variables
 
@@ -65,7 +65,7 @@ Required:
 
 Optional:
 
-- `OPENWEBUI_API_URL` — Default: `http://localhost:8080`; use Tailscale URL when deploying to NAS: `https://openwebui.tail303fda.ts.net`
+- `OPENWEBUI_API_URL` — Default: `http://localhost:8080`; use Tailscale URL when deploying to NAS: `https://openwebui.${TS_TAILNET_DOMAIN}`
 
 ### OLLAMA_ENGINES format
 
@@ -78,7 +78,7 @@ Optional:
   },
   {
     "name": "ds9",
-    "url": "https://ds9.tail303fda.ts.net:8080",
+    "url": "https://ds9.${TS_TAILNET_DOMAIN}:8080",
     "description": "DS9 NAS via Tailscale"
   }
 ]
@@ -99,7 +99,7 @@ See [`example-engines.json`](./example-engines.json) for a complete example with
 If you need to reconfigure after initial deploy:
 
 ```bash
-export OPENWEBUI_API_URL="https://openwebui.tail303fda.ts.net"
+export OPENWEBUI_API_URL="https://openwebui.${TS_TAILNET_DOMAIN}"
 export OPENWEBUI_API_KEY="sk-new-api-key-here"
 export OLLAMA_ENGINES='[{"name":"local","url":"http://host.docker.internal:11434"}]'
 
@@ -131,7 +131,7 @@ docker run --rm \
 3. **Set up Tailscale auth key:**
 
    ```bash
-   export TS_AUTHKEY_OPENWEBUI="key-xxxxxxxxxxxx"  # From https://login.tailscale.com/admin/key/new
+   export TS_AUTHKEY="key-xxxxxxxxxxxx"  # From https://login.tailscale.com/admin/key/new
    cp .env.example .env
    nano .env  # Add your auth key
    ```
@@ -143,14 +143,14 @@ docker run --rm \
    ```
 
 5. **Create admin account and get API key:**
-   Open `https://openwebui.tail303fda.ts.net` → create first user (admin) → Settings → Account → API Keys → Create new key
+   Open `https://openwebui.${TS_TAILNET_DOMAIN}` → create first user (admin) → Settings → Account → API Keys → Create new key
 
 6. **Configure Ollama backends:**
    See "Configuring Multiple Ollama Backends" above
 
 ## Known issues
 
-- DNS collision: The `openwebui` hostname is set via env var (`TS_HOSTNAME=openwebui`), not the compose `hostname:` field, to avoid collisions with other Tailscale sidecars. This is intentional and documented in [`_template/README.md`](../../../iac/_template/README.md#known-dns-collision).
+- DNS collision: The `openwebui` hostname is set via env var (`TS_HOSTNAME=openwebui`), not the compose `hostname:` field, to avoid collisions with other Tailscale sidecars. This is intentional and documented in [`_template/README.md`](../_template/README.md#known-dns-collision) and the root `README.md`.
 
 ## Contributing
 

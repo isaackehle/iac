@@ -2,7 +2,7 @@
   "description": "Example Ollama backend configuration for OpenWebUI named connections",
   "usage_notes": [
     "Set environment variables before running configure-ollama.sh:",
-    "  - OPENWEBUI_API_URL=https://openwebui.tail303fda.ts.net",
+    "  - OPENWEBUI_API_URL=https://openwebui.${TS_TAILNET_DOMAIN}",
     "  - OPENWEBUI_API_KEY=sk-your-admin-api-key-here",
     "  - OLLAMA_ENGINES='[...]' (paste this JSON content)",
     "",
@@ -16,14 +16,14 @@
     },
     {
       "name": "ds9",
-      "url": "https://ds9.tail303fda.ts.net:8080",
+      "url": "https://ds9.${TS_TAILNET_DOMAIN}:8080",
       "description": "DS9 NAS via Tailscale (HTTPS with port)"
     },
     {
       "name": "enterprise",
-      "url": "https://enterprise.tail303fda.ts.net:8080",
+      "url": "https://enterprise.${TS_TAILNET_DOMAIN}:8080",
       "description": "Enterprise server via Tailscale"
     }
   ],
-  "example_env_vars": "OPENWEBUI_API_URL=https://openwebui.tail303fda.ts.net\nOLLAMA_ENGINES='{\"name\":\"local\",\"url\":\"http://host.docker.internal:11434\"},{\"name\":\"ds9\",\"url\":\"https://ds9.tail303fda.ts.net:8080\"}'\nOPENWEBUI_API_KEY=sk-xxx"
+  "example_env_vars": "OPENWEBUI_API_URL=https://openwebui.${TS_TAILNET_DOMAIN}\nOLLAMA_ENGINES='{\"name\":\"local\",\"url\":\"http://host.docker.internal:11434\"},{\"name\":\"ds9\",\"url\":\"https://ds9.${TS_TAILNET_DOMAIN}:8080\"}'\nOPENWEBUI_API_KEY=sk-xxx"
 }

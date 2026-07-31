@@ -1,154 +1,69 @@
 # Quick Start Guide
 
-For each stack below: copy `.env.example` → `.env`, fill in secrets, then run `docker compose up -d`.
+One-time setup, then per-stack deploys. See `README.md` for the full
+secrets/deploy model and Tailscale pattern details.
 
 ---
 
-## Home Assistant (sidecar pattern)
+## One-time: set up the secrets file
 
 ```bash
-cd homeassistant
-cp .env.example .env  # edit to add TS_AUTHKEY_HOMEASSISTANT
-docker compose up -d
-# Deploy your actual HA app container via Portainer with: network_mode: service:ts-homeassistant
+cp iac-secrets.env.example iac-secrets.env
+$EDITOR iac-secrets.env   # fill in real values
 ```
 
-**Access:** `https://homeassistant.<tailnet>.ts.net`
+This file lives at the repo root, gitignored and never committed. Every
+stack's real `.env` is generated from it.
 
 ---
 
-## Nextcloud (sidecar pattern)
+## Per-stack deploy
 
 ```bash
-cd nextcloud
-cp .env.example .env  # edit to add secrets
-docker compose up -d
+scripts/deploy.sh all <stack> <ssh-host>
 ```
 
-**Access:** `https://nextcloud.<taillet>.ts.net`
+This generates the stack's `.env`, creates its directories on the NAS,
+pushes the compose file + `.env` + any extra config, applies host-level
+`tailscale serve` mappings if the stack needs them, and runs
+`docker compose up -d` — in one command. `<ssh-host>` is anything
+`ssh`/`scp` accepts (an `~/.ssh/config` alias or `user@host`).
 
----
-
-## Pihole (sidecar + host ports)
+Run the steps individually if you'd rather stage files first and deploy via
+the Portainer UI instead of `docker compose up -d` directly:
 
 ```bash
-cd pihole
-cp .env.example .env  # edit PIHOLE_PASSWORD
-./apply-serve.sh      # register Tailscale serve mapping
-docker compose up -d
+scripts/deploy.sh env   <stack>                # generate <stack>/.env locally
+scripts/deploy.sh dirs  <stack> <ssh-host>      # mkdir -p + chown on the NAS
+scripts/deploy.sh push  <stack> <ssh-host>      # scp files into place
+scripts/deploy.sh serve <stack> <ssh-host>      # host-level tailscale serve, if applicable
 ```
 
-**Access:** `https://nas.<tailnet>.ts.net:8080` (web), `https://nas.<tailnet>.ts.net:8443` (admin)
+After `push`, the compose file and `.env` are already sitting in the
+stack's directory on the NAS — in Portainer, deploy from repository
+(`github.com/isaackehle/iac.git`, path `<stack>/docker-compose.yml`) and
+point it at that same `.env` path, or paste the generated `.env`'s contents
+into the stack's Environment variables.
+
+### Per-stack notes
+
+- **mosquitto** has no Tailscale integration; after `deploy.sh dirs`/`push`,
+  SSH in and run `mosquitto/init.sh` once to generate the hashed password
+  file (needs `MQTT_PASSWORD` set in the shell environment).
+- **frigate** needs real camera RTSP details filled into
+  `frigate/frigate-config.yml` (it reads credentials from
+  `{FRIGATE_RTSP_USER}`/`{FRIGATE_RTSP_PASSWORD}`, substituted from the
+  stack's `.env` at container start).
+- **plex** needs `PLEX_CLAIM` from <https://www.plex.tv/claim> — only
+  required on first run.
+- **openwebui** needs a post-deploy step to register Ollama backends; see
+  `openwebui/README.md`.
 
 ---
 
-## Plex (sidecar pattern)
+## Applying all host-level serve mappings at once
 
 ```bash
-cd plex
-cp .env.example .env  # edit PLEX_CLAIM, TS_AUTHKEY_PLEX
-docker compose up -d
-```
-
-**Access:** `https://plex.<tailnet>.ts.net:32400`
-
----
-
-## PostgreSQL (host serve)
-
-```bash
-cd postgresql
-cp .env.example .env  # edit if needed
-./apply-serve.sh      # register Tailscale serve mapping
-docker compose up -d
-```
-
-**Access:** `https://nas.<tailnet>.ts.net:2660` (pgAdmin)
-
----
-
-## Frigate (host serve, no sidecar)
-
-```bash
-cd frigate
-cp .env.example .env  # edit MQTT credentials
-./apply-serve.sh      # register Tailscale serve mapping
-docker compose up -d
-```
-
-**Access:** `https://nas.<tailnet>.ts.net:8971` (web), RTSP at `rtsp://<TS_IP>:8554`
-
----
-
-## Affine (host serve, no sidecar)
-
-```bash
-cd affine
-cp .env.example .env  # edit secrets
-./apply-serve.sh      # register Tailscale serve mapping
-docker compose up -d
-```
-
-**Access:** `https://nas.<tailnet>.ts.net:3010`
-
----
-
-## Syncthing (sidecar pattern)
-
-```bash
-cd syncthing
-cp .env.example .env  # edit SYNC_PUID, SYNC_PGID, TS_AUTHKEY_SYNCTHING
-./apply-serve.sh      # register Tailscale serve mapping
-docker compose up -d
-```
-
-**Access:** `https://syncthing.<tailnet>.ts.net`
-
----
-
-## OpenWebUI (sidecar pattern)
-
-```bash
-cd openwebui
-cp .env.example .env  # edit OPENWEBUI_API_KEY, OLLAMA_ENGINES
-docker compose up -d
-# Optional: ./configure-ollama.sh to set up Ollama engines
-```
-
-**Access:** `https://openwebui.<tailnet>.ts.net` (via sidecar)
-
----
-
-## Mosquitto (host ports only, no Tailscale)
-
-```bash
-cd mosquitto
-cp .env.example .env  # edit if needed
-docker compose up -d
-```
-
-**Access:** LAN-only via `mosquitto.<tailnet>.ts.net:1883` once tailscaled is running on the host.
-
----
-
-## Portainer (sidecar + host ports)
-
-```bash
-cd portainer
-cp .env.example .env  # edit TS_AUTHKEY_PORTAINER, TZ
-docker compose up -d
-# Note: this exposes some ports directly to LAN as well (9000, 8000, 19443)
-```
-
-**Access:** `https://portainer.<tailnet>.ts.net`, plus direct LAN on port 9000.
-
----
-
-## Applying all host serve mappings at once
-
-From the repo root:
-
-```bash
-./apply-serve.sh              # apply all stacks
-./apply-serve.sh --reset      # reset everything, then re-apply
+scripts/serve-all.sh <ssh-host>              # apply all stacks
+scripts/serve-all.sh <ssh-host> --reset      # reset everything, then re-apply
 ```

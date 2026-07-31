@@ -48,14 +48,13 @@ services:
                              # compose `hostname:` field (which causes a real DNS
                              # collision with other sidecar nodes — see README
                              # "known DNS collision")
-      - TS_AUTHKEY=${TS_AUTHKEY_OPENWEBUI}
+      - TS_AUTHKEY=${TS_AUTHKEY}
       - TS_STATE_DIR=/var/lib/tailscale
       - TS_AUTH_ONCE=true
       - TS_SERVE_CONFIG=/config/serve.json
     volumes:
       - /volume1/docker/stacks/openwebui/ts-state:/var/lib/tailscale
       - /volume1/docker/stacks/openwebui/ts-config:/config
-      - /volume1/docker/stacks/openwebui/serve.json:/config/serve.json:ro
     devices:
       - /dev/net/tun:/dev/net/tun
     cap_add:

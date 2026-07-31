@@ -1,114 +1,160 @@
 # Infrastructure as Code
 
-This repo contains Docker Compose stacks and Tailscale serve configuration for
-**NAS** (`nas.<tailnet>.ts.net`), a self-hosted Linux server running on
-the `<tailnet>.ts.net` tailnet.
+Docker Compose stacks and Tailscale serve configuration for **NAS**, a
+self-hosted Synology server on the `${TS_TAILNET_DOMAIN}` tailnet.
 
 ---
 
 ## Stacks
 
-| Stack           | Tailscale URL                                 | Pattern    | Port(s)                                |
-| --------------- | --------------------------------------------- | ---------- | -------------------------------------- |
-| `affine`        | `https://nas.<tailnet>.ts.net:3010`           | host serve | 3010                                   |
-| `frigate`       | `https://nas.<tailnet>.ts.net:8971`           | host serve | 8971 (web), 8554 (rtsp), 8555 (webrtc) |
-| `homeassistant` | `https://nas.<tailnet>.ts.net:8123`           | host serve | 8123                                   |
-| `nextcloud`     | `https://nextcloud.<tailnet>.ts.net`         | TS sidecar | 443 → container:80                     |
-| `pihole`        | `https://nas.<tailnet>.ts.net:8080` / `:8443` | host serve | 8080→80, 8443→443                      |
-| `plex`          | `https://plex.<tailnet>.ts.net`              | TS sidecar | 443 → container:32400                  |
-| `postgresql`    | `https://nas.<tailnet>.ts.net:2660`           | host serve | 2660→5050 (pgAdmin)                    |
-| `syncthing`     | `https://syncthing.<tailnet>.ts.net`         | TS sidecar | 443 → container:8384                   |
+| Stack           | Tailscale URL                                     | Pattern    |
+| --------------- | ------------------------------------------------- | ---------- |
+| `affine`        | `https://nas.${TS_TAILNET_DOMAIN}:3010`           | host serve |
+| `frigate`       | `https://nas.${TS_TAILNET_DOMAIN}:8971`           | host serve |
+| `homeassistant` | `https://homeassistant.${TS_TAILNET_DOMAIN}`      | TS sidecar |
+| `mosquitto`     | n/a — LAN/tailnet IP only, port 1883              | none       |
+| `n8n`           | `https://n8n.${TS_TAILNET_DOMAIN}`                | TS sidecar |
+| `nextcloud`     | `https://nextcloud.${TS_TAILNET_DOMAIN}`          | TS sidecar |
+| `openwebui`     | `https://openwebui.${TS_TAILNET_DOMAIN}`          | TS sidecar |
+| `pihole`        | `https://nas.${TS_TAILNET_DOMAIN}:8080` / `:8443` | hybrid     |
+| `plex`          | `https://plex.${TS_TAILNET_DOMAIN}`               | TS sidecar |
+| `portainer`     | `https://portainer.${TS_TAILNET_DOMAIN}`          | TS sidecar |
+| `postgresql`    | `https://nas.${TS_TAILNET_DOMAIN}:2660` (pgAdmin) | host serve |
+| `syncthing`     | `https://syncthing.${TS_TAILNET_DOMAIN}`          | TS sidecar |
+
+---
+
+## Secrets
+
+Real secrets (Tailscale auth keys, passwords, API keys) live in a single
+file at the repo root, gitignored and never committed:
+
+```text
+iac-secrets.env
+```
+
+Override the location with `IAC_SECRETS_FILE=/some/path` if you keep it
+somewhere else (e.g. a synced folder outside the repo).
+
+`iac-secrets.env.example` (repo root) documents every key each stack needs
+and is safe to commit — it has no real values. Copy it to `iac-secrets.env`
+once and fill in real values there.
+
+Each stack still has a `.env.example` describing what _that stack_ needs;
+`scripts/gen-env.sh` cross-references the two to produce a real `.env`
+per stack (gitignored, never committed):
+
+```bash
+scripts/gen-env.sh <stack>     # generate ./<stack>/.env
+scripts/gen-env.sh --all       # generate .env for every stack
+```
+
+Any key still blank or left as a placeholder (`changeme`, `tskey-auth-xxxx`,
+`${TS_TAILNET_DOMAIN}`, ...) after generation is printed as a warning — fill it into
+`iac-secrets.env` and re-run.
+
+`TS_CERT_DOMAIN` doesn't need to be repeated per stack in the secrets file:
+set `TS_TAILNET_DOMAIN` once (e.g. `${TS_TAILNET_DOMAIN}`) and `gen-env.sh`
+derives `<stack>.<TS_TAILNET_DOMAIN>` automatically for any stack that needs
+it, unless you override it explicitly.
+
+---
+
+## Deploying a stack
+
+`scripts/deploy.sh` pushes a stack from your laptop to the NAS over SSH —
+no manual copy/paste into Portainer required, though that still works too.
+
+```bash
+scripts/deploy.sh env   <stack>                # generate <stack>/.env locally
+scripts/deploy.sh dirs  <stack> <ssh-host>      # mkdir -p + chown on the NAS
+scripts/deploy.sh push  <stack> <ssh-host>      # scp compose file, .env, serve.json, etc.
+scripts/deploy.sh serve <stack> <ssh-host>      # apply host-level tailscale serve (if applicable)
+scripts/deploy.sh up    <stack> <ssh-host>      # ssh in, docker compose up -d
+scripts/deploy.sh all   <stack> <ssh-host>      # all of the above, in order
+```
+
+`<ssh-host>` is anything `ssh`/`scp` accepts — an `~/.ssh/config` alias
+(`nas`) or `user@192.168.1.20`.
+
+Directory layout, which extra files get copied where, and which stacks get
+host-level `tailscale serve` mappings all come from `scripts/lib.sh` — that
+file is the single source of truth, so every stack is provisioned the same
+way instead of each having its own bespoke setup script (the old per-stack
+`init.sh` / `apply-serve.sh` / `deploy-*.sh` scripts have been removed).
+
+To apply/reset every stack's host-level serve mapping at once:
+
+```bash
+scripts/serve-all.sh <ssh-host>              # apply all mappings
+scripts/serve-all.sh <ssh-host> --reset      # reset first, then apply all
+```
+
+### Adding a new stack
+
+1. Copy `_template/` to `<new-stack>/` and follow its `README.md`.
+2. Add the secrets it needs to `iac-secrets.env.example` and your real
+   `./iac-secrets.env (repo root, gitignored)`.
+3. Add an entry for it in `scripts/lib.sh` (`ALL_STACKS`, `STACK_REMOTE_DIR`,
+   `STACK_DIRS`, and `STACK_EXTRA_FILES`/`STACK_SERVE_PORTS` if needed).
+4. `scripts/deploy.sh all <new-stack> <ssh-host>`.
 
 ---
 
 ## Tailscale patterns
 
-Two patterns are used across this repo. Do not mix them for the same service.
+Two patterns are used across this repo. Do not mix them for the same
+service.
 
 ### Pattern A — Host-level `tailscale serve` (NAS node)
 
-Used by: `affine`, `frigate`, `homeassistant`, `pihole`, `postgresql`
+Used by: `affine`, `frigate`, `postgresql` (`pihole` is a hybrid, see below)
 
-The container binds a port on the host. The `NAS` host's Tailscale daemon
-reverse-proxies that port over HTTPS via `tailscale serve --bg`. Access is via
-`nas.<tailnet>.ts.net:<port>`.
+The container binds a port on the host. The NAS host's own Tailscale daemon
+reverse-proxies that port over HTTPS via `tailscale serve --bg`. Access is
+via `nas.${TS_TAILNET_DOMAIN}:<port>`. Mappings are defined in
+`scripts/lib.sh` (`STACK_SERVE_PORTS`) and applied with
+`scripts/deploy.sh serve <stack> <ssh-host>` or `scripts/serve-all.sh`.
 
-Each stack has an `apply-serve.sh` that registers its port(s). The top-level
-`apply-serve.sh` at the repo root traverses all subdirectories and calls each
-one in sequence.
+Backend scheme matters:
 
-```bash
-# Apply all host serve mappings
-./apply-serve.sh
-
-# Reset everything and re-apply
-./apply-serve.sh --reset
-```
-
-#### Home Assistant on Tailscale
-
-Home Assistant uses the **host-level serve** pattern in this repo.
-
-That means the Home Assistant container is **not** its own Tailscale node.
-Instead:
-
-1. Home Assistant publishes its web UI on the host, typically on port `8123`.
-2. The `NAS` host joins the tailnet and runs `tailscaled`.
-3. `tailscale serve --bg` terminates HTTPS on the `NAS` node and proxies
-   requests to the Home Assistant backend on the local host.
-
-Example:
-
-```bash
-tailscale serve --bg https:8123 http://127.0.0.1:8123
-```
-
-Clients on the tailnet then reach Home Assistant at:
-
-```text
-https://nas.<tailnet>.ts.net:8123
-```
-
-If the backend container uses plain HTTP, use `http://127.0.0.1:<port>`.
-If the backend container serves HTTPS with a self-signed certificate, use
-`https+insecure://127.0.0.1:<port>` instead.
-
-#### Adding a container to the Tailscale network
-
-“Add the container to Tailscale” can mean two different things in this repo:
-
-- **Host serve pattern:** the container publishes a port on `NAS`, and the
-  host's Tailscale daemon proxies traffic to it. The container itself does not
-  join the tailnet.
-- **Sidecar pattern:** a dedicated `tailscale/tailscale` container joins the
-  tailnet as its own node and proxies to the app container over Docker
-  networking.
-
-For Home Assistant, use the **host serve pattern** unless there is a specific
-reason to give it its own tailnet identity.
+| Backend type                          | Use                                 |
+| ------------------------------------- | ----------------------------------- |
+| Plain HTTP container                  | `http://127.0.0.1:<port>`           |
+| HTTPS container with self-signed cert | `https+insecure://127.0.0.1:<port>` |
 
 ### Pattern B — Tailscale sidecar container (own tailnet node)
 
-Used by: `nextcloud`, `plex`, `syncthing`
+Used by: `homeassistant`, `n8n`, `nextcloud`, `openwebui`, `plex`,
+`portainer`, `syncthing` (`pihole` is a hybrid, see below)
 
-Each stack includes a `ts-<name>` sidecar container running
-`tailscale/tailscale:latest`. The sidecar registers as its own node on the
-tailnet (e.g. `plex.<tailnet>.ts.net`) and applies a `serve.json` config that
-proxies HTTPS traffic to the app container via `network_mode: service:ts-<name>`.
+Each stack includes a `tailscale/tailscale:latest` sidecar that joins the
+tailnet as its own node (e.g. `plex.${TS_TAILNET_DOMAIN}`). The app container
+has **no `ports:` and no `networks:` of its own** — it runs
+`network_mode: service:<sidecar>` and borrows the sidecar's entire network
+namespace. The sidecar mounts a `serve.json` (via
+`TS_SERVE_CONFIG=/config/serve.json`), which it re-reads on container start.
 
-Each stack's `ts-config-serve.json` is mounted into the sidecar at
-`/config/serve.json` via `TS_SERVE_CONFIG`.
+If the app needs an extra LAN/host port besides the tailnet URL, add that
+`ports:` entry to the **sidecar** service, not the app.
+
+If the app has sibling containers (a db, browserless, etc.), those siblings
+join a dedicated bridge network (`<stack>-net`) and the **sidecar also
+joins that network** — that's what lets the app (which has borrowed the
+sidecar's netns) still resolve siblings by name. See
+`nextcloud/docker-compose.yml` (db + redis) or `n8n/docker-compose.yml`
+(browserless) for real examples.
+
+`syncthing` inverts the usual direction: the app container is primary and
+keeps its own `ports:`/`hostname:`, and `ts-syncthing` borrows _its_ netns
+instead of the other way around.
 
 #### ⚠️ `TS_HOSTNAME` vs `hostname:` — known DNS collision
 
-Always set the node name via the `TS_HOSTNAME` environment variable on the
-sidecar. Do **not** use the Docker Compose `hostname:` field on the sidecar
-service.
-
-Using `hostname:` on the sidecar causes a DNS collision with other sidecar nodes
-on the same host — Docker's internal DNS resolver and Tailscale's MagicDNS
-both try to own the name, resulting in broken resolution for all sidecar nodes
-on the host.
+Always set the sidecar's tailnet name via the `TS_HOSTNAME` environment
+variable. Do **not** use the Docker Compose `hostname:` field on the
+sidecar — it collides with Docker's internal DNS resolver, breaking
+MagicDNS resolution for _every_ sidecar on the host, not just this one.
 
 **Correct:**
 
@@ -125,79 +171,47 @@ ts-plex:
   hostname: plex # ✗ collides with other sidecar hostnames on the host
 ```
 
+### `pihole` — hybrid (both patterns at once)
+
+`pihole` publishes ports 53/8080/8443 directly, runs host-level
+`tailscale serve` for the web admin, _and_ has its own `ts-pihole` sidecar
+with a `serve.json` — all three simultaneously. Don't use it as a template
+for a new stack; pick one pattern instead.
+
 ---
 
-## Auth keys
+## Legacy directory paths
 
-Each sidecar stack requires its own Tailscale auth key set in `.env`.
-Generate reusable, pre-authorized keys at:
-[https://login.tailscale.com/admin/settings/keys](https://login.tailscale.com/admin/settings/keys)
+Four stacks were deployed before the `/volume1/docker/stacks/<name>`
+convention existed and still hold real data at their original path.
+`scripts/lib.sh` (`STACK_REMOTE_DIR`) knows about these — don't "fix" them
+without manually migrating data on the NAS first:
 
-| Stack       | `.env` variable        |
-| ----------- | ---------------------- |
-| `nextcloud` | `TS_AUTHKEY_NEXTCLOUD` |
-| `plex`      | `TS_AUTHKEY_PLEX`      |
-| `syncthing` | `TS_AUTHKEY_SYNCTHING` |
+| Stack           | Actual path                                                   |
+| --------------- | ------------------------------------------------------------- |
+| `homeassistant` | `/volume1/docker/homeassistant`                               |
+| `pihole`        | `/volume1/docker/pihole`                                      |
+| `plex`          | `/volume1/docker/plex`                                        |
+| `postgresql`    | `/volume1/docker/postgresql`, `/volume1/docker/postgresadmin` |
 
-`.env` files are gitignored. Copy the `.env.example` in each stack directory
-and fill in values before running `docker compose up`.
+Every other stack uses `/volume1/docker/stacks/<name>`.
 
 ---
 
 ## Non-HTTP ports (not proxied by Tailscale Serve)
 
-These ports are accessible directly via Tailscale IP or tailnet hostname but
-are not handled by `tailscale serve` (which is HTTP/HTTPS only):
+These ports are reachable directly via the Tailscale IP/hostname but are
+not handled by `tailscale serve` (HTTP/HTTPS only):
 
-| Service             | Port  | Protocol  | Notes                                              |
-| ------------------- | ----- | --------- | -------------------------------------------------- |
-| Pi-hole DNS         | 53    | TCP + UDP | Configure as tailnet DNS resolver in admin console |
-| Frigate RTSP        | 8554  | TCP       | Use an RTSP client pointed at Tailscale IP         |
-| Frigate WebRTC      | 8555  | TCP + UDP | UDP not proxiable via serve                        |
-| Syncthing sync      | 22000 | TCP + UDP | Syncthing handles tailnet peers natively           |
-| Syncthing discovery | 21027 | UDP       | —                                                  |
-| PostgreSQL          | 5432  | TCP       | Connect via Tailscale IP directly                  |
-
----
-
-## Directory structure
-
-```text
-iac/
-├── README.md                  ← this file
-├── apply-serve.sh             ← top-level runner (traverses all stacks)
-├── affine/
-│   ├── apply-serve.sh
-│   └── docker-compose.yaml
-├── frigate/
-│   ├── apply-serve.sh
-│   ├── docker-compose.yaml
-│   └── frigate-config.yml
-├── homeassistant/
-│   ├── apply-serve.sh
-│   └── docker-compose.yaml
-├── nextcloud/
-│   ├── docker-compose.yml
-│   └── ts-config-serve.json
-├── pihole/
-│   ├── apply-serve.sh
-│   └── docker-compose.yaml
-├── plex/
-│   ├── apply-serve.sh         ← host-only fallback; not needed with sidecar
-│   ├── docker-compose.yaml
-│   ├── plex.env.example
-│   └── ts-config-serve.json
-├── postgresql/
-│   ├── apply-serve.sh
-│   └── docker-compose.yaml
-├── syncthing/
-│   ├── apply-serve.sh
-│   ├── docker-compose.yaml
-│   ├── syncthing-ts-config-serve.json
-│   └── syncthing.env.example
-└── tailscale/
-    └── apply-serve.sh         ← full master list of all host serve mappings
-```
+| Service             | Port  | Protocol  | Notes                                                                             |
+| ------------------- | ----- | --------- | --------------------------------------------------------------------------------- |
+| Pi-hole DNS         | 53    | TCP + UDP | Configure as tailnet DNS resolver in admin console                                |
+| Frigate RTSP        | 8554  | TCP       | Use an RTSP client pointed at the Tailscale IP                                    |
+| Frigate WebRTC      | 8555  | TCP + UDP | UDP not proxiable via serve                                                       |
+| Syncthing sync      | 22000 | TCP + UDP | Syncthing handles tailnet peers natively                                          |
+| Syncthing discovery | 21027 | UDP       | —                                                                                 |
+| PostgreSQL          | 2665  | TCP       | Connect via Tailscale IP directly                                                 |
+| Mosquitto MQTT      | 1883  | TCP       | No Tailscale integration; reachable because the NAS host itself runs `tailscaled` |
 
 ---
 
@@ -207,55 +221,47 @@ iac/
 
 `tailscale serve --bg` tells the Tailscale daemon (`tailscaled`) to:
 
-1. Open an HTTPS listener on the specified port on the node's Tailscale interface.
-2. Reverse-proxy inbound requests from tailnet clients to the corresponding local container.
-3. Present a valid TLS certificate issued by Tailscale for the tailnet hostname to clients, even when the backend uses a self-signed cert or plain HTTP.
+1. Open an HTTPS listener on the specified port on the node's Tailscale
+   interface.
+2. Reverse-proxy inbound requests from tailnet clients to the corresponding
+   local container.
+3. Present a valid TLS certificate issued by Tailscale for the tailnet
+   hostname, even when the backend uses a self-signed cert or plain HTTP.
 
-All endpoints are **tailnet-only**. Nothing is reachable from the public internet unless explicitly enabled via Funnel.
-
-### Backend scheme rules
-
-| Backend type                          | Use                                 |
-| ------------------------------------- | ----------------------------------- |
-| Plain HTTP container                  | `http://127.0.0.1:<port>`           |
-| HTTPS container with self-signed cert | `https+insecure://127.0.0.1:<port>` |
-
-Portainer (`9443`) and Pi-hole HTTPS (`8443`) both serve self-signed certs internally and require `https+insecure://`.
+All endpoints are **tailnet-only**. Nothing is reachable from the public
+internet unless explicitly enabled via Funnel.
 
 ### Managing host serve mappings
 
 ```bash
 # Apply all mappings (idempotent)
-./apply-serve.sh
+scripts/serve-all.sh <ssh-host>
 
 # Reset everything and re-apply
-./apply-serve.sh --reset
+scripts/serve-all.sh <ssh-host> --reset
 
 # Check current state
-tailscale serve status
+ssh <ssh-host> tailscale serve status
 
 # Remove a single port
-tailscale serve --https=8971 off
+ssh <ssh-host> "sudo tailscale serve --https=8971 off"
 
 # Remove all
-tailscale serve reset
+ssh <ssh-host> "sudo tailscale serve reset"
 ```
 
 ### Persistence
 
 `tailscale serve --bg` writes config into `tailscaled`'s internal state at
-`/var/lib/tailscale/`. It is not a running process — mappings survive reboots
-automatically as long as `tailscaled` starts at boot:
+`/var/lib/tailscale/`. It is not a running process — mappings survive
+reboots automatically as long as `tailscaled` starts at boot
+(`sudo systemctl enable --now tailscaled`).
 
-```bash
-sudo systemctl enable --now tailscaled
-```
-
-### `ts-config-serve.json` format (sidecar pattern)
+### `serve.json` format (sidecar pattern)
 
 Sidecar stacks mount a `serve.json` via `TS_SERVE_CONFIG`. The format uses
-`TCP` and `Web` top-level keys. `${TS_CERT_DOMAIN}` is substituted at runtime
-with the node's full MagicDNS name.
+`TCP` and `Web` top-level keys. `${TS_CERT_DOMAIN}` is substituted at
+runtime with the node's full MagicDNS name.
 
 ```json
 {
@@ -272,5 +278,19 @@ with the node's full MagicDNS name.
 }
 ```
 
-The sidecar re-reads this file on container start — unlike the host pattern,
-the file must remain present at the mounted path.
+The sidecar re-reads this file on container start — unlike the host
+pattern, the file must remain present at the mounted path.
+
+### Templated files (`*.tmpl`)
+
+Every sidecar stack keeps its committed `serve.json` source as
+`serve.json.tmpl`; `scripts/gen-env.sh` renders it to `serve.json`
+(gitignored, like `.env`) at deploy time. For most stacks the render just
+copies the file through, since Tailscale's own `${TS_CERT_DOMAIN}`
+substitution covers the node's own domain. `{{KEY}}` tokens (filled from
+`./iac-secrets.env (repo root, gitignored)`) are only needed for values Tailscale can't
+substitute — e.g. a backend on a _different_ tailnet node, as in
+`portainer/serve.json.tmpl` (backend is the separate `voyager` node), the
+only stack using a token today. If you add a new `.tmpl` file (beyond the
+standard `serve.json.tmpl`), also add its rendered output path to
+`.gitignore`.

@@ -7,7 +7,7 @@ set -euo pipefail
 # Environment variables (required):
 #   OPENWEBUI_API_URL    - e.g., http://localhost:8080 or https://openwebui.ts.net
 #   OLLAMA_ENGINES       - JSON array of objects with machine name and URL
-#                        Example: '[{"name":"local","url":"http://host.docker.internal:11434"},{"name":"ds9","url":"https://ds9.tail303fda.ts.net"}]'
+#                        Example: '[{"name":"local","url":"http://host.docker.internal:11434"},{"name":"ds9","url":"https://ds9.${TS_TAILNET_DOMAIN}"}]'
 #   OPENWEBUI_API_KEY    - Admin API key from OpenWebUI settings
 
 API_URL="${OPENWEBUI_API_URL:-http://localhost:8080}"

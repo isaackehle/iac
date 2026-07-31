@@ -7,34 +7,29 @@ services:
       - PUID=1000
       - PGID=1000
       - VERSION=docker
-      - PLEX_CLAIM=${PLEX_CLAIM}       # https://www.plex.tv/claim — only needed on first run
+      - PLEX_CLAIM=${PLEX_CLAIM} # https://www.plex.tv/claim — only needed on first run
     volumes:
       - /volume1/docker/plex/config:/config
-      - /volume1/media:/media           # adjust to your actual media path
+      - /volume1/media:/media # adjust to your actual media path
     # No ports: exposed — access is exclusively via the Tailscale sidecar.
     # If you need LAN access too, add: ports: ["32400:32400"]
     network_mode: service:ts-plex
     depends_on:
       - ts-plex
 
-
   ts-plex:
     image: tailscale/tailscale:latest
     container_name: ts-plex
     restart: unless-stopped
     environment:
-      - TS_HOSTNAME=plex                # registers as plex.<tailnet>.ts.net
-                                        # use TS_HOSTNAME, NOT compose `hostname:` —
-                                        # hostname: causes DNS collisions with other
-                                        # sidecar nodes (see CLAUDE.md)
-      - TS_AUTHKEY=${TS_AUTHKEY_PLEX}
+      - TS_HOSTNAME=plex
+      - TS_AUTHKEY=${TS_AUTHKEY}
       - TS_STATE_DIR=/var/lib/tailscale
       - TS_AUTH_ONCE=true
       - TS_SERVE_CONFIG=/config/serve.json
     volumes:
       - /volume1/docker/plex/ts-state:/var/lib/tailscale
       - /volume1/docker/plex/ts-config:/config
-      - ./serve.json:/config/serve.json:ro
     devices:
       - /dev/net/tun:/dev/net/tun
     cap_add:
