@@ -8,12 +8,9 @@
     "${TS_CERT_DOMAIN}:443": {
       "Handlers": {
         "/": {
-          "Proxy": "http://127.0.0.1:8123"
+          "Proxy": "https+insecure://voyager.{{TS_TAILNET_DOMAIN}}:19443"
         }
       }
     }
-  },
-  "AllowFunnel": {
-    "${TS_CERT_DOMAIN}:443": false
   }
 }

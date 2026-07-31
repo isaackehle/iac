@@ -1,3 +1,9 @@
 .env
+iac-secrets.env
 .kilo
 .DS_Store
+
+# Rendered output of *.tmpl files (see scripts/gen-env.sh render_templates).
+# Every sidecar stack keeps its committed source as serve.json.tmpl; the
+# rendered serve.json is generated at deploy time.
+*/serve.json
