@@ -21,9 +21,6 @@ docker exec pihole pihole-FTL --config
 # Check blocklist status and query counts
 docker exec pihole pihole status
 
-# Show blocked/allowed query counts
-docker exec pihole pihole-FTL --status
-
 # List active gravity (blocklist) databases
 docker exec pihole ls -la /etc/pihole/
 ```
@@ -68,13 +65,13 @@ docker exec ts-pihole tailscale ping pihole
 
 ```bash
 # Test DNS resolution via Pi-hole (from any device on tailnet)
-dig @<pihole-tailnet-ip> example.com
+dig @@pihole.tail303fda.ts.net example.com
 
 # Test from the NAS host
 dig @127.0.0.1 -p 53 example.com
 
-# Check if a domain is blocked
-docker exec pihole pihole-FTL --test
+# Check if a domain is blocked (should return 0.0.0.0)
+docker exec pihole dig @127.0.0.1 doubleclick.net +short
 ```
 
 ## Access URLs
