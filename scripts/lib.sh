@@ -7,7 +7,7 @@
 # replaces the old per-stack init.sh / apply-serve.sh scripts.
 
 ALL_STACKS=(
-  affine frigate homeassistant mosquitto n8n nextcloud
+  affine frigate homeassistant langfuse mosquitto n8n nextcloud
   openwebui pihole plex portainer postgresql syncthing
 )
 
@@ -19,6 +19,7 @@ declare -A STACK_REMOTE_DIR=(
   [affine]="/volume1/docker/stacks/affine"
   [frigate]="/volume1/docker/stacks/frigate"
   [homeassistant]="/volume1/docker/stacks/homeassistant"
+  [langfuse]="/volume1/docker/stacks/langfuse"
   [mosquitto]="/volume1/docker/stacks/mosquitto"
   [n8n]="/volume1/docker/stacks/n8n"
   [nextcloud]="/volume1/docker/stacks/nextcloud"
@@ -36,11 +37,12 @@ declare -A STACK_DIRS=(
   [affine]="data/storage data/config data/postgres"
   [frigate]="config storage"
   [homeassistant]="ts-state ts-config"
+  [langfuse]="ts-state ts-config clickhouse-data clickhouse-logs minio-data redis-data"
   [mosquitto]="config data certs"
   [n8n]="config files ts-state ts-config"
   [nextcloud]="app data postgres ts-state ts-config"
   [openwebui]="config ts-state ts-config data"
-  [pihole]="etc-pihole ts-state ts-config"
+  [pihole]="etc-pihole ts-state ts-config caddy-config"
   [plex]="config ts-state ts-config"
   [portainer]="config data ts-state ts-config"
   [postgresql]=""   # legacy stack, dirs already exist on the NAS
@@ -55,11 +57,12 @@ declare -A STACK_DIRS=(
 declare -A STACK_EXTRA_FILES=(
   [frigate]="frigate-config.yml:config/config.yml"
   [homeassistant]="serve.json:ts-config/serve.json"
+  [langfuse]="serve.json:ts-config/serve.json"
   [mosquitto]="config/mosquitto.conf:config/mosquitto.conf"
   [n8n]="serve.json:ts-config/serve.json"
   [nextcloud]="serve.json:ts-config/serve.json"
   [openwebui]="serve.json:ts-config/serve.json"
-  [pihole]="serve.json:ts-config/serve.json"
+  [pihole]="serve.json:ts-config/serve.json Caddyfile:caddy-config/Caddyfile"
   [plex]="serve.json:ts-config/serve.json"
   [portainer]="serve.json:ts-config/serve.json"
   [syncthing]="serve.json:ts-config/serve.json"
@@ -71,6 +74,10 @@ declare -A STACK_EXTRA_FILES=(
 declare -A STACK_CHOWN_OVERRIDES=(
   [nextcloud]="app:33:33 data:33:33"
   [n8n]="config:1000:1000"
+  # clickhouse-server runs as user 101:101 inside the container (see
+  # `user: "101:101"` in langfuse/docker-compose.yml) — its mounted
+  # volumes need to match or it can't write to them on first start.
+  [langfuse]="clickhouse-data:101:101 clickhouse-logs:101:101"
 )
 
 # Pattern A / hybrid stacks: host-level `tailscale serve` mappings, as
@@ -79,9 +86,12 @@ declare -A STACK_CHOWN_OVERRIDES=(
 declare -A STACK_SERVE_PORTS=(
   [affine]="3010:http://127.0.0.1:3010"
   [frigate]="8971:http://127.0.0.1:8971"
-  [pihole]="8080:http://127.0.0.1:8080 8443:https+insecure://127.0.0.1:8443"
   [postgresql]="2660:http://127.0.0.1:2660"
 )
+# pihole was removed from this list 2026-08-01: it's now a Caddy+TCPForward
+# sidecar setup (see pihole/serve.json.tmpl), not host-level tailscale serve.
+# This entry pointed at a NAS host port nothing has ever actually listened
+# on — see homelab/docs/DECISIONS.md for the full history.
 
 # Default location of the central secrets file. Override with
 # IAC_SECRETS_FILE=/some/other/path. Lives at the repo root, gitignored —
