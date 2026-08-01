@@ -7,33 +7,37 @@
 
 ## Directory Setup (on Synology NAS)
 
-```shell
-STACK_PATH="/volume1/docker/stacks/pihole"
+- Create paths
 
-mkdir -p $STACK_PATH/{etc-pihole,ts-state,ts-config,caddy-config}
-```
+  ```shell
+  STACK_PATH="/volume1/docker/stacks/pihole"
 
-Copy `serve.json` into `$STACK_PATH/ts-config/` — it's mounted at
-`/config/serve.json` inside the Tailscale sidecar. Copy `Caddyfile` into
-`$STACK_PATH/caddy-config/` — it's mounted at `/etc/caddy` inside the
-`caddy` container.
+  mkdir -p $STACK_PATH/{etc-pihole,ts-state,ts-config,caddy-config}
+  ```
+
+- Copy `serve.json` into `$STACK_PATH/ts-config/`
+  — it's mounted at `/config/serve.json` inside the Tailscale sidecar.
+
+- Copy `Caddyfile` into `$STACK_PATH/caddy-config/`
+  — it's mounted at `/etc/caddy` inside the `caddy` container.
 
 ## Deploy via Portainer
 
 1. Go to **Stacks → Add stack**
-2. Choose **Repository** as the build method
-3. Set:
+1. Add **pihole** as the stack name
+1. Choose **Repository** as the build method
+1. Set:
    - **Repository URL:** `https://github.com/isaackehle/iac.git`
    - **Repository reference:** `refs/heads/main`
    - **Compose path:** `pihole/docker-compose.yml`
-4. Under **Environment variables**, paste the contents of `.env.example` with
+1. Under **Environment variables**, paste the contents of `.env.example` with
    real values filled in:
    - `PIHOLE_PASSWORD` — Pi-hole web admin password
    - `PIHOLE_UPSTREAMS` — upstream DNS servers (e.g. `1.1.1.1;8.8.8.8`)
    - `TZ` — timezone (e.g. `America/New_York`)
    - `TS_AUTHKEY` — Tailscale auth key (reusable, pre-authorized)
    - `TS_CERT_DOMAIN` — Tailscale MagicDNS domain (e.g. `pihole.${TS_TAILNET_DOMAIN}`)
-5. Click **Deploy the stack**
+1. Click **Deploy the stack**
 
 ## What the Stack Contains
 
