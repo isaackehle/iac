@@ -9,7 +9,6 @@ services:
       - "53:53/tcp"
       - "53:53/udp"
       - "8280:80/tcp"
-      - "8243:80/tcp"
 
     environment:
       TZ: ${TZ}
@@ -44,3 +43,13 @@ services:
     cap_add:
       - NET_ADMIN
       - NET_RAW
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: caddy-pihole
+    restart: unless-stopped
+    network_mode: service:pihole
+    depends_on:
+      - pihole
+    volumes:
+      - /volume1/docker/stacks/pihole/caddy-config:/etc/caddy:ro

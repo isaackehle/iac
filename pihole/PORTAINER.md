@@ -10,11 +10,13 @@
 ```shell
 STACK_PATH="/volume1/docker/stacks/pihole"
 
-mkdir -p $STACK_PATH/{etc-pihole,ts-state,ts-config}
+mkdir -p $STACK_PATH/{etc-pihole,ts-state,ts-config,caddy-config}
 ```
 
 Copy `serve.json` into `$STACK_PATH/ts-config/` — it's mounted at
-`/config/serve.json` inside the Tailscale sidecar.
+`/config/serve.json` inside the Tailscale sidecar. Copy `Caddyfile` into
+`$STACK_PATH/caddy-config/` — it's mounted at `/etc/caddy` inside the
+`caddy` container.
 
 ## Deploy via Portainer
 
@@ -35,49 +37,47 @@ Copy `serve.json` into `$STACK_PATH/ts-config/` — it's mounted at
 
 ## What the Stack Contains
 
-| Container   | Image                        | Role                                                                                                           |
-| ----------- | ---------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| `pihole`    | `pihole/pihole:latest`       | Pi-hole DNS/ad blocker — HTTP admin UI on container port 80 only                                               |
-| `ts-pihole` | `tailscale/tailscale:latest` | Publishes DNS (53) + Pi-hole's HTTP UI on host ports 8280/8243; tailnet-only fallback via its own `serve.json` |
+| Container   | Image                        | Role                                                                                                                                       |
+| ----------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `pihole`    | `pihole/pihole:latest`       | Pi-hole DNS/ad blocker — HTTP admin UI on container port 80 only, publishes DNS (53) + a plain-HTTP debug port (8280) directly to the host |
+| `ts-pihole` | `tailscale/tailscale:latest` | Joins the tailnet as the `pihole` node; terminates TLS on 443 and forwards decrypted bytes to `caddy` (see below)                          |
+| `caddy`     | `caddy:2-alpine`             | Real HTTP reverse proxy from `ts-pihole`'s TCP forward to Pi-hole's `127.0.0.1:80`                                                         |
 
-## Pi-hole Patterns
+## Pi-hole Access Architecture
 
-**Reverted 2026-08-01 (superseding the 2026-07-31 correction below):** the
-"ts- first" approach — letting `ts-pihole`'s own `serve.json` or Tailscale's
-host-level `tailscale serve` own port 443 — is **not** the access path
-anymore. Reason: DSM already owns 443 on the NAS's real LAN/domain interface
-for its own Login Portal and other reverse-proxied services, so anything
-else wanting 443 on that same IP has to go through **DSM's built-in Reverse
-Proxy** (Control Panel → Login Portal → Advanced → Reverse Proxy), not
-compete with it via Tailscale.
+**Current design (2026-08-01), superseding both prior attempts** — see
+`homelab/docs/DECISIONS.md` for the full history (DEC-152 diagnosed a
+sidecar-only gap; DEC-153 briefly tried routing through DSM's Reverse Proxy;
+this design replaced that after finding it wasn't actually what was wanted).
 
-Current setup: `ts-pihole` publishes `8280:80/tcp` and `8243:80/tcp` in
-addition to `53:53` — both forward to Pi-hole's plain-HTTP admin UI
-(container port 80; Pi-hole itself never terminates TLS). **DSM's Reverse
-Proxy is configured manually in the DSM UI, not tracked in this repo** —
-it needs two source rules pointing at the NAS's own `localhost`:
+`ts-pihole`, `caddy`, and `pihole` all share one network namespace
+(`network_mode: service:pihole`). The tailnet-facing path is:
 
-- Source `<domain>:80` (HTTP) → Destination `localhost:8280`
-- Source `<domain>:443` (HTTPS, DSM terminates the cert) → Destination `localhost:8243`
+```
+client --TLS--> ts-pihole:443 (tailscaled terminates TLS,
+                                automatic Tailscale cert)
+             --plaintext TCP--> caddy:8444 (internal only, not published)
+             --HTTP--> pihole:80
+```
 
-`ts-pihole`'s `serve.json` / `TS_SERVE_CONFIG` is left in place as a
-tailnet-only fallback (`https://pihole.${TS_TAILNET_DOMAIN}`) but is no
-longer the primary path — don't rely on it for LAN/domain access.
+This uses Tailscale's `TCPForward`/`TerminateTLS` serve mode rather than its
+usual `Web`/`Proxy` mode — `tailscaled`'s own built-in HTTP reverse proxy is
+[documented as significantly slower](https://github.com/tailscale/tailscale/issues/18307)
+under concurrent load, enough to make Pi-hole's admin UI hang loading its
+own CSS/JS. Caddy does the actual HTTP-level proxying instead; Tailscale
+still handles all TLS, so Caddy needs no cert of its own.
 
-See `pihole/DEBUG.md`'s "Access URLs" section and `homelab/docs/DECISIONS.md`
-DEC-153 (supersedes DEC-152, which diagnosed the prior sidecar-only gap).
+DSM's own Reverse Proxy is **not** used for this stack — that was a
+same-day detour, reverted. See `README.md`'s "pihole — Pattern B + Caddy"
+section for the exact `serve.json` schema.
 
-> ⚠️ **Open question, not yet confirmed:** whether the DSM Reverse Proxy
-> rules above are actually configured with these exact backend ports — that
-> lives entirely in DSM's UI and isn't visible from this repo. Confirm in
-> Control Panel before assuming this path works end-to-end.
+A raw plain-HTTP path also exists at `pihole:8280`, published directly on
+the host and bypassing Caddy entirely — useful for debugging without any
+TLS/proxy layer in the way.
 
 ## First-Run Pi-hole Setup
 
-1. From your LAN or public domain, visit `https://<your-domain>` — routed by
-   DSM's Reverse Proxy to `localhost:8243` → Pi-hole's HTTP UI. From the
-   tailnet only, `https://pihole.${TS_TAILNET_DOMAIN}` also still works via
-   the sidecar's `serve.json`.
+1. From your tailnet, visit `https://pihole.${TS_TAILNET_DOMAIN}`.
 2. Log in with the `PIHOLE_PASSWORD` you set.
 3. Go to **Settings → DNS** and verify your upstream servers are correct.
 4. Configure your router or individual devices to use the Pi-hole's IP as
@@ -90,14 +90,14 @@ DEC-153 (supersedes DEC-152, which diagnosed the prior sidecar-only gap).
 | `$STACK_PATH/etc-pihole`           | `/etc/pihole`           | Pi-hole configuration, blocklists, DNS records     |
 | `$STACK_PATH/ts-state`             | `/var/lib/tailscale`    | Tailscale identity (survives container recreation) |
 | `$STACK_PATH/ts-config/serve.json` | `/config/serve.json:ro` | Tailscale serve rules                              |
+| `$STACK_PATH/caddy-config`         | `/etc/caddy:ro`         | `Caddyfile`                                        |
 
 ## Access
 
-| URL                                   | Description                                                             |
-| ------------------------------------- | ----------------------------------------------------------------------- |
-| `https://<your-domain>`               | Pi-hole admin — via DSM Reverse Proxy → `localhost:8243` (primary path) |
-| `http://<your-domain>`                | Same, plain HTTP — via DSM Reverse Proxy → `localhost:8280`             |
-| `https://pihole.${TS_TAILNET_DOMAIN}` | Pi-hole admin — tailnet-only fallback, via `ts-pihole`'s `serve.json`   |
+| URL                                       | Description                                                       |
+| ----------------------------------------- | ----------------------------------------------------------------- |
+| `https://pihole.${TS_TAILNET_DOMAIN}`     | Pi-hole admin — primary path, via `ts-pihole` → `caddy` → Pi-hole |
+| `http://pihole.${TS_TAILNET_DOMAIN}:8280` | Raw debug path, straight to Pi-hole, no TLS/proxy involved        |
 
 ## Backups
 
@@ -109,3 +109,4 @@ identity so it doesn't need re-authentication after a restore.
 ## References
 
 - [How to Install Pi-Hole on Your Synology NAS – Marius Hosting](https://mariushosting.com/how-to-install-pi-hole-on-your-synology-nas/)
+- [tailscale serve HTTP proxy is ~5x slower than directly connecting or Caddy · Issue #18307](https://github.com/tailscale/tailscale/issues/18307)
