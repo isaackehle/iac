@@ -7,7 +7,7 @@
 # is provisioned the same way instead of each having bespoke setup logic.
 #
 # Usage:
-#   scripts/deploy.sh env   <stack>                 # generate <stack>/.env locally
+#   scripts/deploy.sh env   <stack>                  # generate <stack>/env.txt locally
 #   scripts/deploy.sh dirs  <stack> <ssh-host>       # mkdir -p + chown on the NAS
 #   scripts/deploy.sh push  <stack> <ssh-host>       # scp compose/.env/extra files
 #   scripts/deploy.sh serve <stack> <ssh-host>       # apply host-level tailscale serve (Pattern A/hybrid stacks)
@@ -29,9 +29,9 @@ usage() {
 Usage: scripts/deploy.sh <command> <stack> [ssh-host]
 
 Commands:
-  env    <stack>               generate <stack>/.env locally from the secrets file
+  env    <stack>               generate <stack>/env.txt locally from the secrets file
   dirs   <stack> <ssh-host>    mkdir -p + chown the stack's directories on the NAS
-  push   <stack> <ssh-host>    scp compose file, .env, and extra config into place
+  push   <stack> <ssh-host>    scp compose file, env.txt, and extra config into place
   serve  <stack> <ssh-host>    apply host-level tailscale serve mappings (if any)
   up     <stack> <ssh-host>    ssh in and run `docker compose up -d`
   info   <stack>               print deploy instructions for this stack
@@ -81,9 +81,9 @@ cmd_push() {
   echo "==> $stack: pushing $compose to $host:$remote/"
   scp "$stack/$compose" "$host:$remote/$compose"
 
-  if [[ -f "$stack/.env" ]]; then
-    echo "==> $stack: pushing .env to $host:$remote/"
-    scp "$stack/.env" "$host:$remote/.env"
+  if [[ -f "$stack/env.txt" ]]; then
+    echo "==> $stack: pushing env.txt to $host:$remote/"
+    scp "$stack/env.txt" "$host:$remote/env.txt"
   fi
 
   local extras="${STACK_EXTRA_FILES[$stack]:-}"
@@ -129,7 +129,16 @@ cmd_up() {
   compose="$(compose_file_for "$stack")"
 
   echo "==> $stack: docker compose up -d on $host"
-  ssh "$host" "cd '$remote' && docker compose -f '$compose' up -d"
+  # --env-file is required here: docker compose only auto-loads a file
+  # literally named .env, and this repo generates env.txt instead (see
+  # scripts/gen-env.sh for why) — without this flag the stack would come up
+  # with every ${VAR} substitution silently empty.
+  local env_flag=""
+  if ssh "$host" "test -f '$remote/env.txt'"; then
+    env_flag="--env-file env.txt"
+  fi
+  # shellcheck disable=SC2086
+  ssh "$host" "cd '$remote' && docker compose -f '$compose' $env_flag up -d"
 }
 
 cmd_all() {
@@ -156,8 +165,8 @@ cmd_info() {
   echo "=== Deploy: $stack ==="
   echo ""
 
-  # Step 1: generate .env
-  echo "1. Generate .env:"
+  # Step 1: generate env.txt
+  echo "1. Generate env.txt:"
   echo "   scripts/deploy.sh env $stack"
   echo ""
 
