@@ -21,7 +21,7 @@ Copy `serve.json` into `$STACK_PATH/ts-config/` — it's mounted at
 1. Go to **Stacks → Add stack**
 2. Choose **Repository** as the build method
 3. Set:
-   - **Repository URL:** `github.com/isaackehle/iac.git`
+   - **Repository URL:** `https://github.com/isaackehle/iac.git`
    - **Repository reference:** `refs/heads/main`
    - **Compose path:** `pihole/docker-compose.yml`
 4. Under **Environment variables**, paste the contents of `.env.example` with
