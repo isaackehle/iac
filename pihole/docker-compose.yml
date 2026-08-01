@@ -17,6 +17,7 @@ services:
       FTLCONF_dns_listeningMode: all
       FTLCONF_dns_upstreams: ${PIHOLE_UPSTREAMS}
       FTLCONF_webserver_port: "80"
+      FTLCONF_webserver_domain: ${TS_CERT_DOMAIN}
 
     volumes:
       - /volume1/docker/stacks/pihole/etc-pihole:/etc/pihole
