@@ -4,7 +4,7 @@ Quick reference for troubleshooting the Syncthing + Tailscale stack.
 
 ## Container Access
 
-```bash
+```shell
 # Enter the Tailscale sidecar container
 docker exec -it ts-syncthing sh
 
@@ -14,7 +14,7 @@ docker exec -it syncthing sh
 
 ## Tailscale Serve Configuration
 
-```bash
+```shell
 # View the current serve config mounted in the container
 cat /config/serve.json
 
@@ -24,7 +24,7 @@ tailscale serve status
 
 ## Container Logs
 
-```bash
+```shell
 # Syncthing logs
 docker logs syncthing
 
@@ -37,7 +37,7 @@ docker logs -f ts-syncthing
 
 ## Tailscale Connectivity
 
-```bash
+```shell
 # Check Tailscale status and IP
 docker exec ts-syncthing tailscale status
 
@@ -55,7 +55,7 @@ docker exec ts-syncthing tailscale serve status
 
 ## Restart Services
 
-```bash
+```shell
 # Restart both containers
 docker compose restart
 
