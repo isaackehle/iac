@@ -1,0 +1,16 @@
+{
+    "recommendations": [
+        "tamasfe.even-better-toml",
+        "ms-python.python",
+        "streetsidesoftware.code-spell-checker",
+        "mhutchie.git-graph",
+        "github.vscode-github-actions",
+        "github.vscode-pull-request-github",
+        "eamodio.gitlens",
+        "kilocode.kilo-code",
+        "yzhang.markdown-all-in-one",
+        "natqe.reload",
+        "rvben.rumdl",
+        "zoocodeorganization.zoo-code"
+    ]
+}
