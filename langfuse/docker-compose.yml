@@ -1,0 +1,198 @@
+# langfuse — Tailscale sidecar pattern (Pattern B, see root README.md)
+#
+# LLM tracing/observability for local model traffic across the fleet
+# (discovery, ds9, enterprise), fed by LiteLLM Proxy's `langfuse_otel`
+# callback (see homelab/profiles/discovery/litellm/config.yaml). See
+# homelab/docs/DECISIONS.md DEC-137 for why this moved here from
+# homelab/iac/langfuse/ (wrong repo — this NAS's real IaC lives here, not
+# in the homelab repo) and why it's 5 containers instead of the upstream
+# default of 6: Postgres is NOT included below — it reuses the databases
+# on the existing `postgresql` stack (see that stack's DEBUG.md) instead of
+# running a second Postgres just for this. Real changes from Langfuse's own
+# upstream docker-compose.yml (github.com/langfuse/langfuse): Postgres
+# removed (see above), every `# CHANGEME` insecure default removed (this
+# fails to start without a real iac-secrets.env, not silently runs with
+# `postgres`/`mysecret`), and the Pattern B sidecar wiring below.
+#
+# NAS is a Synology DS920+, 20GB RAM (confirmed 2026-07-31, not a spec
+# sheet assumption) — comfortable headroom for these 5 containers at
+# single-user homelab request volume; ClickHouse is the one that scales
+# with load and isn't a concern at this traffic level.
+#
+# Pattern note (flagging, not resolving): this stack follows _template's
+# literal instructions (`langfuse` borrows `langfuse-ts`'s netns via
+# `network_mode: service:langfuse-ts`, siblings on `langfuse-net`, sidecar
+# also joins `langfuse-net`) rather than nextcloud/docker-compose.yml's
+# real-world example, which gives the app its own `ports:`+`networks:`
+# directly and doesn't use `network_mode: service:*` at all despite being
+# listed as Pattern B — those two don't actually match each other. Worth
+# reconciling repo-wide at some point; out of scope for this stack.
+
+services:
+  langfuse:
+    image: docker.io/langfuse/langfuse:3
+    container_name: langfuse
+    restart: unless-stopped
+    depends_on: &langfuse-depends-on
+      minio:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+    environment: &langfuse-env
+      NEXTAUTH_URL: https://${TS_CERT_DOMAIN}
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
+      # Reuses the `postgresql` stack's shared instance (see its DEBUG.md) —
+      # a dedicated `langfuse` database + user were created there once,
+      # manually (docker image init-db scripts only run against an empty
+      # data dir, and that instance already has data). Host is the NAS's
+      # own Tailscale IP/hostname since langfuse-worker/-web reach it over
+      # the tailnet, same as any other client of that stack.
+      DATABASE_URL: postgresql://langfuse:${LANGFUSE_DB_PASSWORD}@nas.${TS_TAILNET_DOMAIN}:2665/langfuse
+      SALT: ${SALT}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY}
+      TELEMETRY_ENABLED: "false"
+      CLICKHOUSE_MIGRATION_URL: clickhouse://clickhouse:9000
+      CLICKHOUSE_URL: http://clickhouse:8123
+      CLICKHOUSE_USER: clickhouse
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
+      LANGFUSE_S3_EVENT_UPLOAD_BUCKET: langfuse
+      LANGFUSE_S3_EVENT_UPLOAD_REGION: auto
+      LANGFUSE_S3_EVENT_UPLOAD_ACCESS_KEY_ID: minio
+      LANGFUSE_S3_EVENT_UPLOAD_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD}
+      LANGFUSE_S3_EVENT_UPLOAD_ENDPOINT: http://minio:9000
+      LANGFUSE_S3_EVENT_UPLOAD_FORCE_PATH_STYLE: "true"
+      LANGFUSE_S3_EVENT_UPLOAD_PREFIX: events/
+      LANGFUSE_S3_MEDIA_UPLOAD_BUCKET: langfuse
+      LANGFUSE_S3_MEDIA_UPLOAD_REGION: auto
+      LANGFUSE_S3_MEDIA_UPLOAD_ACCESS_KEY_ID: minio
+      LANGFUSE_S3_MEDIA_UPLOAD_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD}
+      LANGFUSE_S3_MEDIA_UPLOAD_ENDPOINT: https://${TS_CERT_DOMAIN}:9090
+      LANGFUSE_S3_MEDIA_UPLOAD_FORCE_PATH_STYLE: "true"
+      LANGFUSE_S3_MEDIA_UPLOAD_PREFIX: media/
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_AUTH: ${REDIS_AUTH}
+      # Headless bootstrap — pre-creates one org/project/user + a fixed API
+      # key pair, so LiteLLM's LANGFUSE_PUBLIC_KEY/LANGFUSE_SECRET_KEY are
+      # known values instead of something copied out of the UI after first
+      # login. See .env.example for how to generate these.
+      LANGFUSE_INIT_ORG_ID: homelab
+      LANGFUSE_INIT_ORG_NAME: homelab
+      LANGFUSE_INIT_PROJECT_ID: litellm
+      LANGFUSE_INIT_PROJECT_NAME: litellm-fleet
+      LANGFUSE_INIT_PROJECT_PUBLIC_KEY: ${LANGFUSE_INIT_PROJECT_PUBLIC_KEY}
+      LANGFUSE_INIT_PROJECT_SECRET_KEY: ${LANGFUSE_INIT_PROJECT_SECRET_KEY}
+      LANGFUSE_INIT_USER_EMAIL: ${LANGFUSE_INIT_USER_EMAIL}
+      LANGFUSE_INIT_USER_NAME: isaac
+      LANGFUSE_INIT_USER_PASSWORD: ${LANGFUSE_INIT_USER_PASSWORD}
+    volumes:
+      - /volume1/docker/stacks/langfuse/ts-config:/config
+    # No `ports:` / `networks:` of its own — borrows langfuse-ts's network
+    # namespace entirely, per _template. Reaches its siblings (worker isn't
+    # actually needed by this container directly, but clickhouse/redis/
+    # minio are) by name because langfuse-ts also joins langfuse-net below.
+    network_mode: service:langfuse-ts
+    depends_on:
+      - langfuse-ts
+
+  langfuse-worker:
+    image: docker.io/langfuse/langfuse-worker:3
+    container_name: langfuse-worker
+    restart: unless-stopped
+    depends_on: *langfuse-depends-on
+    environment: *langfuse-env
+    networks:
+      - langfuse-net
+
+  clickhouse:
+    image: docker.io/clickhouse/clickhouse-server
+    container_name: langfuse-clickhouse
+    restart: unless-stopped
+    user: "101:101"
+    environment:
+      CLICKHOUSE_DB: default
+      CLICKHOUSE_USER: clickhouse
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
+    volumes:
+      - /volume1/docker/stacks/langfuse/clickhouse-data:/var/lib/clickhouse
+      - /volume1/docker/stacks/langfuse/clickhouse-logs:/var/log/clickhouse-server
+    networks:
+      - langfuse-net
+    healthcheck:
+      test: wget --no-verbose --tries=1 --spider http://localhost:8123/ping || exit 1
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 1s
+
+  minio:
+    image: cgr.dev/chainguard/minio
+    container_name: langfuse-minio
+    restart: unless-stopped
+    entrypoint: sh
+    command: -c 'mkdir -p /data/langfuse && minio server --address ":9000" --console-address ":9001" /data'
+    environment:
+      MINIO_ROOT_USER: minio
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    # MinIO needs to be reachable directly (not just proxied through the
+    # app) for direct media uploads — Langfuse's own troubleshooting docs
+    # call this out. Published directly here rather than routed through
+    # the sidecar; see the Pattern note at the top of this file.
+    ports:
+      - "9090:9000"
+    volumes:
+      - /volume1/docker/stacks/langfuse/minio-data:/data
+    networks:
+      - langfuse-net
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 1s
+      timeout: 5s
+      retries: 5
+      start_period: 1s
+
+  redis:
+    image: docker.io/redis:7
+    container_name: langfuse-redis
+    restart: unless-stopped
+    command: >
+      --requirepass ${REDIS_AUTH}
+      --maxmemory-policy noeviction
+    volumes:
+      - /volume1/docker/stacks/langfuse/redis-data:/data
+    networks:
+      - langfuse-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 10s
+      retries: 10
+
+  langfuse-ts:
+    image: tailscale/tailscale:latest
+    container_name: langfuse-ts
+    restart: unless-stopped
+    environment:
+      - TS_HOSTNAME=langfuse # tailnet-facing name only — set via env, NOT
+                              # the compose `hostname:` field (real DNS
+                              # collision — see root README.md)
+      - TS_AUTHKEY=${TS_AUTHKEY}
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_AUTH_ONCE=true
+      - TS_SERVE_CONFIG=/config/serve.json
+    volumes:
+      - /volume1/docker/stacks/langfuse/ts-state:/var/lib/tailscale
+      - /volume1/docker/stacks/langfuse/ts-config:/config
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    networks:
+      - langfuse-net
+
+networks:
+  langfuse-net:
+    driver: bridge
