@@ -294,7 +294,7 @@ All markdown files in the IAC repo are linted with `rumdl` and auto-formatted on
 
 ### Running Linters
 
-```bash
+```shell
 # Auto-fix all issues
 rumdl fmt .
 
