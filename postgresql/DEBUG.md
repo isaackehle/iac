@@ -17,6 +17,28 @@ docker logs pgAdmin
 docker logs -f PostgreSQL
 ```
 
+## Databases hosted here for other stacks
+
+This shared instance backs more than just `thunder_db` — rather than run a
+dedicated Postgres per stack, other stacks get their own database + user
+created here once, manually (the postgres image's init-db scripts only run
+against an empty data dir, and this instance already has data):
+
+| Database   | User       | Used by                                                                                |
+| ---------- | ---------- | -------------------------------------------------------------------------------------- |
+| `litellm`  | `litellm`  | LiteLLM Proxy's Admin UI (`homelab` repo, discovery) — `general_settings.database_url` |
+| `langfuse` | `langfuse` | The `langfuse` stack in this repo                                                      |
+
+To add a new one:
+
+```bash
+docker exec -it PostgreSQL psql -U root -c "CREATE DATABASE <name>;"
+docker exec -it PostgreSQL psql -U root -c "CREATE USER <name> WITH PASSWORD '<password>';"
+docker exec -it PostgreSQL psql -U root -c "GRANT ALL PRIVILEGES ON DATABASE <name> TO <name>;"
+```
+
+Connect from elsewhere on the tailnet via `postgresql://<user>:<password>@<host>:2665/<name>`.
+
 ## Database Commands
 
 ```bash
@@ -56,7 +78,7 @@ docker compose -f /volume1/docker/stacks/postgresql/docker-compose.yml restart p
 
 ## Config Files
 
-| Purpose | Host Path |
-|---------|-----------|
-| PostgreSQL data | `/volume1/docker/stacks/postgresql` |
-| pgAdmin data | `/volume1/docker/stacks/postgresql/pgadmin` |
+| Purpose         | Host Path                                   |
+| --------------- | ------------------------------------------- |
+| PostgreSQL data | `/volume1/docker/stacks/postgresql`         |
+| pgAdmin data    | `/volume1/docker/stacks/postgresql/pgadmin` |
