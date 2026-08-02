@@ -1,18 +1,14 @@
 services:
   mosquitto:
+    image: eclipse-mosquitto:2.0
     container_name: mosquitto
     restart: unless-stopped
-    
-    image: eclipse-mosquitto:2.0
-    
     ports:
       - "1883:1883"     # MQTT (plain TCP)
       - "9001:9001"     # WebSocket (for HA web UI if needed)
-    
+    volumes:
+      - ./certs:/mosquitto/certs:ro
+      - ./data:/mosquitto/data
+      - ./config/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
     environment:
       TZ: ${TZ}
-    
-    volumes:
-      - ./config/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
-      - ./data:/mosquitto/data
-      - ./certs:/mosquitto/certs:ro

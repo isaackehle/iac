@@ -14,17 +14,17 @@ services:
     image: change-me:latest
     container_name: app
     restart: unless-stopped
-    environment:
-      - TZ=${TZ}
-    volumes:
-      - /volume1/docker/stacks/app/config:/config
+    depends_on:
+      - app-ts
     # The app container has no `ports:` and no `networks:` of its own — it
     # borrows the sidecar's network namespace entirely. If the app needs a
     # host/LAN port in addition to the tailnet, put that `ports:` entry on
     # app-ts below instead (see pihole/docker-compose.yml for an example).
     network_mode: service:app-ts
-    depends_on:
-      - app-ts
+    volumes:
+      - /volume1/docker/stacks/app/config:/config
+    environment:
+      - TZ=${TZ}
 
   # db:                         # example second container, delete if unused
   #   image: postgres:16
@@ -39,6 +39,9 @@ services:
     image: tailscale/tailscale:latest
     container_name: app-ts
     restart: unless-stopped
+    volumes:
+      - /volume1/docker/stacks/app/ts-state:/var/lib/tailscale
+      - /volume1/docker/stacks/app/ts-config:/config
     environment:
       - TS_HOSTNAME=app # tailnet-facing name only — set via env, NOT the
                          # compose `hostname:` field (which causes a real DNS
@@ -48,9 +51,6 @@ services:
       - TS_STATE_DIR=/var/lib/tailscale
       - TS_AUTH_ONCE=true
       - TS_SERVE_CONFIG=/config/serve.json
-    volumes:
-      - /volume1/docker/stacks/app/ts-state:/var/lib/tailscale
-      - /volume1/docker/stacks/app/ts-config:/config
     devices:
       - /dev/net/tun:/dev/net/tun
     cap_add:

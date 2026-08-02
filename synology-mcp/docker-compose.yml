@@ -5,6 +5,8 @@ services:
     image: ghcr.io/modelcontextprotocol/servers/synology:latest
     container_name: synology-mcp
     restart: unless-stopped
+    networks:
+      - synology_mcp_net
     environment:
       - SYNOLOGY_HOST=synology.tail303fda.ts.net
       - SYNOLOGY_PORT=5001
@@ -12,8 +14,6 @@ services:
       - SYNOLOGY_USERNAME=isaac
       - SYNOLOGY_PASSWORD=${SYNOLOGY_PASSWORD}
       - SYNOLOGY_OTP_CODE=${SYNOLOGY_OTP_CODE}
-    networks:
-      - synology_mcp_net
 
 networks:
   synology_mcp_net:
