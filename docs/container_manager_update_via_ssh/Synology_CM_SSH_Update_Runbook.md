@@ -7,6 +7,7 @@ Use SSH to stop blocking processes, update the compose definition, and redeploy 
 ## Scope
 
 This runbook applies to:
+
 - Synology Container Manager Projects (managed via DSM UI Projects tab)
 - Projects with a dedicated working directory on the NAS
 - Situations where the DSM UI deployment is failing due to running processes

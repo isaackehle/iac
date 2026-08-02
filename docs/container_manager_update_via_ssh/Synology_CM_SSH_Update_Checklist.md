@@ -1,4 +1,4 @@
-# Synology Container Manager Project SSH Update Runbook
+# Synology Container Manager Project SSH Update Checklist
 
 ## Scope
 
