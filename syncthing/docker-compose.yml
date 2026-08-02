@@ -1,76 +1,93 @@
-services:
-  # ---------------------------------------------------------------------------
-  # Syncthing – file synchronization (main application)
-  # ---------------------------------------------------------------------------
-  syncthing:
+# Syncthing — Docker Compose Stack
+#
+# Stack version: 1.0
+# Purpose: File synchronization between devices
+#
+# Services:
+#   - syncthing
+#   - ts-syncthing (Tailscale sidecar)
+#
+# Environment variables:
+#   - STACK_NAME=Syncthing
+#   - TZ=${TZ}
+#   - SYNC_PUID=${SYNC_PUID}
+#   - SYNC_PGID=${SYNC_PGID}
+#   - TS_AUTHKEY=${TS_AUTHKEY}
+#   See .env.example for all required variables
+#
+# Deployment:
+#   docker compose -f syncthing.yaml up -d
+#   docker compose -f syncthing.yaml down
+#
+name: Syncthing
+version: "3.8"
 
-    # 1. Identity
+services:
+  # ── Identity ──────────────────────────────────────────────
+  syncthing:
     image: ghcr.io/linuxserver/syncthing:latest
     container_name: syncthing
 
-    # 2. Lifecycle
+    # ── Lifecycle ─────────────────────────────────────────────
     restart: unless-stopped
 
-    # 3. Network
+    # ── Network ───────────────────────────────────────────────
     ports:
-      - 8384:8384                         # Web UI
-      - 22000:22000/tcp                    # Sync protocol (TCP)
-      - 22000:22000/udp                    # Sync protocol (UDP / QUIC)
-      - 21027:21027/udp                    # Local discovery
-    hostname: synology-nas                 # advertised on the LAN for discovery
+      - "8384:8384"                   # Web UI
+      - "22000:22000/tcp"             # Sync protocol (TCP)
+      - "22000:22000/udp"             # Sync protocol (UDP / QUIC)
+      - "21027:21027/udp"             # Local discovery
+    hostname: synology-nas            # Advertised on the LAN for discovery
 
-    # 4. Storage
+    # ── Storage ───────────────────────────────────────────────
     volumes:
-      - /volume1/docker/stacks/syncthing/config:/config:rw        # app config / DB
-      - /volume1/docker/stacks/syncthing/sync:/var/syncthing/sync:rw  # shared folders
-      - /volume1/docker/stacks/syncthing/data:/var/syncthing/data:rw  # internal data dir
+      - /volume1/docker/stacks/syncthing/config:/config:rw        # App config / DB
+      - /volume1/docker/stacks/syncthing/sync:/var/syncthing/sync:rw  # Shared folders
+      - /volume1/docker/stacks/syncthing/data:/var/syncthing/data:rw  # Internal data dir
 
-    # 5. Environment
-    env_file:
-      - .env                              # TZ, SYNC_PUID, SYNC_PGID
+    # ── Environment ───────────────────────────────────────────
     environment:
-      - TZ=${TZ}                          # container timezone
-      - PUID=${SYNC_PUID}                 # host UID for file ownership
-      - PGID=${SYNC_PGID}                 # host GID for file ownership
-      - STGUIADDRESS=0.0.0.0:8384        # bind Web UI to all interfaces
+      - TZ=${TZ}                      # Container timezone
+      - PUID=${SYNC_PUID}             # Host UID for file ownership
+      - PGID=${SYNC_PGID}             # Host GID for file ownership
+      - STGUIADDRESS=0.0.0.0:8384     # Bind Web UI to all interfaces
 
-    # 6. Runtime
+    # ── Runtime ───────────────────────────────────────────────
     healthcheck:
-      test: curl -f http://localhost:8384/ || exit 1
+      test: ["CMD", "curl", "-f", "http://localhost:8384/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
-  # ---------------------------------------------------------------------------
-  # Tailscale sidecar – exposes Syncthing on the tailnet
-  # ---------------------------------------------------------------------------
+  # ── Identity ──────────────────────────────────────────────
   ts-syncthing:
-
-    # 1. Identity
     image: tailscale/tailscale:latest
     container_name: ts-syncthing
 
-    # 2. Lifecycle
+    # ── Lifecycle ─────────────────────────────────────────────
     restart: unless-stopped
     depends_on:
-      - syncthing                        # wait for main app before starting
+      - syncthing
 
-    # 3. Network
-    network_mode: service:syncthing      # share the syncthing network stack
+    # ── Network ───────────────────────────────────────────────
+    network_mode: service:syncthing   # Share the syncthing network stack
 
-    # 4. Storage
+    # ── Storage ───────────────────────────────────────────────
     volumes:
       - /volume1/docker/stacks/syncthing/ts-config:/config            # serve.json
-      - /volume1/docker/stacks/syncthing/ts-state:/var/lib/tailscale  # tailscale identity
+      - /volume1/docker/stacks/syncthing/ts-state:/var/lib/tailscale  # Tailscale identity
 
-    # 5. Environment
+    # ── Environment ───────────────────────────────────────────
     environment:
-      - TS_HOSTNAME=syncthing             # name on the tailnet
-      - TS_AUTHKEY=${TS_AUTHKEY}          # pre-auth key for auto-join
-      - TS_STATE_DIR=/var/lib/tailscale   # persist identity across restarts
-      - TS_AUTH_ONCE=true                 # only use the auth key once
+      - TS_HOSTNAME=syncthing             # Name on the tailnet
+      - TS_AUTHKEY=${TS_AUTHKEY}          # Pre-auth key for auto-join
+      - TS_STATE_DIR=/var/lib/tailscale   # Persist identity across restarts
+      - TS_AUTH_ONCE=true                 # Only authenticate once
       - TS_SERVE_CONFIG=/config/serve.json  # HTTPS / funnel config
 
-    # 6. Runtime
+    # ── Runtime ───────────────────────────────────────────────
     cap_add:
-      - NET_ADMIN                         # required for tailscale0 interface
-      - NET_RAW                           # required for raw sockets
+      - NET_ADMIN                         # Required for tailscale0 interface
+      - NET_RAW                           # Required for raw sockets
     devices:
       - /dev/net/tun:/dev/net/tun         # TUN device for tailscale

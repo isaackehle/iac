@@ -1,54 +1,70 @@
+# Home Assistant — Docker Compose Stack
+#
+# Stack version: 1.0
+# Purpose: Smart home automation platform
+#
+# Services:
+#   - homeassistant
+#   - ts-homeassistant (Tailscale sidecar)
+#
+# Environment variables:
+#   - STACK_NAME=HomeAssistant
+#   - TZ=${TZ}
+#   - TS_AUTHKEY=${TS_AUTHKEY}
+#   See .env.example for all required variables
+#
+# Deployment:
+#   docker compose -f homeassistant.yaml up -d
+#   docker compose -f homeassistant.yaml down
+#
+name: HomeAssistant
+version: "3.8"
+
 services:
-  # ---------------------------------------------------------------------------
-  # Main application — Home Assistant smart home platform
-  # ---------------------------------------------------------------------------
+  # ── Identity ──────────────────────────────────────────────
   homeassistant:
-    # 1. Identity
-    image: ghcr.io/home-assistant/home-assistant:stable  # Official Home Assistant stable image
-    container_name: homeassistant  # Container name
+    image: ghcr.io/home-assistant/home-assistant:stable
+    container_name: homeassistant
 
-    # 2. Lifecycle
-    restart: unless-stopped  # Auto-restart on failure
-    privileged: true  # Required for some hardware integrations
-
-    # 3. Network
-    network_mode: host  # Use host networking for device discovery
+    # ── Lifecycle ─────────────────────────────────────────────
+    restart: unless-stopped
+    privileged: true                # Required for some hardware integrations
     depends_on:
-      - ts-homeassistant  # Wait for Tailscale sidecar
+      - ts-homeassistant
 
-    # 4. Storage
+    # ── Network ───────────────────────────────────────────────
+    network_mode: host              # Use host networking for device discovery
+
+    # ── Storage ───────────────────────────────────────────────
     volumes:
-      - /volume1/docker/stacks/homeassistant/config:/config  # Home Assistant config directory
-      - /etc/localtime:/etc/localtime:ro  # Host timezone
-      - /run/dbus:/run/dbus:ro  # D-Bus socket for device discovery
+      - /volume1/docker/stacks/homeassistant/config:/config
+      - /etc/localtime:/etc/localtime:ro
+      - /run/dbus:/run/dbus:ro
 
-    # 5. Environment
+    # ── Environment ───────────────────────────────────────────
     environment:
-      - TZ=${TZ}  # Container timezone
+      - TZ=${TZ}
 
-  # ---------------------------------------------------------------------------
-  # Sidecar — Tailscale for secure remote access
-  # ---------------------------------------------------------------------------
+  # ── Identity ──────────────────────────────────────────────
   ts-homeassistant:
-    # 1. Identity
-    image: tailscale/tailscale:latest  # Official Tailscale image
-    container_name: ts-homeassistant  # Sidecar container name
+    image: tailscale/tailscale:latest
+    container_name: ts-homeassistant
 
-    # 2. Lifecycle
-    restart: unless-stopped  # Auto-restart on failure
+    # ── Lifecycle ─────────────────────────────────────────────
+    restart: unless-stopped
     depends_on:
-      - homeassistant  # Wait for main app
+      - homeassistant
 
-    # 3. Network
-    network_mode: service:homeassistant  # Share Home Assistant's network namespace
+    # ── Network ───────────────────────────────────────────────
+    network_mode: service:homeassistant
 
-    # 4. Storage
+    # ── Storage ───────────────────────────────────────────────
     volumes:
-      - /volume1/docker/stacks/homeassistant/ts-state:/var/lib/tailscale  # Tailscale state
+      - /volume1/docker/stacks/homeassistant/ts-state:/var/lib/tailscale
 
-    # 5. Environment
+    # ── Environment ───────────────────────────────────────────
     environment:
-      - TS_AUTHKEY=${TS_AUTHKEY}  # Pre-auth key for Tailscale
-      - TS_HOSTNAME=homeassistant  # Tailscale hostname
-      - TS_STATE_DIR=/var/lib/tailscale  # State directory
-      - TS_AUTH_ONCE=true  # Only authenticate once
+      - TS_AUTHKEY=${TS_AUTHKEY}
+      - TS_HOSTNAME=homeassistant
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_AUTH_ONCE=true

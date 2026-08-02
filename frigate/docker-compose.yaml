@@ -1,6 +1,30 @@
+# Frigate — Docker Compose Stack
+#
+# Stack version: 1.0
+# Purpose: NVR for IP cameras with object detection
+#
+# Services:
+#   - frigate
+#
+# Environment variables:
+#   - STACK_NAME=Frigate
+#   - FRIGATE_MQTT_HOST=${FRIGATE_MQTT_HOST}
+#   - FRIGATE_MQTT_USER=${FRIGATE_MQTT_USER}
+#   - FRIGATE_MQTT_PASSWORD=${FRIGATE_MQTT_PASSWORD}
+#   - FRIGATE_RTSP_USER=${FRIGATE_RTSP_USER}
+#   - FRIGATE_RTSP_PASSWORD=${FRIGATE_RTSP_PASSWORD}
+#   See .env.example for all required variables
+#
+# Deployment:
+#   docker compose -f frigate.yaml up -d
+#   docker compose -f frigate.yaml down
+#
+name: Frigate
+version: "3.8"
+
 services:
+  # ── Identity ──────────────────────────────────────────────
   frigate:
-    # ── Identity ──────────────────────────────────────────────
     image: ghcr.io/blakeblackshear/frigate:0.16.4
     # Pinned deliberately, not `:stable` — see CLAUDE.md re: floating tags on
     # fast-moving GitOps-deployed stacks. Check current release before you
@@ -32,13 +56,11 @@ services:
 
     # ── Environment ───────────────────────────────────────────
     environment:
-      # MQTT broker connection (event notifications)
       - FRIGATE_MQTT_HOST=${FRIGATE_MQTT_HOST}
       - FRIGATE_MQTT_USER=${FRIGATE_MQTT_USER}
       - FRIGATE_MQTT_PASSWORD=${FRIGATE_MQTT_PASSWORD}
-      # Camera RTSP credentials
       - FRIGATE_RTSP_USER=${FRIGATE_RTSP_USER}
       - FRIGATE_RTSP_PASSWORD=${FRIGATE_RTSP_PASSWORD}
 
     # ── Runtime ───────────────────────────────────────────────
-    shm_size: "1gb"         # Shared memory for camera streams; bump if >7-10 cameras or "Bus error" crashes
+    shm_size: "1gb"         # Shared memory for camera streams

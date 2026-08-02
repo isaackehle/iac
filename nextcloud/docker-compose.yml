@@ -1,71 +1,136 @@
+# Nextcloud — Docker Compose Stack
+#
+# Stack version: 1.0
+# Purpose: Personal cloud storage and collaboration platform
+#
+# Services:
+#   - nextcloud
+#   - nextcloud-ts (Tailscale sidecar)
+#   - db (PostgreSQL database)
+#   - redis (Redis cache)
+#
+# Environment variables:
+#   - STACK_NAME=Nextcloud
+#   - NC_DB_PASSWORD=${NC_DB_PASSWORD}
+#   - NC_ADMIN_USER=${NC_ADMIN_USER}
+#   - NC_ADMIN_PASSWORD=${NC_ADMIN_PASSWORD}
+#   - TS_AUTHKEY=${TS_AUTHKEY}
+#   - TS_CERT_DOMAIN=${TS_CERT_DOMAIN}
+#   See .env.example for all required variables
+#
+# Deployment:
+#   docker compose -f nextcloud.yaml up -d
+#   docker compose -f nextcloud.yaml down
+#
+name: Nextcloud
+version: "3.8"
+
 services:
+  # ── Identity ──────────────────────────────────────────────
   nextcloud:
     image: nextcloud:apache
     container_name: nextcloud
+
+    # ── Lifecycle ─────────────────────────────────────────────
     restart: unless-stopped
     depends_on:
-    - db
-    - redis
+      - db
+      - redis
+
+    # ── Network ───────────────────────────────────────────────
     networks:
-    - nextcloud-net
+      - nextcloud-net
     ports:
-    - 30080:80
+      - "30080:80"                # Web UI port (mapped from container 80)
+
+    # ── Storage ───────────────────────────────────────────────
     volumes:
-    - /volume1/docker/stacks/nextcloud/app:/var/www/html
-    - /volume1/docker/stacks/nextcloud/data:/var/www/html/data
+      - /volume1/docker/stacks/nextcloud/app:/var/www/html
+      - /volume1/docker/stacks/nextcloud/data:/var/www/html/data
+
+    # ── Environment ───────────────────────────────────────────
     environment:
-    - POSTGRES_HOST=db
-    - POSTGRES_DB=nextcloud
-    - POSTGRES_USER=nextcloud
-    - POSTGRES_PASSWORD=${NC_DB_PASSWORD}
-    - REDIS_HOST=redis
-    - NEXTCLOUD_ADMIN_USER=${NC_ADMIN_USER}
-    - NEXTCLOUD_ADMIN_PASSWORD=${NC_ADMIN_PASSWORD}
-    - NEXTCLOUD_TRUSTED_DOMAINS=${TS_CERT_DOMAIN}
-    - OVERWRITEPROTOCOL=https
-    - OVERWRITECLIURL=https://${TS_CERT_DOMAIN}
-    - PHP_MEMORY_LIMIT=1G
-    - PHP_UPLOAD_LIMIT=10G
+      - POSTGRES_HOST=db
+      - POSTGRES_DB=nextcloud
+      - POSTGRES_USER=nextcloud
+      - POSTGRES_PASSWORD=${NC_DB_PASSWORD}
+      - REDIS_HOST=redis
+      - NEXTCLOUD_ADMIN_USER=${NC_ADMIN_USER}
+      - NEXTCLOUD_ADMIN_PASSWORD=${NC_ADMIN_PASSWORD}
+      - NEXTCLOUD_TRUSTED_DOMAINS=${TS_CERT_DOMAIN}
+      - OVERWRITEPROTOCOL=https
+      - OVERWRITECLIURL=https://${TS_CERT_DOMAIN}
+      - PHP_MEMORY_LIMIT=1G
+      - PHP_UPLOAD_LIMIT=10G
+
+  # ── Identity ──────────────────────────────────────────────
   nextcloud-ts:
     image: tailscale/tailscale:latest
     container_name: nextcloud-ts
+
+    # ── Lifecycle ─────────────────────────────────────────────
     restart: unless-stopped
+
+    # ── Network ───────────────────────────────────────────────
     networks:
-    - nextcloud-net
+      - nextcloud-net
+
+    # ── Storage ───────────────────────────────────────────────
     volumes:
-    - /volume1/docker/stacks/nextcloud/ts-config:/config
-    - /volume1/docker/stacks/nextcloud/ts-state:/var/lib/tailscale
+      - /volume1/docker/stacks/nextcloud/ts-config:/config
+      - /volume1/docker/stacks/nextcloud/ts-state:/var/lib/tailscale
+
+    # ── Environment ───────────────────────────────────────────
     environment:
-    - TS_HOSTNAME=nextcloud
-    - TS_AUTHKEY=${TS_AUTHKEY}
-    - TS_STATE_DIR=/var/lib/tailscale
-    - TS_AUTH_ONCE=true
-    - TS_SERVE_CONFIG=/config/serve.json
-    - NEXTCLOUD_TRUSTED_DOMAINS=${TS_CERT_DOMAIN}
-    - OVERWRITECLIURL=https://${TS_CERT_DOMAIN}
+      - TS_HOSTNAME=nextcloud
+      - TS_AUTHKEY=${TS_AUTHKEY}
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_AUTH_ONCE=true
+      - TS_SERVE_CONFIG=/config/serve.json
+      - NEXTCLOUD_TRUSTED_DOMAINS=${TS_CERT_DOMAIN}
+      - OVERWRITECLIURL=https://${TS_CERT_DOMAIN}
+
+    # ── Runtime ───────────────────────────────────────────────
     cap_add:
-    - NET_ADMIN
-    - NET_RAW
+      - NET_ADMIN
+      - NET_RAW
     devices:
-    - /dev/net/tun:/dev/net/tun
+      - /dev/net/tun:/dev/net/tun
+
+  # ── Identity ──────────────────────────────────────────────
   db:
     image: postgres:16
     container_name: nextcloud-db
+
+    # ── Lifecycle ─────────────────────────────────────────────
     restart: unless-stopped
+
+    # ── Network ───────────────────────────────────────────────
     networks:
-    - nextcloud-net
+      - nextcloud-net
+
+    # ── Storage ───────────────────────────────────────────────
     volumes:
-    - /volume1/docker/stacks/nextcloud/postgres:/var/lib/postgresql/data
+      - /volume1/docker/stacks/nextcloud/postgres:/var/lib/postgresql/data
+
+    # ── Environment ───────────────────────────────────────────
     environment:
-    - POSTGRES_DB=nextcloud
-    - POSTGRES_USER=nextcloud
-    - POSTGRES_PASSWORD=${NC_DB_PASSWORD}
+      - POSTGRES_DB=nextcloud
+      - POSTGRES_USER=nextcloud
+      - POSTGRES_PASSWORD=${NC_DB_PASSWORD}
+
+  # ── Identity ──────────────────────────────────────────────
   redis:
     image: redis:7-alpine
     container_name: nextcloud-redis
+
+    # ── Lifecycle ─────────────────────────────────────────────
     restart: unless-stopped
+
+    # ── Network ───────────────────────────────────────────────
     networks:
-    - nextcloud-net
+      - nextcloud-net
+
 networks:
   nextcloud-net:
     driver: bridge

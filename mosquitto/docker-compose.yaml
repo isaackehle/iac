@@ -1,26 +1,43 @@
+# Mosquitto — Docker Compose Stack
+#
+# Stack version: 1.0
+# Purpose: MQTT broker for IoT device communication
+#
+# Services:
+#   - mosquitto
+#
+# Environment variables:
+#   - STACK_NAME=Mosquitto
+#   - TZ=${TZ}
+#   See .env.example for all required variables
+#
+# Deployment:
+#   docker compose -f mosquitto.yaml up -d
+#   docker compose -f mosquitto.yaml down
+#
+name: Mosquitto
+version: "3.8"
+
 services:
-  # ---------------------------------------------------------------------------
-  # Main application — Eclipse Mosquitto MQTT broker
-  # ---------------------------------------------------------------------------
+  # ── Identity ──────────────────────────────────────────────
   mosquitto:
-    # 1. Identity (rarely changes)
-    image: eclipse-mosquitto:2.0           # Official Eclipse Mosquitto 2.0 MQTT broker image
-    container_name: mosquitto              # Fixed container name for cross-stack references
+    image: eclipse-mosquitto:2.0
+    container_name: mosquitto
 
-    # 2. Lifecycle (occasionally changes)
-    restart: unless-stopped                # Restart on crash or Docker daemon reboot; stop only on manual intervention
+    # ── Lifecycle ─────────────────────────────────────────────
+    restart: unless-stopped
 
-    # 3. Network
+    # ── Network ───────────────────────────────────────────────
     ports:
-      - "1883:1883"                        # MQTT plain TCP — standard IoT/device port
-      - "9001:9001"                        # MQTT over WebSocket — Home Assistant web UI connectivity
+      - "1883:1883"         # MQTT plain TCP — standard IoT/device port
+      - "9001:9001"         # MQTT over WebSocket — Home Assistant web UI
 
-    # 4. Storage
+    # ── Storage ───────────────────────────────────────────────
     volumes:
-      - ./certs:/mosquitto/certs:ro        # [secret] TLS certificates (read-only, sensitive)
-      - ./data:/mosquitto/data             # [state]  Persistent data: retained messages, sessions, persistence DB
-      - ./config/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro  # [config] Broker configuration (read-only)
+      - ./certs:/mosquitto/certs:ro     # TLS certificates (read-only)
+      - ./data:/mosquitto/data          # Persistent data: retained messages, sessions
+      - ./config/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro  # Broker config
 
-    # 5. Environment (changes frequently with secrets)
+    # ── Environment ───────────────────────────────────────────
     environment:
-      TZ: ${TZ}                            # Timezone for log timestamps and scheduled tasks
+      - TZ=${TZ}                        # Timezone for log timestamps

@@ -1,15 +1,36 @@
+# Portainer Simple — Docker Compose Stack
+#
+# Stack version: 1.0
+# Purpose: Simple Portainer CE deployment for Docker management
+#
+# Services:
+#   - portainer
+#
+# Environment variables:
+#   - STACK_NAME=PortainerSimple
+#   See .env.example for all required variables
+#
+# Deployment:
+#   docker compose -f portainer-simple.yaml up -d
+#   docker compose -f portainer-simple.yaml down
+#
+name: PortainerSimple
 version: "3.8"
 
 services:
+  # ── Identity ──────────────────────────────────────────────
   portainer:
     image: portainer/portainer-ce:latest
     container_name: portainer
+
+    # ── Lifecycle ─────────────────────────────────────────────
     restart: always
+
+    # ── Network ───────────────────────────────────────────────
     ports:
-      - "9000:9000"
+      - "9000:9000"               # Portainer web interface
+
+    # ── Storage ───────────────────────────────────────────────
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - /volume1/docker/portainer-data:/data
-
-volumes:
-  portainer-data:

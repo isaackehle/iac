@@ -1,44 +1,95 @@
+# OpenWebUI — Docker Compose Stack
+#
+# Stack version: 1.0
+# Purpose: Web UI for LLM interaction with Ollama integration
+#
+# Services:
+#   - openwebui
+#   - openwebui-config
+#   - openwebui-ts (Tailscale sidecar)
+#
+# Environment variables:
+#   - STACK_NAME=OpenWebUI
+#   - TZ=${TZ}
+#   - OPENWEBUI_API_KEY=${OPENWEBUI_API_KEY}
+#   - TS_AUTHKEY=${TS_AUTHKEY}
+#   See .env.example for all required variables
+#
+# Deployment:
+#   docker compose -f openwebui.yaml up -d
+#   docker compose -f openwebui.yaml down
+#
+name: OpenWebUI
+version: "3.8"
+
 services:
+  # ── Identity ──────────────────────────────────────────────
   openwebui:
     image: ghcr.io/open-webui/open-webui:latest
     container_name: openwebui
+
+    # ── Lifecycle ─────────────────────────────────────────────
     restart: unless-stopped
     depends_on:
-    - openwebui-ts
+      - openwebui-ts
+
+    # ── Network ───────────────────────────────────────────────
     network_mode: service:openwebui-ts
+
+    # ── Storage ───────────────────────────────────────────────
     volumes:
-    - /volume1/docker/stacks/openwebui/data:/app/backend/data
+      - /volume1/docker/stacks/openwebui/data:/app/backend/data
+
+    # ── Environment ───────────────────────────────────────────
     environment:
-    - TZ=${TZ}
+      - TZ=${TZ}
+
+  # ── Identity ──────────────────────────────────────────────
   openwebui-config:
     image: alpine:3.20
     container_name: openwebui-config
-    restart: 'no'
+
+    # ── Lifecycle ─────────────────────────────────────────────
+    restart: "no"
+
+    # ── Storage ───────────────────────────────────────────────
     volumes:
-    - ./configure-ollama.sh:/scripts/configure-ollama.sh:ro
-    - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./configure-ollama.sh:/scripts/configure-ollama.sh:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+
+    # ── Environment ───────────────────────────────────────────
     environment:
-    - OPENWEBUI_API_URL=${OPENWEBUI_API_URL:-http://localhost:8080}
-    - OPENWEBUI_API_KEY=${OPENWEBUI_API_KEY:?Set this to your admin API key}
-    - OLLAMA_ENGINES=${OLLAMA_ENGINES:-'[]'}
-    command: "sh -c \"chmod +x /scripts/configure-ollama.sh && \n       timeout 30\
-      \ /bin/sh -c 'until curl -sf ${OPENWEBUI_API_URL}/api/models >/dev/null 2>&1;\
-      \ do sleep 2; done' &&\n       /scripts/configure-ollama.sh\"\n"
+      - OPENWEBUI_API_URL=${OPENWEBUI_API_URL:-http://localhost:8080}
+      - OPENWEBUI_API_KEY=${OPENWEBUI_API_KEY:?Set this to your admin API key}
+      - OLLAMA_ENGINES=${OLLAMA_ENGINES:-'[]'}
+
+    # ── Runtime ───────────────────────────────────────────────
+    command: "sh -c \"chmod +x /scripts/configure-ollama.sh && timeout 30 /bin/sh -c 'until curl -sf ${OPENWEBUI_API_URL}/api/models >/dev/null 2>&1; do sleep 2; done' && /scripts/configure-ollama.sh\""
+
+  # ── Identity ──────────────────────────────────────────────
   openwebui-ts:
     image: tailscale/tailscale:latest
     container_name: openwebui-ts
+
+    # ── Lifecycle ─────────────────────────────────────────────
     restart: unless-stopped
+
+    # ── Storage ───────────────────────────────────────────────
     volumes:
-    - /volume1/docker/stacks/openwebui/ts-state:/var/lib/tailscale
-    - /volume1/docker/stacks/openwebui/ts-config:/config
+      - /volume1/docker/stacks/openwebui/ts-state:/var/lib/tailscale
+      - /volume1/docker/stacks/openwebui/ts-config:/config
+
+    # ── Environment ───────────────────────────────────────────
     environment:
-    - TS_HOSTNAME=openwebui
-    - TS_AUTHKEY=${TS_AUTHKEY}
-    - TS_STATE_DIR=/var/lib/tailscale
-    - TS_AUTH_ONCE=true
-    - TS_SERVE_CONFIG=/config/serve.json
+      - TS_HOSTNAME=openwebui
+      - TS_AUTHKEY=${TS_AUTHKEY}
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_AUTH_ONCE=true
+      - TS_SERVE_CONFIG=/config/serve.json
+
+    # ── Runtime ───────────────────────────────────────────────
     cap_add:
-    - NET_ADMIN
-    - NET_RAW
+      - NET_ADMIN
+      - NET_RAW
     devices:
-    - /dev/net/tun:/dev/net/tun
+      - /dev/net/tun:/dev/net/tun

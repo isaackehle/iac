@@ -1,50 +1,92 @@
+# Portainer — Docker Compose Stack
+#
+# Stack version: 1.0
+# Purpose: Docker management interface with Tailscale sidecar
+#
+# Services:
+#   - portainer
+#   - ts-portainer (Tailscale sidecar)
+#
+# Environment variables:
+#   - STACK_NAME=Portainer
+#   - TS_HOSTNAME_PORTAINER=${TS_HOSTNAME_PORTAINER:-portainer}
+#   - TS_AUTHKEY=${TS_AUTHKEY}
+#   See .env.example for all required variables
+#
+# Deployment:
+#   docker compose -f portainer.yaml up -d
+#   docker compose -f portainer.yaml down
+#
+name: Portainer
 version: "3.8"
 
-networks:
-  portainer_net:
-    driver: bridge
-
 services:
+  # ── Identity ──────────────────────────────────────────────
   portainer:
-    container_name: portainer
     image: portainer/portainer-ce:latest
+    container_name: portainer
+
+    # ── Lifecycle ─────────────────────────────────────────────
     restart: always
     depends_on:
       - ts-portainer
+
+    # ── Network ───────────────────────────────────────────────
     network_mode: service:ts-portainer
     security_opt:
       - no-new-privileges:true
+
+    # ── Storage ───────────────────────────────────────────────
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - /volume1/docker/stacks/portainer/data:/data
 
+  # ── Identity ──────────────────────────────────────────────
   ts-portainer:
-    container_name: ts-portainer
     image: tailscale/tailscale:latest
+    container_name: ts-portainer
+
+    # ── Lifecycle ─────────────────────────────────────────────
     restart: unless-stopped
+
+    # ── Runtime ───────────────────────────────────────────────
     cap_add:
       - NET_ADMIN
       - SYS_MODULE
       - NET_RAW
+
+    # ── Environment ───────────────────────────────────────────
     environment:
       - TS_HOSTNAME=${TS_HOSTNAME_PORTAINER:-portainer}
       - TS_AUTHKEY=${TS_AUTHKEY}
       - TS_STATE_DIR=/var/lib/tailscale
       - TS_AUTH_ONCE=true
       - TS_SERVE_CONFIG=/config/serve.json
-    devices:
-      - /dev/net/tun:/dev/net/tun
+
+    # ── Storage ───────────────────────────────────────────────
     volumes:
       - /volume1/docker/portainer-secrets/certs:/certs:ro
       - /volume1/docker/portainer-secrets/chisel:/chisel:ro
       - /volume1/docker/stacks/portainer/ts-state:/var/lib/tailscale
       - /volume1/docker/stacks/portainer/ts-config:/config
+
+    # ── Network ───────────────────────────────────────────────
     networks:
       - portainer_net
+
+    # ── Runtime ───────────────────────────────────────────────
     ports:
-      - 19443:9443
-      - 9000:9000
-      - 8000:8000
+      - "19443:9443"
+      - "9000:9000"
+      - "8000:8000"
+
+    # ── Storage ───────────────────────────────────────────────
+    devices:
+      - /dev/net/tun:/dev/net/tun
+
+networks:
+  portainer_net:
+    driver: bridge
 
 volumes:
   ts-portainer-proxy-data: null
