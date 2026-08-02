@@ -1,56 +1,112 @@
+# n8n — Docker Compose Stack
+#
+# Stack version: 1.0
+# Purpose: Workflow automation platform
+#
+# Services:
+#   - n8n
+#   - browserless
+#   - n8n-ts (Tailscale sidecar)
+#
+# Environment variables:
+#   - STACK_NAME=n8n
+#   - TZ=${TZ}
+#   - N8N_BASIC_AUTH_USER=${N8N_BASIC_AUTH_USER}
+#   - N8N_BASIC_AUTH_PASSWORD=${N8N_BASIC_AUTH_PASSWORD}
+#   - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
+#   - TS_AUTHKEY=${TS_AUTHKEY}
+#   See .env.example for all required variables
+#
+# Deployment:
+#   docker compose -f n8n.yaml up -d
+#   docker compose -f n8n.yaml down
+#
+name: n8n
+version: "3.8"
+
 services:
+  # ── Identity ──────────────────────────────────────────────
   n8n:
     image: n8nio/n8n:latest
     container_name: n8n
+
+    # ── Lifecycle ─────────────────────────────────────────────
     restart: unless-stopped
     depends_on:
-    - n8n-ts
-    - browserless
+      - n8n-ts
+      - browserless
+
+    # ── Network ───────────────────────────────────────────────
     network_mode: service:n8n-ts
+
+    # ── Storage ───────────────────────────────────────────────
     volumes:
-    - /volume1/docker/stacks/n8n/config:/home/node/.n8n
-    - /volume1/docker/stacks/n8n/files:/files
+      - /volume1/docker/stacks/n8n/config:/home/node/.n8n
+      - /volume1/docker/stacks/n8n/files:/files
+
+    # ── Environment ───────────────────────────────────────────
     environment:
-    - TZ=${TZ}
-    - N8N_HOST=n8n
-    - N8N_PORT=5678
-    - N8N_PROTOCOL=http
-    - WEBHOOK_URL=https://n8n.${TS_TAILNET_DOMAIN}/
-    - N8N_BASIC_AUTH_ACTIVE=true
-    - N8N_BASIC_AUTH_USER=${N8N_BASIC_AUTH_USER}
-    - N8N_BASIC_AUTH_PASSWORD=${N8N_BASIC_AUTH_PASSWORD}
-    - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
-    - BROWSERLESS_URL=http://browserless:3000
+      - TZ=${TZ}
+      - N8N_HOST=n8n
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - WEBHOOK_URL=https://n8n.${TS_TAILNET_DOMAIN}/
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=${N8N_BASIC_AUTH_USER}
+      - N8N_BASIC_AUTH_PASSWORD=${N8N_BASIC_AUTH_PASSWORD}
+      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
+      - BROWSERLESS_URL=http://browserless:3000
+
+  # ── Identity ──────────────────────────────────────────────
   browserless:
     image: browserless/chrome:latest
     container_name: n8n-browserless
+
+    # ── Lifecycle ─────────────────────────────────────────────
     restart: unless-stopped
+
+    # ── Network ───────────────────────────────────────────────
     networks:
-    - n8n-net
+      - n8n-net
+
+    # ── Environment ───────────────────────────────────────────
     environment:
-    - MAX_CONCURRENT_SESSIONS=2
-    - CONNECTION_TIMEOUT=60000
-    - TZ=${TZ}
+      - MAX_CONCURRENT_SESSIONS=2
+      - CONNECTION_TIMEOUT=60000
+      - TZ=${TZ}
+
+  # ── Identity ──────────────────────────────────────────────
   n8n-ts:
     image: tailscale/tailscale:latest
     container_name: n8n-ts
+
+    # ── Lifecycle ─────────────────────────────────────────────
     restart: unless-stopped
+
+    # ── Network ───────────────────────────────────────────────
     networks:
-    - n8n-net
+      - n8n-net
+
+    # ── Storage ───────────────────────────────────────────────
     volumes:
-    - /volume1/docker/stacks/n8n/ts-state:/var/lib/tailscale
-    - /volume1/docker/stacks/n8n/ts-config:/config
+      - /volume1/docker/stacks/n8n/ts-state:/var/lib/tailscale
+      - /volume1/docker/stacks/n8n/ts-config:/config
+
+    # ── Environment ───────────────────────────────────────────
     environment:
-    - TS_HOSTNAME=n8n
-    - TS_AUTHKEY=${TS_AUTHKEY}
-    - TS_STATE_DIR=/var/lib/tailscale
-    - TS_AUTH_ONCE=true
-    - TS_SERVE_CONFIG=/config/serve.json
+      - TS_HOSTNAME=n8n
+      - TS_AUTHKEY=${TS_AUTHKEY}
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_AUTH_ONCE=true
+      - TS_SERVE_CONFIG=/config/serve.json
+
+    # ── Runtime ───────────────────────────────────────────────
     cap_add:
-    - NET_ADMIN
-    - NET_RAW
+      - NET_ADMIN
+      - NET_RAW
     devices:
-    - /dev/net/tun:/dev/net/tun
+      - /dev/net/tun:/dev/net/tun
+
 networks:
   n8n-net:
     driver: bridge

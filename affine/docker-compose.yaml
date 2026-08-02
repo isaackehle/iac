@@ -1,124 +1,130 @@
-name: affine
+# Affine — Docker Compose Stack
+#
+# Stack version: 1.0
+# Purpose: Collaborative whiteboard and note-taking platform
+#
+# Services:
+#   - affine (main application)
+#   - affine_migration (database migrations)
+#   - postgres (PostgreSQL database)
+#   - redis (Redis cache)
+#
+# Environment variables:
+#   - STACK_NAME=Affine
+#   - AFFINE_REVISION=${AFFINE_REVISION:-stable}
+#   - PORT=${PORT:-3010}
+#   - UPLOAD_LOCATION=${UPLOAD_LOCATION}
+#   - CONFIG_LOCATION=${CONFIG_LOCATION}
+#   - DB_USERNAME=${DB_USERNAME}
+#   - DB_PASSWORD=${DB_PASSWORD}
+#   - DB_DATABASE=${DB_DATABASE:-affine}
+#   - DB_DATA_LOCATION=${DB_DATA_LOCATION}
+#   See .env.example for all required variables
+#
+# Deployment:
+#   docker compose -f affine.yaml up -d
+#   docker compose -f affine.yaml down
+#
+name: Affine
+version: "3.8"
+
 services:
-  # ---------------------------------------------------------------------------
-  # Main application — Affine collaborative whiteboard platform
-  # ---------------------------------------------------------------------------
+  # ── Identity ──────────────────────────────────────────────
   affine:
-    # 1. Identity
-    image: ghcr.io/toeverything/affine:${AFFINE_REVISION:-stable}  # Affine server container
-    container_name: affine_server  # Server container name
+    image: ghcr.io/toeverything/affine:${AFFINE_REVISION:-stable}
+    container_name: affine_server
 
-    # 2. Lifecycle
-    restart: unless-stopped  # Auto-restart on failure or Docker restart
+    # ── Lifecycle ─────────────────────────────────────────────
+    restart: unless-stopped
     depends_on:
       redis:
-        condition: service_healthy  # Wait for Redis to be healthy
+        condition: service_healthy
       postgres:
-        condition: service_healthy  # Wait for PostgreSQL to be healthy
+        condition: service_healthy
       affine_migration:
-        condition: service_completed_successfully  # Wait for DB migrations to complete
+        condition: service_completed_successfully
 
-    # 3. Network
+    # ── Network ───────────────────────────────────────────────
     ports:
-      - ${PORT:-3010}:3010  # Web UI port (default 3010)
+      - "${PORT:-3010}:3010"      # Web UI port (default 3010)
 
-    # 4. Storage
+    # ── Storage ───────────────────────────────────────────────
     volumes:
-      - ${UPLOAD_LOCATION}:/root/.affine/storage  # User uploads directory
-      - ${CONFIG_LOCATION}:/root/.affine/config  # Application config
+      - ${UPLOAD_LOCATION}:/root/.affine/storage
+      - ${CONFIG_LOCATION}:/root/.affine/config
 
-    # 5. Environment
+    # ── Environment ───────────────────────────────────────────
     environment:
-      - REDIS_SERVER_HOST=redis  # Redis service hostname
-      - DATABASE_URL=postgresql://${DB_USERNAME}:***@postgres:5432/${DB_DATABASE:-affine}  # DB connection string
-      - AFFINE_INDEXER_ENABLED=false  # Disable search indexer (optional)
+      - REDIS_SERVER_HOST=redis
+      - DATABASE_URL=postgresql://${DB_USERNAME}:***@postgres:5432/${DB_DATABASE:-affine}
+      - AFFINE_INDEXER_ENABLED=false
 
-  # ---------------------------------------------------------------------------
-  # Migration job — runs database migrations on startup
-  # ---------------------------------------------------------------------------
+  # ── Identity ──────────────────────────────────────────────
   affine_migration:
-    # 1. Identity
-    image: ghcr.io/toeverything/affine:${AFFINE_REVISION:-stable}  # Same image as server
-    container_name: affine_migration_job  # Migration job container
+    image: ghcr.io/toeverything/affine:${AFFINE_REVISION:-stable}
+    container_name: affine_migration_job
 
-    # 2. Lifecycle
+    # ── Lifecycle ─────────────────────────────────────────────
     depends_on:
       postgres:
-        condition: service_healthy  # Wait for PostgreSQL
+        condition: service_healthy
       redis:
-        condition: service_healthy  # Wait for Redis
+        condition: service_healthy
 
-    # 4. Storage
+    # ── Storage ───────────────────────────────────────────────
     volumes:
-      - ${UPLOAD_LOCATION}:/root/.affine/storage  # Same uploads as server
-      - ${CONFIG_LOCATION}:/root/.affine/config  # Same config as server
+      - ${UPLOAD_LOCATION}:/root/.affine/storage
+      - ${CONFIG_LOCATION}:/root/.affine/config
 
-    # 5. Environment
+    # ── Environment ───────────────────────────────────────────
     environment:
-      - REDIS_SERVER_HOST=redis  # Redis service hostname
-      - DATABASE_URL=postgresql://${DB_USERNAME}:***@postgres:5432/${DB_DATABASE:-affine}  # DB connection string
-      - AFFINE_INDEXER_ENABLED=false  # Disable search indexer
+      - REDIS_SERVER_HOST=redis
+      - DATABASE_URL=postgresql://${DB_USERNAME}:***@postgres:5432/${DB_DATABASE:-affine}
+      - AFFINE_INDEXER_ENABLED=false
 
-    # 6. Runtime
+    # ── Runtime ───────────────────────────────────────────────
     command:
-      - sh  # Shell interpreter
-      - -c  # Execute command string
-      - node ./scripts/self-host-predeploy.js  # Run pre-deployment script
+      - sh
+      - -c
+      - node ./scripts/self-host-predeploy.js
 
-  # ---------------------------------------------------------------------------
-  # PostgreSQL database — primary data store
-  # ---------------------------------------------------------------------------
+  # ── Identity ──────────────────────────────────────────────
   postgres:
-    # 1. Identity
-    image: pgvector/pgvector:pg16  # PostgreSQL with pgvector extension for AI features
-    container_name: affine_postgres  # Database container name
+    image: pgvector/pgvector:pg16
+    container_name: affine_postgres
 
-    # 2. Lifecycle
-    restart: unless-stopped  # Auto-restart on failure
+    # ── Lifecycle ─────────────────────────────────────────────
+    restart: unless-stopped
 
-    # 4. Storage
+    # ── Storage ───────────────────────────────────────────────
     volumes:
-      - ${DB_DATA_LOCATION}:/var/lib/postgresql/data  # PostgreSQL data directory
+      - ${DB_DATA_LOCATION}:/var/lib/postgresql/data
 
-    # 5. Environment
+    # ── Environment ───────────────────────────────────────────
     environment:
-      POSTGRES_USER: ${DB_USERNAME}  # Database username
-      POSTGRES_PASSWORD: ${DB_PASSWORD}  # Database password (use secrets)
-      POSTGRES_DB: ${DB_DATABASE:-affine}  # Database name (default: affine)
-      POSTGRES_INITDB_ARGS: --data-checksums  # Enable data integrity checksums
+      - POSTGRES_USER=${DB_USERNAME}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_DATABASE:-affine}
+      - POSTGRES_INITDB_ARGS=--data-checksums
 
-    # 6. Runtime
+    # ── Runtime ───────────────────────────────────────────────
     healthcheck:
-      test:
-        - CMD  # Execute command
-        - pg_isready  # Check PostgreSQL readiness
-        - -U  # User flag
-        - ${DB_USERNAME}  # Username
-        - -d  # Database flag
-        - ${DB_DATABASE:-affine}  # Database name
-      interval: 10s  # Check every 10 seconds
-      timeout: 5s  # Timeout after 5 seconds
-      retries: 5  # Max 5 retries before unhealthy
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d ${DB_DATABASE:-affine}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-  # ---------------------------------------------------------------------------
-  # Redis cache — session and cache storage
-  # ---------------------------------------------------------------------------
+  # ── Identity ──────────────────────────────────────────────
   redis:
-    # 1. Identity
-    image: redis  # Official Redis image (latest tag)
-    container_name: affine_redis  # Redis container name
+    image: redis
+    container_name: affine_redis
 
-    # 2. Lifecycle
-    restart: unless-stopped  # Auto-restart on failure
+    # ── Lifecycle ─────────────────────────────────────────────
+    restart: unless-stopped
 
-    # 6. Runtime
+    # ── Runtime ───────────────────────────────────────────────
     healthcheck:
-      test:
-        - CMD  # Execute command
-        - redis-cli  # Redis CLI tool
-        - --raw  # Raw output mode
-        - incr  # Increment operation (tests write)
-        - ping  # Ping command
-      interval: 10s  # Check every 10 seconds
-      timeout: 5s  # Timeout after 5 seconds
-      retries: 5  # Max 5 retries before unhealthy
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5

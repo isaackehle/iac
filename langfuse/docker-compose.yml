@@ -1,64 +1,82 @@
-services:
-  # ---------------------------------------------------------------------------
-  # Main application — Langfuse LLM observability platform
-  # ---------------------------------------------------------------------------
-  langfuse:
-    # 1. Identity
-    image: langfuse/langfuse:latest  # Official Langfuse image
-    container_name: langfuse  # Container name
+# Langfuse — Docker Compose Stack
+#
+# Stack version: 1.0
+# Purpose: LLM observability and tracing platform
+#
+# Services:
+#   - langfuse
+#   - postgres
+#
+# Environment variables:
+#   - STACK_NAME=Langfuse
+#   - LANGFUSE_SALT=${LANGFUSE_SALT}
+#   - LANGFUSE_NEXTAUTH_SECRET=${LANGFUSE_NEXTAUTH_SECRET}
+#   - LANGFUSE_DB_USER=${LANGFUSE_DB_USER}
+#   - LANGFUSE_DB_PASSWORD=${LANGFUSE_DB_PASSWORD}
+#   - LANGFUSE_DB_NAME=${LANGFUSE_DB_NAME}
+#   - LANGFUSE_NEXTAUTH_URL=${LANGFUSE_NEXTAUTH_URL}
+#   See .env.example for all required variables
+#
+# Deployment:
+#   docker compose -f langfuse.yaml up -d
+#   docker compose -f langfuse.yaml down
+#
+name: Langfuse
+version: "3.8"
 
-    # 2. Lifecycle
-    restart: unless-stopped  # Auto-restart on failure
+services:
+  # ── Identity ──────────────────────────────────────────────
+  langfuse:
+    image: langfuse/langfuse:latest
+    container_name: langfuse
+
+    # ── Lifecycle ─────────────────────────────────────────────
+    restart: unless-stopped
     depends_on:
       postgres:
-        condition: service_healthy  # Wait for PostgreSQL to be ready
+        condition: service_healthy
 
-    # 3. Network
+    # ── Network ───────────────────────────────────────────────
     ports:
-      - "3000:3000"  # Web UI port
+      - "3000:3000"                 # Web UI port
 
-    # 4. Storage
+    # ── Storage ───────────────────────────────────────────────
     volumes:
       - /volume1/docker/stacks/langfuse/data:/data  # Persistent data directory
 
-    # 5. Environment
+    # ── Environment ───────────────────────────────────────────
     environment:
-      - SALT=${LANGFUSE_SALT}  # Random salt for encryption
+      - SALT=${LANGFUSE_SALT}                     # Random salt for encryption
       - NEXTAUTH_SECRET=${LANGFUSE_NEXTAUTH_SECRET}  # NextAuth secret
-      - LANGFUSE_SALT=${LANGFUSE_SALT}  # Encryption salt
-      - POSTGRES_USER=${LANGFUSE_DB_USER}  # Database username
-      - POSTGRES_PASSWORD=${LANGFUSE_DB_PASSWORD}  # Database password
-      - POSTGRES_HOST=postgres  # Database hostname
-      - POSTGRES_PORT=5432  # Database port
-      - POSTGRES_DB=${LANGFUSE_DB_NAME}  # Database name
-      - NEXTAUTH_URL=${LANGFUSE_NEXTAUTH_URL}  # NextAuth URL
+      - LANGFUSE_SALT=${LANGFUSE_SALT}            # Encryption salt
+      - POSTGRES_USER=${LANGFUSE_DB_USER}         # Database username
+      - POSTGRES_PASSWORD=${LANGFUSE_DB_PASSWORD} # Database password
+      - POSTGRES_HOST=postgres                    # Database hostname
+      - POSTGRES_PORT=5432                        # Database port
+      - POSTGRES_DB=${LANGFUSE_DB_NAME}           # Database name
+      - NEXTAUTH_URL=${LANGFUSE_NEXTAUTH_URL}     # NextAuth URL
 
-  # ---------------------------------------------------------------------------
-  # PostgreSQL database — primary data store
-  # ---------------------------------------------------------------------------
+  # ── Identity ──────────────────────────────────────────────
   postgres:
-    # 1. Identity
-    image: postgres:16-alpine  # PostgreSQL 16 with minimal Alpine base
-    container_name: langfuse-postgres  # Database container name
+    image: postgres:16-alpine
+    container_name: langfuse-postgres
 
-    # 2. Lifecycle
-    restart: unless-stopped  # Auto-restart on failure
+    # ── Lifecycle ─────────────────────────────────────────────
+    restart: unless-stopped
 
-    # 4. Storage
+    # ── Storage ───────────────────────────────────────────────
     volumes:
       - /volume1/docker/stacks/langfuse/postgres:/var/lib/postgresql/data  # PostgreSQL data
 
-    # 5. Environment
+    # ── Environment ───────────────────────────────────────────
     environment:
-      - POSTGRES_USER=${LANGFUSE_DB_USER}  # Database username
-      - POSTGRES_PASSWORD=${LANGFUSE_DB_PASSWORD}  # Database password
-      - POSTGRES_DB=${LANGFUSE_DB_NAME}  # Database name
+      - POSTGRES_USER=${LANGFUSE_DB_USER}         # Database username
+      - POSTGRES_PASSWORD=${LANGFUSE_DB_PASSWORD} # Database password
+      - POSTGRES_DB=${LANGFUSE_DB_NAME}           # Database name
 
-    # 6. Runtime
+    # ── Runtime ───────────────────────────────────────────────
     healthcheck:
-      test:
-        - CMD-SHELL
-        - pg_isready -U ${LANGFUSE_DB_USER} -d ${LANGFUSE_DB_NAME}  # Check readiness
-      interval: 10s  # Check every 10 seconds
-      timeout: 5s  # Timeout after 5 seconds
-      retries: 5  # Max 5 retries
+      test: ["CMD-SHELL", "pg_isready -U ${LANGFUSE_DB_USER} -d ${LANGFUSE_DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5

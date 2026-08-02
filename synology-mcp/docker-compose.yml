@@ -1,12 +1,38 @@
+# Synology MCP — Docker Compose Stack
+#
+# Stack version: 1.0
+# Purpose: Model Context Protocol server for Synology NAS integration
+#
+# Services:
+#   - synology-mcp
+#
+# Environment variables:
+#   - STACK_NAME=SynologyMCP
+#   - SYNOLOGY_PASSWORD=${SYNOLOGY_PASSWORD}
+#   - SYNOLOGY_OTP_CODE=${SYNOLOGY_OTP_CODE}
+#   See .env.example for all required variables
+#
+# Deployment:
+#   docker compose -f synology-mcp.yaml up -d
+#   docker compose -f synology-mcp.yaml down
+#
+name: SynologyMCP
 version: "3.8"
 
 services:
+  # ── Identity ──────────────────────────────────────────────
   synology-mcp:
     image: ghcr.io/modelcontextprotocol/servers/synology:latest
     container_name: synology-mcp
+
+    # ── Lifecycle ─────────────────────────────────────────────
     restart: unless-stopped
+
+    # ── Network ───────────────────────────────────────────────
     networks:
       - synology_mcp_net
+
+    # ── Environment ───────────────────────────────────────────
     environment:
       - SYNOLOGY_HOST=synology.tail303fda.ts.net
       - SYNOLOGY_PORT=5001
