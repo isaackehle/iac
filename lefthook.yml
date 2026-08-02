@@ -1,0 +1,7 @@
+pre-commit:
+  parallel: true
+  commands:
+    rumdl:
+      glob: "*.md"
+      run: rumdl --config .rumdl.toml fmt
+      stage_fixed: true
