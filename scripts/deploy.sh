@@ -7,13 +7,13 @@
 # is provisioned the same way instead of each having bespoke setup logic.
 #
 # Usage:
-#   scripts/deploy.sh env    <stack>                  # generate <stack>/env.txt locally
+#   scripts/deploy.sh env    <stack>                  # generate <stack>/.env locally
 #   scripts/deploy.sh dirs   <stack> <ssh-host>       # mkdir -p + chown on the NAS
-#   scripts/deploy.sh push   <stack> <ssh-host>       # scp compose/env.txt/extra files
+#   scripts/deploy.sh push   <stack> <ssh-host>       # scp compose/.env/extra files
 #   scripts/deploy.sh extras <stack> <ssh-host>       # scp ONLY the bind-mounted extra
 #                                                      # config (serve.json, Caddyfile,
 #                                                      # etc.) — no compose file, no
-#                                                      # env.txt
+#                                                      # .env
 #   scripts/deploy.sh serve  <stack> <ssh-host>       # apply host-level tailscale serve (Pattern A/hybrid stacks)
 #   scripts/deploy.sh up     <stack> <ssh-host>       # ssh in, docker compose up -d
 #   scripts/deploy.sh info   <stack>                  # print step-by-step deploy instructions
@@ -24,11 +24,11 @@
 #
 # push vs. extras: `push` is for stacks brought up directly via
 # `docker compose up -d` on the NAS (the `up` command below) — it stages
-# everything the compose file needs, including itself and env.txt. For
+# everything the compose file needs, including itself and .env. For
 # stacks deployed through Portainer's Repository/GitOps mode instead (the
-# documented method in most stacks' PORTAINER.md), the compose file is
+# documented method in most stacks' INSTALLATION.md), the compose file is
 # never read from the NAS filesystem — Portainer clones its own copy from
-# GitHub — and env.txt is meant to be selected from your laptop via
+# GitHub — and .env is meant to be selected from your laptop via
 # Portainer's "Load variables from .env file" picker, not present on the
 # NAS at all. Pushing either there just leaves a stale, unused duplicate
 # sitting next to the real bind-mounted config. Use `extras` instead for
@@ -101,9 +101,9 @@ cmd_push() {
   echo "==> $stack: pushing $compose to $host:$remote/"
   scp "$stack/$compose" "$host:$remote/$compose"
 
-  if [[ -f "$stack/env.txt" ]]; then
-    echo "==> $stack: pushing env.txt to $host:$remote/"
-    scp "$stack/env.txt" "$host:$remote/env.txt"
+  if [[ -f "$stack/.env" ]]; then
+    echo "==> $stack: pushing .env to $host:$remote/"
+    scp "$stack/.env" "$host:$remote/.env"
   fi
 
   cmd_extras "$stack" "$host"
@@ -162,16 +162,9 @@ cmd_up() {
   compose="$(compose_file_for "$stack")"
 
   echo "==> $stack: docker compose up -d on $host"
-  # --env-file is required here: docker compose only auto-loads a file
-  # literally named .env, and this repo generates env.txt instead (see
-  # scripts/gen-env.sh for why) — without this flag the stack would come up
-  # with every ${VAR} substitution silently empty.
-  local env_flag=""
-  if ssh "$host" "test -f '$remote/env.txt'"; then
-    env_flag="--env-file env.txt"
-  fi
-  # shellcheck disable=SC2086
-  ssh "$host" "cd '$remote' && docker compose -f '$compose' $env_flag up -d"
+  # .env is now referenced explicitly in docker-compose.yml via env_file directive,
+  # so no need for --env-file flag here.
+  ssh "$host" "cd '$remote' && docker compose -f '$compose' up -d"
 }
 
 cmd_all() {

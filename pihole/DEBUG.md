@@ -4,7 +4,7 @@ Quick reference for troubleshooting the Pi-hole + Tailscale + Caddy stack.
 
 ## Container Access
 
-```bash
+```shell
 # Enter the Pi-hole container
 docker exec -it pihole sh
 
@@ -17,7 +17,7 @@ docker exec -it caddy-pihole sh
 
 ## Pi-hole Configuration
 
-```bash
+```shell
 # View Pi-hole configuration
 docker exec pihole pihole-FTL --config
 
@@ -33,7 +33,7 @@ docker exec pihole ls -la /etc/pihole/
 
 ## Tailscale Serve Configuration
 
-```bash
+```shell
 # View the serve config mounted in the sidecar
 docker exec ts-pihole cat /config/serve.json
 
@@ -49,7 +49,7 @@ restart — Tailscale only re-reads `TS_SERVE_CONFIG` on container start.
 
 ## Verifying the Caddy Hop
 
-```bash
+```shell
 # From ts-pihole: can it reach Caddy on the internal forward port?
 docker exec ts-pihole wget -qO- --timeout=5 http://127.0.0.1:8444/admin/login && echo OK
 
@@ -62,7 +62,7 @@ docker logs caddy-pihole
 
 ## Container Logs
 
-```bash
+```shell
 docker logs pihole
 docker logs ts-pihole
 docker logs caddy-pihole
@@ -73,7 +73,7 @@ docker logs -f pihole
 
 ## Tailscale Connectivity
 
-```bash
+```shell
 # Check Tailscale status and IP
 docker exec ts-pihole tailscale status
 
@@ -86,7 +86,7 @@ docker exec ts-pihole tailscale ping pihole
 
 ## DNS Testing
 
-```bash
+```shell
 # Test DNS resolution via Pi-hole (from any device on tailnet)
 dig @pihole.tail303fda.ts.net example.com
 
@@ -110,7 +110,7 @@ the Caddy Hop" commands above to find which link is broken.
 
 ## Restart Services
 
-```bash
+```shell
 # Restart all three containers
 docker compose restart
 
