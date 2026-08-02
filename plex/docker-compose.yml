@@ -3,35 +3,32 @@ services:
     image: lscr.io/linuxserver/plex:latest
     container_name: plex
     restart: unless-stopped
-    environment:
-      - PUID=1000
-      - PGID=1000
-      - VERSION=docker
-      - PLEX_CLAIM=${PLEX_CLAIM} # https://www.plex.tv/claim — only needed on first run
-    volumes:
-      - /volume1/docker/stacks/plex/config:/config
-      - /volume1/media:/media # adjust to your actual media path
-    # No ports: exposed — access is exclusively via the Tailscale sidecar.
-    # If you need LAN access too, add: ports: ["32400:32400"]
-    network_mode: service:ts-plex
     depends_on:
-      - ts-plex
-
+    - ts-plex
+    network_mode: service:ts-plex
+    volumes:
+    - /volume1/docker/stacks/plex/config:/config
+    - /volume1/media:/media
+    environment:
+    - PUID=1000
+    - PGID=1000
+    - VERSION=docker
+    - PLEX_CLAIM=${PLEX_CLAIM}
   ts-plex:
     image: tailscale/tailscale:latest
     container_name: ts-plex
     restart: unless-stopped
-    environment:
-      - TS_HOSTNAME=plex
-      - TS_AUTHKEY=${TS_AUTHKEY}
-      - TS_STATE_DIR=/var/lib/tailscale
-      - TS_AUTH_ONCE=true
-      - TS_SERVE_CONFIG=/config/serve.json
     volumes:
-      - /volume1/docker/stacks/plex/ts-state:/var/lib/tailscale
-      - /volume1/docker/stacks/plex/ts-config:/config
-    devices:
-      - /dev/net/tun:/dev/net/tun
+    - /volume1/docker/stacks/plex/ts-state:/var/lib/tailscale
+    - /volume1/docker/stacks/plex/ts-config:/config
+    environment:
+    - TS_HOSTNAME=plex
+    - TS_AUTHKEY=${TS_AUTHKEY}
+    - TS_STATE_DIR=/var/lib/tailscale
+    - TS_AUTH_ONCE=true
+    - TS_SERVE_CONFIG=/config/serve.json
     cap_add:
-      - NET_ADMIN
-      - NET_RAW
+    - NET_ADMIN
+    - NET_RAW
+    devices:
+    - /dev/net/tun:/dev/net/tun

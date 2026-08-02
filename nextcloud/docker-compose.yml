@@ -1,75 +1,71 @@
 services:
+  nextcloud:
+    image: nextcloud:apache
+    container_name: nextcloud
+    restart: unless-stopped
+    depends_on:
+    - db
+    - redis
+    networks:
+    - nextcloud-net
+    ports:
+    - 30080:80
+    volumes:
+    - /volume1/docker/stacks/nextcloud/app:/var/www/html
+    - /volume1/docker/stacks/nextcloud/data:/var/www/html/data
+    environment:
+    - POSTGRES_HOST=db
+    - POSTGRES_DB=nextcloud
+    - POSTGRES_USER=nextcloud
+    - POSTGRES_PASSWORD=${NC_DB_PASSWORD}
+    - REDIS_HOST=redis
+    - NEXTCLOUD_ADMIN_USER=${NC_ADMIN_USER}
+    - NEXTCLOUD_ADMIN_PASSWORD=${NC_ADMIN_PASSWORD}
+    - NEXTCLOUD_TRUSTED_DOMAINS=${TS_CERT_DOMAIN}
+    - OVERWRITEPROTOCOL=https
+    - OVERWRITECLIURL=https://${TS_CERT_DOMAIN}
+    - PHP_MEMORY_LIMIT=1G
+    - PHP_UPLOAD_LIMIT=10G
+  nextcloud-ts:
+    image: tailscale/tailscale:latest
+    container_name: nextcloud-ts
+    restart: unless-stopped
+    networks:
+    - nextcloud-net
+    volumes:
+    - /volume1/docker/stacks/nextcloud/ts-config:/config
+    - /volume1/docker/stacks/nextcloud/ts-state:/var/lib/tailscale
+    environment:
+    - TS_HOSTNAME=nextcloud
+    - TS_AUTHKEY=${TS_AUTHKEY}
+    - TS_STATE_DIR=/var/lib/tailscale
+    - TS_AUTH_ONCE=true
+    - TS_SERVE_CONFIG=/config/serve.json
+    - NEXTCLOUD_TRUSTED_DOMAINS=${TS_CERT_DOMAIN}
+    - OVERWRITECLIURL=https://${TS_CERT_DOMAIN}
+    cap_add:
+    - NET_ADMIN
+    - NET_RAW
+    devices:
+    - /dev/net/tun:/dev/net/tun
   db:
     image: postgres:16
     container_name: nextcloud-db
     restart: unless-stopped
-    environment:
-      - POSTGRES_DB=nextcloud
-      - POSTGRES_USER=nextcloud
-      - POSTGRES_PASSWORD=${NC_DB_PASSWORD}
-    volumes:
-      - /volume1/docker/stacks/nextcloud/postgres:/var/lib/postgresql/data
     networks:
-      - nextcloud-net
-
+    - nextcloud-net
+    volumes:
+    - /volume1/docker/stacks/nextcloud/postgres:/var/lib/postgresql/data
+    environment:
+    - POSTGRES_DB=nextcloud
+    - POSTGRES_USER=nextcloud
+    - POSTGRES_PASSWORD=${NC_DB_PASSWORD}
   redis:
     image: redis:7-alpine
     container_name: nextcloud-redis
     restart: unless-stopped
     networks:
-      - nextcloud-net
-
-  nextcloud:
-    image: nextcloud:apache
-    container_name: nextcloud
-    restart: unless-stopped
-    environment:
-      - POSTGRES_HOST=db
-      - POSTGRES_DB=nextcloud
-      - POSTGRES_USER=nextcloud
-      - POSTGRES_PASSWORD=${NC_DB_PASSWORD}
-      - REDIS_HOST=redis
-      - NEXTCLOUD_ADMIN_USER=${NC_ADMIN_USER}
-      - NEXTCLOUD_ADMIN_PASSWORD=${NC_ADMIN_PASSWORD}
-      - NEXTCLOUD_TRUSTED_DOMAINS=${TS_CERT_DOMAIN}
-      - OVERWRITEPROTOCOL=https
-      - OVERWRITECLIURL=https://${TS_CERT_DOMAIN}
-      - PHP_MEMORY_LIMIT=1G
-      - PHP_UPLOAD_LIMIT=10G
-    volumes:
-      - /volume1/docker/stacks/nextcloud/app:/var/www/html
-      - /volume1/docker/stacks/nextcloud/data:/var/www/html/data
-    ports:
-      - "30080:80"
-    networks:
-      - nextcloud-net
-    depends_on:
-      - db
-      - redis
-
-  nextcloud-ts:
-    image: tailscale/tailscale:latest
-    container_name: nextcloud-ts
-    restart: unless-stopped
-    environment:
-      - TS_HOSTNAME=nextcloud
-      - TS_AUTHKEY=${TS_AUTHKEY}
-      - TS_STATE_DIR=/var/lib/tailscale
-      - TS_AUTH_ONCE=true
-      - TS_SERVE_CONFIG=/config/serve.json
-      - NEXTCLOUD_TRUSTED_DOMAINS=${TS_CERT_DOMAIN}
-      - OVERWRITECLIURL=https://${TS_CERT_DOMAIN}
-    volumes:
-      - /volume1/docker/stacks/nextcloud/ts-config:/config
-      - /volume1/docker/stacks/nextcloud/ts-state:/var/lib/tailscale
-    devices:
-      - /dev/net/tun:/dev/net/tun
-    cap_add:
-      - NET_ADMIN
-      - NET_RAW
-    networks:
-      - nextcloud-net
-
+    - nextcloud-net
 networks:
   nextcloud-net:
     driver: bridge

@@ -1,36 +1,50 @@
 version: "3.8"
 
+networks:
+  portainer_net:
+    driver: bridge
+
 services:
-  portainer-ts:
+  portainer:
+    container_name: portainer
+    image: portainer/portainer-ce:latest
+    restart: always
+    depends_on:
+      - ts-portainer
+    network_mode: service:ts-portainer
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /volume1/docker/stacks/portainer/data:/data
+
+  ts-portainer:
+    container_name: ts-portainer
     image: tailscale/tailscale:latest
-    container_name: portainer-ts
     restart: unless-stopped
-    hostname: portainer
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+      - NET_RAW
     environment:
       - TS_HOSTNAME=${TS_HOSTNAME_PORTAINER:-portainer}
       - TS_AUTHKEY=${TS_AUTHKEY}
       - TS_STATE_DIR=/var/lib/tailscale
       - TS_AUTH_ONCE=true
       - TS_SERVE_CONFIG=/config/serve.json
-    volumes:
-      - /volume1/docker/stacks/portainer/ts-state:/var/lib/tailscale
-      - /volume1/docker/stacks/portainer/ts-config:/config
     devices:
       - /dev/net/tun:/dev/net/tun
-    cap_add:
-      - NET_ADMIN
-      - SYS_MODULE
-      - NET_RAW
-    ports:
-      - "19443:9443"
-      - "9000:9000"
-      - "8000:8000"
+    volumes:
+      - /volume1/docker/portainer-secrets/certs:/certs:ro
+      - /volume1/docker/portainer-secrets/chisel:/chisel:ro
+      - /volume1/docker/stacks/portainer/ts-state:/var/lib/tailscale
+      - /volume1/docker/stacks/portainer/ts-config:/config
     networks:
       - portainer_net
-
-networks:
-  portainer_net:
-    driver: bridge
+    ports:
+      - 19443:9443
+      - 9000:9000
+      - 8000:8000
 
 volumes:
-  ts-portainer-proxy-data:
+  ts-portainer-proxy-data: null

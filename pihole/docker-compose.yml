@@ -3,54 +3,48 @@ services:
     image: pihole/pihole:latest
     container_name: pihole
     restart: unless-stopped
-    hostname: pihole
-
     ports:
-      - "53:53/tcp"
-      - "53:53/udp"
-      - "8280:80/tcp"
-
+    - 53:53/tcp
+    - 53:53/udp
+    - 8280:80/tcp
+    volumes:
+    - /volume1/docker/stacks/pihole/etc-pihole:/etc/pihole
     environment:
       TZ: ${TZ}
       FTLCONF_webserver_api_password: ${PIHOLE_PASSWORD}
       FTLCONF_dns_listeningMode: all
       FTLCONF_dns_upstreams: ${PIHOLE_UPSTREAMS}
-      FTLCONF_webserver_port: "80"
+      FTLCONF_webserver_port: '80'
       FTLCONF_webserver_domain: ${TS_CERT_DOMAIN}
-
-    volumes:
-      - /volume1/docker/stacks/pihole/etc-pihole:/etc/pihole
-
-  ts-pihole:
-    image: tailscale/tailscale:latest
-    container_name: ts-pihole
-    restart: unless-stopped
-    network_mode: service:pihole
-    depends_on:
-      - pihole
-    environment:
-      - TS_HOSTNAME=pihole
-      - TS_AUTHKEY=${TS_AUTHKEY}
-      - TS_STATE_DIR=/var/lib/tailscale
-      - TS_AUTH_ONCE=true
-      - TS_SERVE_CONFIG=/config/serve.json
-      - TS_CERT_DOMAIN=${TS_CERT_DOMAIN}
-      # - TS_TAILSCALED_EXTRA_ARGS=--verbose=2
-    volumes:
-      - /volume1/docker/stacks/pihole/ts-state:/var/lib/tailscale
-      - /volume1/docker/stacks/pihole/ts-config:/config
-    devices:
-      - /dev/net/tun:/dev/net/tun
-    cap_add:
-      - NET_ADMIN
-      - NET_RAW
-
+    hostname: pihole
   caddy:
     image: caddy:2-alpine
     container_name: caddy-pihole
     restart: unless-stopped
-    network_mode: service:pihole
     depends_on:
-      - pihole
+    - pihole
+    network_mode: service:pihole
     volumes:
-      - /volume1/docker/stacks/pihole/caddy-config:/etc/caddy:ro
+    - /volume1/docker/stacks/pihole/caddy-config:/etc/caddy:ro
+  ts-pihole:
+    image: tailscale/tailscale:latest
+    container_name: ts-pihole
+    restart: unless-stopped
+    depends_on:
+    - pihole
+    network_mode: service:pihole
+    volumes:
+    - /volume1/docker/stacks/pihole/ts-state:/var/lib/tailscale
+    - /volume1/docker/stacks/pihole/ts-config:/config
+    environment:
+    - TS_HOSTNAME=pihole
+    - TS_AUTHKEY=${TS_AUTHKEY}
+    - TS_STATE_DIR=/var/lib/tailscale
+    - TS_AUTH_ONCE=true
+    - TS_SERVE_CONFIG=/config/serve.json
+    - TS_CERT_DOMAIN=${TS_CERT_DOMAIN}
+    cap_add:
+    - NET_ADMIN
+    - NET_RAW
+    devices:
+    - /dev/net/tun:/dev/net/tun
