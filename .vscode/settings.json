@@ -1,6 +1,17 @@
 {
     "cSpell.words": [
+        "AUTHKEY",
+        "lscr",
+        "mosquitto",
+        "Mosquitto",
+        "MQTT",
+        "PGID",
+        "pihole",
+        "PUID",
         "rumdl",
-        "syncthing"
+        "STGUIADDRESS",
+        "syncthing",
+        "tailnet",
+        "Tailnet"
     ]
 }
