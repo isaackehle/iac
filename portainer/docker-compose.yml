@@ -41,6 +41,10 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - /volume1/docker/stacks/portainer/data:/data
 
+    # ── Environment ───────────────────────────────────────────
+    env_file:
+      - /volume1/docker/stacks/portainer/.env
+
   # ── Identity ──────────────────────────────────────────────
   ts-portainer:
     image: tailscale/tailscale:latest
