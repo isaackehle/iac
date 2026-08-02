@@ -7,20 +7,21 @@ self-hosted Synology server on the `${TS_TAILNET_DOMAIN}` tailnet.
 
 ## Stacks
 
-| Stack           | Tailscale URL                                     | Pattern    |
-| --------------- | ------------------------------------------------- | ---------- |
-| `affine`        | `https://nas.${TS_TAILNET_DOMAIN}:3010`           | host serve |
-| `frigate`       | `https://nas.${TS_TAILNET_DOMAIN}:8971`           | host serve |
-| `homeassistant` | `https://homeassistant.${TS_TAILNET_DOMAIN}`      | TS sidecar |
-| `mosquitto`     | n/a — LAN/tailnet IP only, port 1883              | none       |
-| `n8n`           | `https://n8n.${TS_TAILNET_DOMAIN}`                | TS sidecar |
-| `nextcloud`     | `https://nextcloud.${TS_TAILNET_DOMAIN}`          | TS sidecar |
-| `openwebui`     | `https://openwebui.${TS_TAILNET_DOMAIN}`          | TS sidecar |
-| `pihole`        | `https://nas.${TS_TAILNET_DOMAIN}:8080` / `:8443` | hybrid     |
-| `plex`          | `https://plex.${TS_TAILNET_DOMAIN}`               | TS sidecar |
-| `portainer`     | `https://portainer.${TS_TAILNET_DOMAIN}`          | TS sidecar |
-| `postgresql`    | `https://nas.${TS_TAILNET_DOMAIN}:2660` (pgAdmin) | host serve |
-| `syncthing`     | `https://syncthing.${TS_TAILNET_DOMAIN}`          | TS sidecar |
+| Stack           | Tailscale URL                                     | Pattern            |
+| --------------- | ------------------------------------------------- | ------------------ |
+| `affine`        | `https://nas.${TS_TAILNET_DOMAIN}:3010`           | host serve         |
+| `frigate`       | `https://nas.${TS_TAILNET_DOMAIN}:8971`           | host serve         |
+| `homeassistant` | `https://homeassistant.${TS_TAILNET_DOMAIN}`      | TS sidecar         |
+| `langfuse`      | `https://langfuse.${TS_TAILNET_DOMAIN}`           | TS sidecar         |
+| `mosquitto`     | n/a — LAN/tailnet IP only, port 1883              | none               |
+| `n8n`           | `https://n8n.${TS_TAILNET_DOMAIN}`                | TS sidecar         |
+| `nextcloud`     | `https://nextcloud.${TS_TAILNET_DOMAIN}`          | TS sidecar         |
+| `openwebui`     | `https://openwebui.${TS_TAILNET_DOMAIN}`          | TS sidecar         |
+| `pihole`        | `https://pihole.${TS_TAILNET_DOMAIN}`             | TS sidecar + Caddy |
+| `plex`          | `https://plex.${TS_TAILNET_DOMAIN}`               | TS sidecar         |
+| `portainer`     | `https://portainer.${TS_TAILNET_DOMAIN}`          | TS sidecar         |
+| `postgresql`    | `https://nas.${TS_TAILNET_DOMAIN}:2660` (pgAdmin) | host serve         |
+| `syncthing`     | `https://syncthing.${TS_TAILNET_DOMAIN}`          | TS sidecar         |
 
 ---
 
@@ -29,7 +30,7 @@ self-hosted Synology server on the `${TS_TAILNET_DOMAIN}` tailnet.
 Real secrets (Tailscale auth keys, passwords, API keys) live in a single
 file at the repo root, gitignored and never committed:
 
-```text
+```shell
 iac-secrets.env
 ```
 
@@ -41,12 +42,15 @@ and is safe to commit — it has no real values. Copy it to `iac-secrets.env`
 once and fill in real values there.
 
 Each stack still has a `.env.example` describing what _that stack_ needs;
-`scripts/gen-env.sh` cross-references the two to produce a real `.env`
-per stack (gitignored, never committed):
+`scripts/gen-env.sh` cross-references the two to produce a real `env.txt`
+per stack (gitignored, never committed). It's named `env.txt` rather than
+`.env` on purpose — Portainer's "Load variables from .env file" button opens
+a normal OS file picker, and dotfiles are hidden by default in most of
+those, making a literal `.env` annoying to select manually:
 
 ```bash
-scripts/gen-env.sh <stack>     # generate ./<stack>/.env
-scripts/gen-env.sh --all       # generate .env for every stack
+scripts/gen-env.sh <stack>     # generate ./<stack>/env.txt
+scripts/gen-env.sh --all       # generate env.txt for every stack
 ```
 
 Any key still blank or left as a placeholder (`changeme`, `tskey-auth-xxxx`,
@@ -66,9 +70,9 @@ it, unless you override it explicitly.
 no manual copy/paste into Portainer required, though that still works too.
 
 ```bash
-scripts/deploy.sh env   <stack>                # generate <stack>/.env locally
+scripts/deploy.sh env   <stack>                # generate <stack>/env.txt locally
 scripts/deploy.sh dirs  <stack> <ssh-host>      # mkdir -p + chown on the NAS
-scripts/deploy.sh push  <stack> <ssh-host>      # scp compose file, .env, serve.json, etc.
+scripts/deploy.sh push  <stack> <ssh-host>      # scp compose file, env.txt, serve.json, etc.
 scripts/deploy.sh serve <stack> <ssh-host>      # apply host-level tailscale serve (if applicable)
 scripts/deploy.sh up    <stack> <ssh-host>      # ssh in, docker compose up -d
 scripts/deploy.sh all   <stack> <ssh-host>      # all of the above, in order
@@ -109,7 +113,7 @@ service.
 
 ### Pattern A — Host-level `tailscale serve` (NAS node)
 
-Used by: `affine`, `frigate`, `postgresql` (`pihole` is a hybrid, see below)
+Used by: `affine`, `frigate`, `postgresql`
 
 The container binds a port on the host. The NAS host's own Tailscale daemon
 reverse-proxies that port over HTTPS via `tailscale serve --bg`. Access is
@@ -126,8 +130,8 @@ Backend scheme matters:
 
 ### Pattern B — Tailscale sidecar container (own tailnet node)
 
-Used by: `homeassistant`, `n8n`, `nextcloud`, `openwebui`, `plex`,
-`portainer`, `syncthing` (`pihole` is a hybrid, see below)
+Used by: `homeassistant`, `langfuse`, `n8n`, `nextcloud`, `openwebui`, `plex`,
+`portainer`, `syncthing` (`pihole` uses a variant of this, see below)
 
 Each stack includes a `tailscale/tailscale:latest` sidecar that joins the
 tailnet as its own node (e.g. `plex.${TS_TAILNET_DOMAIN}`). The app container
@@ -172,20 +176,66 @@ ts-plex:
   hostname: plex # ✗ collides with other sidecar hostnames on the host
 ```
 
-### `pihole` — hybrid (both patterns at once)
+### `pihole` — Pattern B + Caddy (TCPForward, not Web/Proxy mode)
 
-`pihole` publishes ports 53/8080/8443 directly, runs host-level
-`tailscale serve` for the web admin, _and_ has its own `ts-pihole` sidecar
-with a `serve.json` — all three simultaneously. Don't use it as a template
-for a new stack; pick one pattern instead.
+`pihole` is a Pattern B sidecar setup with one difference: `ts-pihole`'s
+`serve.json` does **not** use the usual `Web`/`Proxy` HTTP-reverse-proxy
+mode. Instead it uses Tailscale's `TCPForward` + `TerminateTLS` mode —
+`tailscaled` still terminates TLS on 443 with its own automatic cert, but
+instead of parsing and re-proxying the HTTP request itself, it forwards the
+decrypted bytes as a raw TCP stream to a third sibling container, `caddy`,
+which does the actual HTTP reverse-proxying to Pi-hole on `127.0.0.1:80`.
+
+Why: `tailscaled`'s own built-in `Web`/`Proxy` mode is
+[documented as 5-10x slower](https://github.com/tailscale/tailscale/issues/18307)
+than a real reverse proxy under concurrent load — enough that Pi-hole's
+admin UI would hang indefinitely loading its own CSS/JS assets (a dozen-plus
+parallel requests on page load) even though a single sequential `curl`
+worked fine. `TCPForward`/`TerminateTLS` sidesteps `tailscaled`'s slow HTTP
+path entirely while still getting automatic TLS from Tailscale — Caddy never
+needs its own cert.
+
+`pihole/serve.json.tmpl`:
+
+```json
+{
+  "TCP": {
+    "443": {
+      "TCPForward": "127.0.0.1:8444",
+      "TerminateTLS": "pihole.{{TS_TAILNET_DOMAIN}}"
+    }
+  }
+}
+```
+
+Note `TerminateTLS` takes the literal hostname as its value (not `true`) —
+confirmed from the `ipn.TCPPortHandler` struct in Tailscale's own source
+(`ipn/serve.go`). It's templated via `{{TS_TAILNET_DOMAIN}}` rather than
+Tailscale's own `${TS_CERT_DOMAIN}` runtime substitution, since that
+substitution is only confirmed to apply to `Web` map keys, not arbitrary
+`TCP` handler string fields — untested territory not worth gambling on.
+
+Port 8444 is never published to the host — it's only reachable via the
+`network_mode: service:pihole` shared namespace between `ts-pihole`, `caddy`,
+and `pihole` itself. `pihole` still separately publishes `8280:80/tcp`
+directly (bypassing Caddy entirely) as a raw plain-HTTP debug path.
+
+This pattern (Caddy sidecar + `TCPForward`/`TerminateTLS` instead of
+`Web`/`Proxy`) is worth reapplying to any other Pattern B stack that hits
+the same slow-proxy wall — it's not pihole-specific, just not yet needed
+elsewhere. Each stack doing this needs its **own** Caddy instance sharing
+**its own** sidecar's identity/cert — a single shared Caddy can't front
+multiple stacks' separate `<name>.${TS_TAILNET_DOMAIN}` hostnames, since
+each hostname's cert is bound to that stack's own Tailscale node.
 
 ---
 
 ## Directory layout
 
 All stacks live under `/volume1/docker/stacks/<name>`. Each stack's directory
-contains its compose file, generated `.env`, and any extra config (serve.json,
-etc.). The `scripts/lib.sh` file is the single source of truth for paths.
+contains its compose file, generated `env.txt`, and any extra config
+(serve.json, etc.). The `scripts/lib.sh` file is the single source of truth
+for paths.
 
 ---
 
@@ -194,15 +244,60 @@ etc.). The `scripts/lib.sh` file is the single source of truth for paths.
 These ports are reachable directly via the Tailscale IP/hostname but are
 not handled by `tailscale serve` (HTTP/HTTPS only):
 
-| Service             | Port  | Protocol  | Notes                                                                             |
-| ------------------- | ----- | --------- | --------------------------------------------------------------------------------- |
-| Pi-hole DNS         | 53    | TCP + UDP | Configure as tailnet DNS resolver in admin console                                |
-| Frigate RTSP        | 8554  | TCP       | Use an RTSP client pointed at the Tailscale IP                                    |
-| Frigate WebRTC      | 8555  | TCP + UDP | UDP not proxiable via serve                                                       |
-| Syncthing sync      | 22000 | TCP + UDP | Syncthing handles tailnet peers natively                                          |
-| Syncthing discovery | 21027 | UDP       | —                                                                                 |
-| PostgreSQL          | 2665  | TCP       | Connect via Tailscale IP directly                                                 |
-| Mosquitto MQTT      | 1883  | TCP       | No Tailscale integration; reachable because the NAS host itself runs `tailscaled` |
+| Service             | Port  | Protocol  | Notes                                                                                                                                       |
+| ------------------- | ----- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| Pi-hole DNS         | 53    | TCP + UDP | Configure as tailnet DNS resolver in admin console                                                                                          |
+| Langfuse / MinIO    | 9090  | TCP       | S3 API for direct media uploads — see langfuse's Pattern note (published directly on the `minio` sibling, not routed through `langfuse-ts`) |
+| Frigate RTSP        | 8554  | TCP       | Use an RTSP client pointed at the Tailscale IP                                                                                              |
+| Frigate WebRTC      | 8555  | TCP + UDP | UDP not proxiable via serve                                                                                                                 |
+| Syncthing sync      | 22000 | TCP + UDP | Syncthing handles tailnet peers natively                                                                                                    |
+| Syncthing discovery | 21027 | UDP       | —                                                                                                                                           |
+| PostgreSQL          | 2665  | TCP       | Connect via Tailscale IP directly                                                                                                           |
+| Mosquitto MQTT      | 1883  | TCP       | No Tailscale integration; reachable because the NAS host itself runs `tailscaled`                                                           |
+
+---
+
+## Port Registry — master list, pull from here before assigning a new port
+
+Every host-bound port across every stack, one table, sorted by port number.
+Covers Pattern A `tailscale serve` targets, non-HTTP direct ports, and the
+handful of ports published straight to the host outside either Tailscale
+pattern (syncthing's GUI, portainer's DSM-fronted ports). Check here before
+adding a new `STACK_SERVE_PORTS` entry, a new sidecar host port, or a new
+non-HTTP port — collisions on the NAS host are otherwise easy to hit blind.
+
+| Port         | Stack            | Protocol  | Access path                             | Notes                                                                                   |
+| ------------ | ---------------- | --------- | --------------------------------------- | --------------------------------------------------------------------------------------- |
+| 53           | pihole           | TCP + UDP | Direct (non-HTTP)                       | DNS                                                                                     |
+| 443          | pihole           | TCP       | `tailscaled` (TCPForward → Caddy)       | web UI, TLS terminated by Tailscale, not published to host — reachable only via tailnet |
+| 1883         | mosquitto        | TCP       | Direct (non-HTTP)                       | MQTT — no Tailscale integration                                                         |
+| 2660         | postgresql       | TCP       | Pattern A (host serve)                  | pgAdmin                                                                                 |
+| 2665         | postgresql       | TCP       | Direct (non-HTTP)                       | raw Postgres, connect via Tailscale IP                                                  |
+| 3010         | affine           | TCP       | Pattern A (host serve)                  |                                                                                         |
+| 8000         | portainer        | TCP       | DSM reverse proxy (not Tailscale)       | edge agent port                                                                         |
+| 8280         | pihole           | TCP       | Direct host publish (bypasses Caddy)    | raw plain-HTTP debug path straight to Pi-hole                                           |
+| 8384         | syncthing        | TCP       | Pattern B sidecar + direct host publish | web GUI                                                                                 |
+| 8554         | frigate          | TCP       | Direct (non-HTTP)                       | RTSP                                                                                    |
+| 8555         | frigate          | TCP + UDP | Direct (non-HTTP)                       | WebRTC — UDP not proxiable via serve                                                    |
+| 8971         | frigate          | TCP       | Pattern A (host serve)                  |                                                                                         |
+| 9000         | portainer        | TCP       | DSM reverse proxy (not Tailscale)       | Portainer HTTP                                                                          |
+| 9090         | langfuse (minio) | TCP       | Direct (non-HTTP)                       | S3 API, published on the `minio` sibling                                                |
+| 19443 → 9443 | portainer        | TCP       | DSM reverse proxy (not Tailscale)       | Portainer HTTPS; `ts-portainer` sidecar exists but is **not enabled**                   |
+| 21027        | syncthing        | UDP       | Direct (non-HTTP)                       | discovery                                                                               |
+| 22000        | syncthing        | TCP + UDP | Direct (non-HTTP)                       | sync protocol                                                                           |
+
+Not host-bound, so not in the table above but worth knowing about: pihole's
+`caddy` sibling listens on **8444** inside the stack's shared network
+namespace only — never published to the host, not reachable outside the
+`network_mode: service:pihole` group. Won't collide with anything.
+
+Not covered here: DSM's own native ports (Login Portal 5000/5001, SSH 22,
+etc.) — cross-check Control Panel → Network → Firewall/Router if a
+collision is suspected outside this table.
+
+Currently actually deployed on the NAS: **syncthing** and (mid-rebuild)
+**pihole**. Everything else in this table is either not yet deployed or
+(portainer) deployed but fronted by DSM's reverse proxy instead of Tailscale.
 
 ---
 
@@ -272,16 +367,24 @@ runtime with the node's full MagicDNS name.
 The sidecar re-reads this file on container start — unlike the host
 pattern, the file must remain present at the mounted path.
 
+`pihole` uses a different `TCP` handler shape — `TCPForward` +
+`TerminateTLS` instead of `HTTPS: true` + a `Web` entry — to route around a
+documented performance problem in `tailscaled`'s own `Web`/`Proxy` mode.
+See the `pihole` — Pattern B + Caddy section above for why and the exact
+schema.
+
 ### Templated files (`*.tmpl`)
 
 Every sidecar stack keeps its committed `serve.json` source as
 `serve.json.tmpl`; `scripts/gen-env.sh` renders it to `serve.json`
-(gitignored, like `.env`) at deploy time. For most stacks the render just
+(gitignored, like `env.txt`) at deploy time. For most stacks the render just
 copies the file through, since Tailscale's own `${TS_CERT_DOMAIN}`
 substitution covers the node's own domain. `{{KEY}}` tokens (filled from
 `./iac-secrets.env (repo root, gitignored)`) are only needed for values Tailscale can't
 substitute — e.g. a backend on a _different_ tailnet node, as in
-`portainer/serve.json.tmpl` (backend is the separate `voyager` node), the
-only stack using a token today. If you add a new `.tmpl` file (beyond the
-standard `serve.json.tmpl`), also add its rendered output path to
-`.gitignore`.
+`portainer/serve.json.tmpl` (backend is the separate `voyager` node); or a
+value inside a `TCP` handler rather than a `Web` map key, since `${...}`
+runtime substitution is only confirmed to apply to the latter — see
+`pihole/serve.json.tmpl`'s `TerminateTLS` field, templated with
+`{{TS_TAILNET_DOMAIN}}`. If you add a new `.tmpl` file (beyond the standard
+`serve.json.tmpl`), also add its rendered output path to `.gitignore`.

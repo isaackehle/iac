@@ -25,6 +25,7 @@ Host voyager.local, voyager
 ```
 
 **What this does:**
+
 - `SetEnv TERM=xterm-256color` - Sets terminal type for 256-color support
 - `RequestTTY yes` - Forces TTY allocation (needed for interactive commands)
 - `SendEnv COLORTERM` - Sends color environment variable to NAS
@@ -50,6 +51,7 @@ export LS_COLORS="di=01;34:ow=01;34:tw=01;34:ex=01;32:ln=01;36"
 ```
 
 **Note:** The `~/.profile` approach is preferred over `~/.bashrc` because:
+
 - It runs for both interactive and non-interactive SSH sessions
 - It's loaded before `~/.bashrc` in the login sequence
 - It ensures consistent environment across all connection types
@@ -64,6 +66,7 @@ ssh isaac@voyager.tail303fda.ts.net
 ```
 
 The SSH config automatically:
+
 - Sets `TERM=xterm-256color`
 - Requests TTY allocation
 - Uses the correct identity file
@@ -90,17 +93,20 @@ ls -la /volume1/
 ### Troubleshooting
 
 **Colors not working:**
+
 1. Check terminal type: `echo $TERM` (should be `xterm-256color`)
 2. Check if `LS_COLORS` is set: `echo $LS_COLORS`
 3. If missing, run: `export LS_COLORS="di=01;34:ow=01;34:tw=01;34:ex=01;32:ln=01;36"`
 
 **TTY allocation issues:**
+
 1. Check SSH config: `grep -A3 "Host voyager" ~/.ssh/config`
 2. Ensure `RequestTTY yes` is present
 3. Try manual TTY: `ssh -t voyager`
 
 **Ghostty-specific issues:**
 If using Ghostty terminal, you can also set these in `~/.config/ghostty/config`:
+
 ```ini
 env = TERM=xterm-256color
 env = LS_COLORS=di=01;34:ow=01;34:tw=01;34:ex=01;32:ln=01;36
