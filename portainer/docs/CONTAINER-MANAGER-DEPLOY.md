@@ -79,7 +79,7 @@ EOF
 Ensure `/volume1/docker/stacks/portainer/.env` exists with:
 
 ```shell
-TS_AUTHKEY=tskey-auth-REMOVED
+TS_AUTHKEY=tskey-auth-xxxx
 TS_CERT_DOMAIN=portainer.<tailnet>.ts.net
 TS_HOSTNAME_PORTAINER=portainer
 ```

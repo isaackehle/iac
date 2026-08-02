@@ -39,7 +39,7 @@ scp ~/code/isaackehle/iac/portainer/old/compose.yaml \
 
 # Create .env file
 cat > /volume1/docker/stacks/portainer/old/.env << 'EOF'
-TS_AUTHKEY=tskey-auth-REMOVED
+TS_AUTHKEY={{TS_AUTHKEY}}
 TS_CERT_DOMAIN=portainer.<tailnet>.ts.net
 TS_HOSTNAME_PORTAINER=portainer
 EOF
