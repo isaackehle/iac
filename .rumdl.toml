@@ -1,0 +1,37 @@
+# rumdl configuration file for IAC repo
+# Run: rumdl check . to lint all markdown files
+# Run: rumdl fmt . to auto-fix issues
+
+[global]
+# Files to exclude from linting
+exclude = [
+    ".gitignore",
+    ".pre-commit-config.yaml",
+    "package.json",
+    "package-lock.json",
+    "CHANGELOG.md",
+    "tests/**/*.md",
+    "__tests__/**/*.md",
+]
+
+# Line length rule
+[MD013]
+line_length = 160
+code_blocks = false
+tables = false
+
+# Emphasis used instead of heading - disable for now
+[MD036]
+enabled = false
+
+# First line should be a heading
+[MD041]
+enabled = false
+
+# Unordered list indentation
+[MD007]
+indent = 2
+
+# Inline HTML
+[MD033]
+allowed_elements = ["code", "kbd", "pre", "samp", "var"]

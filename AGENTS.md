@@ -127,6 +127,7 @@ default for missing map entries, not an error).
 
 **Pattern A — Host-level `tailscale serve` (no sidecar container)**
 Stacks: `affine`, `frigate`, `postgresql`
+
 - Container just publishes a port on the NAS host via `ports:`.
 - `scripts/deploy.sh serve <stack> <host>` runs
   `tailscale serve --bg --https=<port> <backend>` directly against the
@@ -137,6 +138,7 @@ Stacks: `affine`, `frigate`, `postgresql`
 **Pattern B — Tailscale sidecar container (own tailnet node)**
 Stacks: `homeassistant`, `langfuse`, `nextcloud`, `n8n`, `openwebui`, `plex`,
 `portainer`, `syncthing`, `pihole` (`pihole` uses a variant, see below)
+
 - A `tailscale/tailscale:latest` container joins the tailnet as its own
   node (`<name>.${TS_TAILNET_DOMAIN}`) and the app container has **no
   `ports:` and no `networks:` of its own** — it runs

@@ -32,7 +32,7 @@
 ✅ Removed duplicate files from `data/certs/` and `data/chisel/`
 ✅ Updated compose.yaml with secure volume mounts
 
-### Verification:
+### Verification
 
 ```bash
 # Check secrets directory
@@ -133,6 +133,7 @@ See `~/code/isaackehle/iac/synology-mcp/INSTALLATION.md` for details.
 ✅ Renamed all `PORTAINER.md` files to `INSTALLATION.md` across IAC repo
 
 **Files renamed:**
+
 - `portainer/PORTAINER.md` → `portainer/INSTALLATION.md` (new content, Container Manager focused)
 - `syncthing/PORTAINER.md` → `syncthing/INSTALLATION.md`
 - `nextcloud/PORTAINER.md` → `nextcloud/INSTALLATION.md`
@@ -141,7 +142,8 @@ See `~/code/isaackehle/iac/synology-mcp/INSTALLATION.md` for details.
 - `plex/PORTAINER.md` → `plex/INSTALLATION.md`
 - `pihole/PORTAINER.md` → `pihole/INSTALLATION.md`
 
-**Rationale:** The old `PORTAINER.md` files described deploying stacks *via* Portainer UI, but Portainer itself must be deployed via Container Manager (since it doesn't exist yet). The new `INSTALLATION.md` files reflect the actual deployment method.
+**Rationale:** The old `PORTAINER.md` files described deploying stacks *via* Portainer UI, but Portainer itself must be deployed via Container Manager (since it
+doesn't exist yet). The new `INSTALLATION.md` files reflect the actual deployment method.
 
 ## Verification Checklist
 
