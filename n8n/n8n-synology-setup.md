@@ -35,7 +35,7 @@ Then visit `https://nas-ip:9443` to finish Portainer's first-run setup (create a
 This follows your existing Tailscale sidecar pattern (Pattern B), so n8n lives under `stacks/` alongside your other
 sidecar-fronted services, with a config dir, a files dir, and the sidecar's own state/config dirs:
 
-```
+```shell
 /volume1/docker/stacks/n8n/
 ├── config/             # n8n's persistent config, credentials, workflow DB (SQLite by default)
 ├── files/              # shared folder for file-based nodes (exports, downloads)

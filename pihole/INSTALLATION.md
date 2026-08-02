@@ -57,7 +57,7 @@ this design replaced that after finding it wasn't actually what was wanted).
 `ts-pihole`, `caddy`, and `pihole` all share one network namespace
 (`network_mode: service:pihole`). The tailnet-facing path is:
 
-```
+```text
 client --TLS--> ts-pihole:443 (tailscaled terminates TLS,
                                 automatic Tailscale cert)
              --plaintext TCP--> caddy:8444 (internal only, not published)

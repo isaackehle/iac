@@ -46,7 +46,7 @@ Then restart the Zigbee2MQTT addon in HA.
 
 ## Architecture
 
-```
+```text
 ┌─────────────┐     TCP:6638      ┌──────────────────┐
 │ SLZB-06M    │◄─────────────────►│ Zigbee2MQTT (HA) │
 └─────────────┘                   └────────┬─────────┘

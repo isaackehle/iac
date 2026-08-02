@@ -26,8 +26,8 @@ Tailscale sidecar and applied via `TS_SERVE_CONFIG` on container start.
    - **Compose path:** `plex/docker-compose.yml`
 4. Under **Environment variables**, paste the contents of `.env.example` with
    real values filled in:
-   - `PLEX_CLAIM` — from https://www.plex.tv/claim (only needed on first run)
-   - `TS_AUTHKEY` — from https://login.tailscale.com/admin/settings/keys
+   - `PLEX_CLAIM` — from <https://www.plex.tv/claim> (only needed on first run)
+   - `TS_AUTHKEY` — from <https://login.tailscale.com/admin/settings/keys>
 5. Click **Deploy the stack**
 
 ## What the Stack Contains

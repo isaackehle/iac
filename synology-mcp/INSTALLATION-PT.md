@@ -153,6 +153,7 @@ See `~/sync/plans/004_synology-web-api-enable.md` for more details.
 If you see certificate errors, ensure you're using the Tailscale certificate:
 
 1. Generate:
+
    ```bash
    sudo /var/packages/Tailscale*/target/bin/tailscale cert \
      --cert-file=/tmp/voyager.crt \
@@ -163,6 +164,7 @@ If you see certificate errors, ensure you're using the Tailscale certificate:
 2. Copy to: `/usr/syno/etc/certificate/_archive/<ID>/`
 
 3. Restart nginx:
+
    ```bash
    sudo /usr/bin/nginx -s reload
    ```
