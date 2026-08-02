@@ -155,7 +155,11 @@ docker run --rm \
 
 ## Known issues
 
-- DNS collision: The `openwebui` hostname is set via env var (`TS_HOSTNAME=openwebui`), not the compose `hostname:` field, to avoid collisions with other Tailscale sidecars. This is intentional and documented in [`_template/README.md`](../_template/README.md#known-dns-collision) and the root `README.md`.
+- DNS collision: The `openwebui` hostname is set via env var
+  (`TS_HOSTNAME=openwebui`), not the compose `hostname:` field, to
+  avoid collisions with other Tailscale sidecars. This is intentional
+  and documented in [`_template/README.md`](../_template/README.md#known-dns-collision)
+  and the root `README.md`.
 
 ## Contributing
 
