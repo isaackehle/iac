@@ -13,7 +13,7 @@ Deploy the Synology MCP server using Synology's Container Manager UI.
 
 On your Mac, ensure you have these files ready:
 
-```bash
+```shell
 cd ~/code/isaackehle/iac/synology-mcp
 ls -la docker-compose.yml .env .env.example
 ```
@@ -22,7 +22,7 @@ ls -la docker-compose.yml .env .env.example
 
 Via SSH:
 
-```bash
+```shell
 ssh isaac@voyager.tail303fda.ts.net
 mkdir -p /volume1/docker/stacks/synology-mcp/config
 exit
@@ -30,7 +30,7 @@ exit
 
 ## Step 3: Copy Files to Synology
 
-```bash
+```shell
 cd ~/code/isaackehle/iac/synology-mcp
 
 # Copy docker-compose.yml
@@ -78,7 +78,7 @@ scp -r config/ isaac@voyager.tail303fda.ts.net:/volume1/docker/stacks/synology-m
 
 Via SSH:
 
-```bash
+```shell
 ssh isaac@voyager.tail303fda.ts.net
 
 # Check container status
@@ -109,13 +109,13 @@ Required variables in `.env`:
 
 Test the connection via the MCP inspector:
 
-```bash
+```shell
 npx @modelcontextprotocol/inspector npx -y @modelcontextprotocol/servers/synology
 ```
 
 Or test the Web API directly:
 
-```bash
+```shell
 curl -skL https://voyager.tail303fda.ts.net:5001/webapi/entry.cgi?api=SYNO.API.Info&method=query&version=1
 ```
 
@@ -123,7 +123,7 @@ curl -skL https://voyager.tail303fda.ts.net:5001/webapi/entry.cgi?api=SYNO.API.I
 
 To update the MCP server:
 
-```bash
+```shell
 ssh isaac@voyager.tail303fda.ts.net
 cd /volume1/docker/stacks/synology-mcp
 docker compose pull
@@ -136,7 +136,7 @@ docker compose up -d
 
 The Synology Web API HTTP endpoint may be disabled. Enable it via SSH:
 
-```bash
+```shell
 sudo /usr/syno/bin/synowebapi --enable-lib SYNO.API.Info.lib SYNO.API.Auth.lib SYNO.Entry.Request.lib
 ```
 
@@ -148,7 +148,7 @@ If you see certificate errors, ensure you're using the Tailscale certificate:
 
 1. Generate:
 
-   ```bash
+   ```shell
    sudo /var/packages/Tailscale*/target/bin/tailscale cert \
      --cert-file=/tmp/voyager.crt \
      --key-file=/tmp/voyager.key \
@@ -159,7 +159,7 @@ If you see certificate errors, ensure you're using the Tailscale certificate:
 
 3. Restart nginx:
 
-   ```bash
+   ```shell
    sudo /usr/bin/nginx -s reload
    ```
 

@@ -4,4 +4,3 @@ pre-commit:
     rumdl:
       glob: "*.md"
       run: rumdl --config .rumdl.toml fmt
-      stage_fixed: true

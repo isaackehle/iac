@@ -4,7 +4,7 @@ Quick reference for troubleshooting the Home Assistant stack.
 
 ## Container Access
 
-```bash
+```shell
 docker exec -it ts-homeassistant sh
 ```
 
@@ -14,7 +14,7 @@ docker exec -it ts-homeassistant sh
 
 ## Tailscale Serve Configuration
 
-```bash
+```shell
 # Inside the sidecar:
 cat /config/serve.json
 tailscale serve status
@@ -22,14 +22,14 @@ tailscale serve status
 
 ## Container Logs
 
-```bash
+```shell
 docker logs ts-homeassistant
 docker logs -f ts-homeassistant
 ```
 
 ## Tailscale Connectivity
 
-```bash
+```shell
 docker exec ts-homeassistant tailscale status
 docker exec ts-homeassistant tailscale ip
 docker exec ts-homeassistant tailscale serve status
@@ -41,7 +41,7 @@ docker exec ts-homeassistant tailscale serve status
 
 ## Restart Services
 
-```bash
+```shell
 docker compose -f /volume1/docker/stacks/homeassistant/docker-compose.yml restart ts-homeassistant
 ```
 

@@ -48,7 +48,7 @@ per stack (gitignored, never committed). It's named `env.txt` rather than
 a normal OS file picker, and dotfiles are hidden by default in most of
 those, making a literal `.env` annoying to select manually:
 
-```bash
+```shell
 scripts/gen-env.sh <stack>     # generate ./<stack>/env.txt
 scripts/gen-env.sh --all       # generate env.txt for every stack
 ```
@@ -69,7 +69,7 @@ it, unless you override it explicitly.
 `scripts/deploy.sh` pushes a stack from your laptop to the NAS over SSH —
 no manual copy/paste into Portainer required, though that still works too.
 
-```bash
+```shell
 scripts/deploy.sh env   <stack>                # generate <stack>/env.txt locally
 scripts/deploy.sh dirs  <stack> <ssh-host>      # mkdir -p + chown on the NAS
 scripts/deploy.sh push  <stack> <ssh-host>      # scp compose file, env.txt, serve.json, etc.
@@ -89,7 +89,7 @@ way instead of each having its own bespoke setup script (the old per-stack
 
 To apply/reset every stack's host-level serve mapping at once:
 
-```bash
+```shell
 scripts/serve-all.sh <ssh-host>              # apply all mappings
 scripts/serve-all.sh <ssh-host> --reset      # reset first, then apply all
 ```
@@ -319,7 +319,7 @@ internet unless explicitly enabled via Funnel.
 
 ### Managing host serve mappings
 
-```bash
+```shell
 # Apply all mappings (idempotent)
 scripts/serve-all.sh <ssh-host>
 

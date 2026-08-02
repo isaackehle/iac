@@ -255,7 +255,7 @@ manually migrates it first — don't do it as a drive-by cleanup.
 
 ## Commands
 
-```bash
+```shell
 # Generate a stack's real env.txt from the central secrets file
 scripts/gen-env.sh <stack>
 scripts/gen-env.sh --all

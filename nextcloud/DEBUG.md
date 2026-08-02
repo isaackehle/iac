@@ -4,7 +4,7 @@ Quick reference for troubleshooting the Nextcloud stack.
 
 ## Container Access
 
-```bash
+```shell
 docker exec -it nextcloud-ts sh
 docker exec -it nextcloud sh
 docker exec -it nextcloud-db sh
@@ -13,7 +13,7 @@ docker exec -it nextcloud-redis sh
 
 ## Tailscale Serve Configuration
 
-```bash
+```shell
 # Inside the sidecar:
 cat /config/serve.json
 tailscale serve status
@@ -21,7 +21,7 @@ tailscale serve status
 
 ## Container Logs
 
-```bash
+```shell
 docker logs nextcloud
 docker logs nextcloud-ts
 docker logs nextcloud-db
@@ -31,7 +31,7 @@ docker logs -f nextcloud
 
 ## Tailscale Connectivity
 
-```bash
+```shell
 docker exec nextcloud-ts tailscale status
 docker exec nextcloud-ts tailscale ip
 docker exec nextcloud-ts tailscale serve status
@@ -39,7 +39,7 @@ docker exec nextcloud-ts tailscale serve status
 
 ## Nextcloud-Specific Commands
 
-```bash
+```shell
 # Inside the nextcloud container:
 php -f /var/www/html/occ status
 php -f /var/www/html/occ maintenance:mode --on   # enable maintenance
@@ -51,7 +51,7 @@ php -f /var/www/html/cron.php                     # run background jobs manually
 
 ## Database
 
-```bash
+```shell
 # Connect to PostgreSQL directly
 docker exec -it nextcloud-db psql -U nextcloud -d nextcloud
 
@@ -65,7 +65,7 @@ docker exec nextcloud-db psql -U nextcloud -d nextcloud -c "SELECT pg_database_s
 
 ## Restart Services
 
-```bash
+```shell
 docker compose -f /volume1/docker/stacks/nextcloud/docker-compose.yml restart
 docker compose -f /volume1/docker/stacks/nextcloud/docker-compose.yml restart nextcloud
 docker compose -f /volume1/docker/stacks/nextcloud/docker-compose.yml restart nextcloud-ts

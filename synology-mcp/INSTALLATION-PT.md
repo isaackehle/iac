@@ -27,7 +27,7 @@ If Portainer is already running, skip to **Step 3**.
 
 ### Via SSH (Alternative)
 
-```bash
+```shell
 ssh isaac@voyager.tail303fda.ts.net
 
 # Create directory
@@ -51,7 +51,7 @@ docker compose -f compose.yaml up -d
 
 ### Step 2: Verify Portainer is Running
 
-```bash
+```shell
 # Check containers
 ssh isaac@voyager.tail303fda.ts.net "docker ps | grep portainer"
 
@@ -84,7 +84,7 @@ curl -skL http://voyager.tail303fda.ts.net:9000
 
 Via SSH:
 
-```bash
+```shell
 ssh isaac@voyager.tail303fda.ts.net
 
 # Check container status
@@ -115,13 +115,13 @@ Required variables in `.env`:
 
 Test the connection via the MCP inspector:
 
-```bash
+```shell
 npx @modelcontextprotocol/inspector npx -y @modelcontextprotocol/servers/synology
 ```
 
 Or test the Web API directly:
 
-```bash
+```shell
 curl -skL https://voyager.tail303fda.ts.net:5001/webapi/entry.cgi?api=SYNO.API.Info&method=query&version=1
 ```
 
@@ -129,7 +129,7 @@ curl -skL https://voyager.tail303fda.ts.net:5001/webapi/entry.cgi?api=SYNO.API.I
 
 To update the MCP server:
 
-```bash
+```shell
 ssh isaac@voyager.tail303fda.ts.net
 cd /volume1/docker/stacks/synology-mcp
 docker compose pull
@@ -142,7 +142,7 @@ docker compose up -d
 
 The Synology Web API HTTP endpoint may be disabled. Enable it via SSH:
 
-```bash
+```shell
 sudo /usr/syno/bin/synowebapi --enable-lib SYNO.API.Info.lib SYNO.API.Auth.lib SYNO.Entry.Request.lib
 ```
 
@@ -154,7 +154,7 @@ If you see certificate errors, ensure you're using the Tailscale certificate:
 
 1. Generate:
 
-   ```bash
+   ```shell
    sudo /var/packages/Tailscale*/target/bin/tailscale cert \
      --cert-file=/tmp/voyager.crt \
      --key-file=/tmp/voyager.key \
@@ -165,7 +165,7 @@ If you see certificate errors, ensure you're using the Tailscale certificate:
 
 3. Restart nginx:
 
-   ```bash
+   ```shell
    sudo /usr/bin/nginx -s reload
    ```
 

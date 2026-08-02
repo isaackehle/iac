@@ -4,7 +4,7 @@ Quick reference for troubleshooting the `langfuse` stack.
 
 ## Container Access
 
-```bash
+```shell
 docker exec -it langfuse-ts sh
 docker exec -it langfuse sh
 docker exec -it langfuse-worker sh
@@ -15,7 +15,7 @@ docker exec -it langfuse-minio sh
 
 ## Tailscale Serve Configuration
 
-```bash
+```shell
 # View the current serve config mounted in the container
 cat /config/serve.json
 
@@ -25,7 +25,7 @@ docker exec langfuse-ts tailscale serve status
 
 ## Container Logs
 
-```bash
+```shell
 docker logs langfuse            # web/API — most user-facing errors show here
 docker logs langfuse-worker      # async ingestion — if traces aren't showing up
 docker logs langfuse-clickhouse
@@ -36,7 +36,7 @@ docker logs -f langfuse-ts
 
 ## Tailscale Connectivity
 
-```bash
+```shell
 docker exec langfuse-ts tailscale status
 docker exec langfuse-ts tailscale ip
 docker exec langfuse-ts tailscale serve status
@@ -44,7 +44,7 @@ docker exec langfuse-ts tailscale serve status
 
 ## Postgres (reused from the `postgresql` stack, not local to this one)
 
-```bash
+```shell
 # From the NAS, or anywhere on the tailnet:
 docker exec -it PostgreSQL psql -U root -d langfuse
 
@@ -69,7 +69,7 @@ docker exec PostgreSQL psql -U root -c "\l" | grep langfuse
 
 ## Restart Services
 
-```bash
+```shell
 docker compose -f /volume1/docker/stacks/langfuse/docker-compose.yml restart
 docker compose -f /volume1/docker/stacks/langfuse/docker-compose.yml restart langfuse
 docker compose -f /volume1/docker/stacks/langfuse/docker-compose.yml restart langfuse-worker

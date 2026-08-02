@@ -13,7 +13,7 @@ Lightweight MQTT broker for offloading message processing from Home Assistant. P
 
 ### 1. Deploy
 
-```bash
+```shell
 # From your laptop: generate .env, create dirs, push files, bring it up
 scripts/deploy.sh all mosquitto <ssh-host>
 
@@ -69,7 +69,7 @@ Then restart the Zigbee2MQTT addon in HA.
 
 After deployment, verify the broker is running:
 
-```bash
+```shell
 # Check container status
 docker ps | grep mosquitto
 
@@ -92,7 +92,7 @@ mosquitto_pub -h 192.168.68.30 -u zigbee -P <password> -t "zigbee2mqtt/test" -m 
 
 The `init.sh` script handles this, but if issues persist:
 
-```bash
+```shell
 sudo chown ${UID}:${GROUPS[0]} /volume1/docker/stacks/mosquitto/data/password
 ```
 
@@ -124,7 +124,7 @@ Deploy again via Portainer to pull new image and restart container.
 
 ### Reset password
 
-```bash
+```shell
 # Get username from environment variable or .env.example
 MQTT_USER="${MQTT_USER:-zigbee}"
 
