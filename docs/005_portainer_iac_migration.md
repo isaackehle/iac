@@ -34,7 +34,7 @@
 
 ### Verification
 
-```bash
+```shell
 # Check secrets directory
 ls -la /volume1/docker/portainer-secrets/
 # Expected: drwx------ root root
@@ -53,7 +53,7 @@ ls -la /volume1/docker/stacks/portainer/data/compose/7/portainer/
 
 **Option A: Copy from Mac to NAS**
 
-```bash
+```shell
 scp ~/code/isaackehle/iac/portainer/old/compose.yaml isaac@voyager.tail303fda.ts.net:/volume1/docker/stacks/portainer/docker-compose.yml
 ```
 
@@ -85,7 +85,7 @@ scp ~/code/isaackehle/iac/portainer/old/compose.yaml isaac@voyager.tail303fda.ts
 
 ### Step 3: Verify Deployment
 
-```bash
+```shell
 # Check container status
 sudo /var/packages/ContainerManager/target/tool/docker ps | grep portainer
 

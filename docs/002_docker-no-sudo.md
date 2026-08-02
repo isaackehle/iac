@@ -7,7 +7,7 @@ group" instructions you'll find for regular Linux don't directly apply here.
 
 ## Steps (over SSH, with a sudo-capable account)
 
-```bash
+```shell
 sudo synogroup --add docker
 sudo synogroup --memberadd docker $USER
 sudo chown root:docker /var/run/docker.sock

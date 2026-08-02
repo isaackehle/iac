@@ -34,7 +34,7 @@ Host voyager.local, voyager
 
 Add the following to `~/.profile` on the NAS (`/home/isaac/.profile`):
 
-```bash
+```shell
 # Set terminal type (redundant if SSH config does it, but safe to have)
 export TERM=xterm-256color
 
@@ -58,7 +58,7 @@ export LS_COLORS="di=01;34:ow=01;34:tw=01;34:ex=01;32:ln=01;36"
 
 ### Connection Command
 
-```bash
+```shell
 # From your Mac (uses SSH config automatically)
 ssh voyager
 # or
@@ -76,7 +76,7 @@ The SSH config automatically:
 
 After connecting, verify the configuration:
 
-```bash
+```shell
 # Check terminal type (should be xterm-256color)
 echo $TERM
 
