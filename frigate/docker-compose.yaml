@@ -1,28 +1,44 @@
 services:
   frigate:
+    # ── Identity ──────────────────────────────────────────────
     image: ghcr.io/blakeblackshear/frigate:0.16.4
     # Pinned deliberately, not `:stable` — see CLAUDE.md re: floating tags on
     # fast-moving GitOps-deployed stacks. Check current release before you
     # pin: https://github.com/blakeblackshear/frigate/releases
     container_name: frigate
+
+    # ── Lifecycle ─────────────────────────────────────────────
     restart: unless-stopped
     stop_grace_period: 30s
+
+    # ── Network ───────────────────────────────────────────────
     ports:
-      - "8971:8971"        # Web UI
-      - "8554:8554"        # RTSP restream
-      - "8555:8555/tcp"    # WebRTC
-      - "8555:8555/udp"
+      - "8971:8971"         # Web UI (HTTP API + dashboard)
+      - "8554:8554"         # RTSP restream (re-stream camera feeds)
+      - "8555:8555/tcp"     # WebRTC over TCP (low-latency live view)
+      - "8555:8555/udp"     # WebRTC over UDP (preferred for live view)
+
+    # ── Storage ───────────────────────────────────────────────
     volumes:
-      - ./storage:/media/frigate   # point this at real bulk storage, not the system volume — see note below
+      # Persistent data (recordings, snapshots, clips)
+      - ./storage:/media/frigate
+      # Application config (frigate.yml, database)
       - ./config:/config
+      # Ephemeral cache (tmpfs for performance)
       - type: tmpfs
         target: /tmp/cache
         tmpfs:
           size: 1000000000
-    shm_size: "1gb"   # ~7-10 cameras; bump if you see "Bus error" crashes in logs
+
+    # ── Environment ───────────────────────────────────────────
     environment:
+      # MQTT broker connection (event notifications)
       - FRIGATE_MQTT_HOST=${FRIGATE_MQTT_HOST}
       - FRIGATE_MQTT_USER=${FRIGATE_MQTT_USER}
       - FRIGATE_MQTT_PASSWORD=${FRIGATE_MQTT_PASSWORD}
+      # Camera RTSP credentials
       - FRIGATE_RTSP_USER=${FRIGATE_RTSP_USER}
       - FRIGATE_RTSP_PASSWORD=${FRIGATE_RTSP_PASSWORD}
+
+    # ── Runtime ───────────────────────────────────────────────
+    shm_size: "1gb"         # Shared memory for camera streams; bump if >7-10 cameras or "Bus error" crashes
