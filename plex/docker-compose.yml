@@ -1,34 +1,81 @@
+# Plex Media Server — Tailscale sidecar pattern
+#
+# The plex service has no `ports:` and no `networks:` of its own — it borrows
+# the sidecar's network namespace entirely. Plex is only accessible via the
+# tailnet (no host/LAN port exposed).
+
 services:
+  # ------------------------------------------------------------------
+  # Main application — Plex Media Server
+  # ------------------------------------------------------------------
   plex:
+    # Identity
     image: lscr.io/linuxserver/plex:latest
     container_name: plex
+
+    # Lifecycle
     restart: unless-stopped
     depends_on:
-    - ts-plex
+      - ts-plex
+
+    # Network — borrows the sidecar's network namespace
     network_mode: service:ts-plex
+
+    # Storage
     volumes:
-    - /volume1/docker/stacks/plex/config:/config
-    - /volume1/media:/media
+      # Application config & metadata (database, preferences, plugins)
+      - /volume1/docker/stacks/plex/config:/config
+      # Media libraries (movies, TV, music, photos)
+      - /volume1/media:/media
+
+    # Environment
     environment:
-    - PUID=1000
-    - PGID=1000
-    - VERSION=docker
-    - PLEX_CLAIM=${PLEX_CLAIM}
+      # User & group ID for file ownership (matches NAS user)
+      - PUID=1000
+      - PGID=1000
+      # Plex update channel: 'docker' pulls stable tagged images
+      - VERSION=docker
+      # Server claim token — obtain from https://plex.tv/claim
+      # STGUIADDRESS is injected by Synology Container Manager at runtime
+      - PLEX_CLAIM=${PLEX_CLAIM}
+
+  # ------------------------------------------------------------------
+  # Tailscale sidecar — routes Plex traffic over the tailnet
+  # ------------------------------------------------------------------
   ts-plex:
+    # Identity
     image: tailscale/tailscale:latest
     container_name: ts-plex
+
+    # Lifecycle
     restart: unless-stopped
+
+    # Storage
     volumes:
-    - /volume1/docker/stacks/plex/ts-state:/var/lib/tailscale
-    - /volume1/docker/stacks/plex/ts-config:/config
+      # Tailscale persistent state (node key, identity)
+      - /volume1/docker/stacks/plex/ts-state:/var/lib/tailscale
+      # Tailscale serve config (HTTPS reverse proxy rules)
+      - /volume1/docker/stacks/plex/ts-config:/config
+
+    # Environment
     environment:
-    - TS_HOSTNAME=plex
-    - TS_AUTHKEY=${TS_AUTHKEY}
-    - TS_STATE_DIR=/var/lib/tailscale
-    - TS_AUTH_ONCE=true
-    - TS_SERVE_CONFIG=/config/serve.json
+      # Tailnet-facing hostname (DNS name on your tailnet)
+      - TS_HOSTNAME=plex
+      # Tailscale auth key (one-time or reusable, from admin console)
+      - TS_AUTHKEY=${TS_AUTHKEY}
+      # Directory where Tailscale stores node state
+      - TS_STATE_DIR=/var/lib/tailscale
+      # Ephemeral node: only needs to authenticate once
+      - TS_AUTH_ONCE=true
+      # Path to serve.json for Tailscale HTTPS/Funnel
+      - TS_SERVE_CONFIG=/config/serve.json
+
+    # Runtime — elevated capabilities required for Tailscale networking
     cap_add:
-    - NET_ADMIN
-    - NET_RAW
+      # Create/manage network tunnels (TUN device)
+      - NET_ADMIN
+      # Raw socket access for packet manipulation
+      - NET_RAW
     devices:
-    - /dev/net/tun:/dev/net/tun
+      # TUN device for virtual network interface
+      - /dev/net/tun:/dev/net/tun

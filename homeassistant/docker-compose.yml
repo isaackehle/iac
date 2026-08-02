@@ -1,19 +1,54 @@
 services:
-  ts-homeassistant:
-    image: tailscale/tailscale:latest
-    container_name: ts-homeassistant
-    restart: unless-stopped
+  # ---------------------------------------------------------------------------
+  # Main application — Home Assistant smart home platform
+  # ---------------------------------------------------------------------------
+  homeassistant:
+    # 1. Identity
+    image: ghcr.io/home-assistant/home-assistant:stable  # Official Home Assistant stable image
+    container_name: homeassistant  # Container name
+
+    # 2. Lifecycle
+    restart: unless-stopped  # Auto-restart on failure
+    privileged: true  # Required for some hardware integrations
+
+    # 3. Network
+    network_mode: host  # Use host networking for device discovery
+    depends_on:
+      - ts-homeassistant  # Wait for Tailscale sidecar
+
+    # 4. Storage
     volumes:
-    - /volume1/docker/stacks/homeassistant/ts-state:/var/lib/tailscale
-    - /volume1/docker/stacks/homeassistant/ts-config:/config
+      - /volume1/docker/stacks/homeassistant/config:/config  # Home Assistant config directory
+      - /etc/localtime:/etc/localtime:ro  # Host timezone
+      - /run/dbus:/run/dbus:ro  # D-Bus socket for device discovery
+
+    # 5. Environment
     environment:
-    - TS_HOSTNAME=homeassistant
-    - TS_AUTHKEY=${TS_AUTHKEY}
-    - TS_STATE_DIR=/var/lib/tailscale
-    - TS_AUTH_ONCE=true
-    - TS_SERVE_CONFIG=/config/serve.json
-    cap_add:
-    - NET_ADMIN
-    - NET_RAW
-    devices:
-    - /dev/net/tun:/dev/net/tun
+      - TZ=${TZ}  # Container timezone
+
+  # ---------------------------------------------------------------------------
+  # Sidecar — Tailscale for secure remote access
+  # ---------------------------------------------------------------------------
+  ts-homeassistant:
+    # 1. Identity
+    image: tailscale/tailscale:latest  # Official Tailscale image
+    container_name: ts-homeassistant  # Sidecar container name
+
+    # 2. Lifecycle
+    restart: unless-stopped  # Auto-restart on failure
+    depends_on:
+      - homeassistant  # Wait for main app
+
+    # 3. Network
+    network_mode: service:homeassistant  # Share Home Assistant's network namespace
+
+    # 4. Storage
+    volumes:
+      - /volume1/docker/stacks/homeassistant/ts-state:/var/lib/tailscale  # Tailscale state
+
+    # 5. Environment
+    environment:
+      - TS_AUTHKEY=${TS_AUTHKEY}  # Pre-auth key for Tailscale
+      - TS_HOSTNAME=homeassistant  # Tailscale hostname
+      - TS_STATE_DIR=/var/lib/tailscale  # State directory
+      - TS_AUTH_ONCE=true  # Only authenticate once

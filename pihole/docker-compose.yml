@@ -1,52 +1,114 @@
 services:
+  # =========================================================================
+  # Main application — Pi-hole DNS + DHCP + ad blocking
+  # =========================================================================
   pihole:
+    # Identity
     image: pihole/pihole:latest
     container_name: pihole
+
+    # Lifecycle
     restart: unless-stopped
+
+    # Network
+    ports:
+      # DNS over TCP — large responses and zone transfers
+      - 53:53/tcp
+      # DNS over UDP — standard query protocol (lightweight)
+      - 53:53/udp
+      # Web admin interface — remapped to avoid host port 80 conflicts
+      - 8280:80/tcp
+    hostname: pihole
+
+    # Storage
+    volumes:
+      # Persistent Pi-hole configuration (blocklists, local DNS, DHCP leases)
+      - /volume1/docker/stacks/pihole/etc-pihole:/etc/pihole
+
+    # Environment
     env_file:
       - .env
-    ports:
-    - 53:53/tcp
-    - 53:53/udp
-    - 8280:80/tcp
-    volumes:
-    - /volume1/docker/stacks/pihole/etc-pihole:/etc/pihole
     environment:
+      # System timezone (must match NAS setting)
       TZ: ${TZ}
+      # Web admin password (hashed, from secrets via .env)
       FTLCONF_webserver_api_password: ${PIHOLE_PASSWORD}
+      # Listen on all interfaces (required for Docker bridge + Tailscale routing)
       FTLCONF_dns_listeningMode: all
+      # Upstream DNS resolvers (semicolon-separated list from .env)
       FTLCONF_dns_upstreams: ${PIHOLE_UPSTREAMS}
+      # Internal web UI port (proxied by Caddy; not exposed directly to host)
       FTLCONF_webserver_port: '80'
+      # Domain served by Caddy + Tailscale HTTPS (e.g., pihole.tailnet-name.ts.net)
       FTLCONF_webserver_domain: ${TS_CERT_DOMAIN}
-    hostname: pihole
+
+  # =========================================================================
+  # Sidecar — Caddy reverse proxy providing automatic HTTPS via Tailscale certs
+  # =========================================================================
   caddy:
+    # Identity
     image: caddy:2-alpine
     container_name: caddy-pihole
+
+    # Lifecycle
     restart: unless-stopped
     depends_on:
-    - pihole
+      - pihole
+
+    # Network
+    # Share Pi-hole's network stack so Caddy can reverse-proxy to localhost:80
     network_mode: service:pihole
+
+    # Storage
     volumes:
-    - /volume1/docker/stacks/pihole/caddy-config:/etc/caddy:ro
+      # Caddyfile + auto-provisioned TLS certificates (read-only, managed externally)
+      - /volume1/docker/stacks/pihole/caddy-config:/etc/caddy:ro
+
+  # =========================================================================
+  # Sidecar — Tailscale node for secure remote access and TLS certificate provisioning
+  # =========================================================================
   ts-pihole:
+    # Identity
     image: tailscale/tailscale:latest
     container_name: ts-pihole
+
+    # Lifecycle
     restart: unless-stopped
     depends_on:
-    - pihole
+      - pihole
+
+    # Network
+    # Share Pi-hole's network stack so Tailscale can route traffic to Caddy
     network_mode: service:pihole
+
+    # Storage
     volumes:
-    - /volume1/docker/stacks/pihole/ts-state:/var/lib/tailscale
-    - /volume1/docker/stacks/pihole/ts-config:/config
+      # Tailscale persistent state (node identity, encryption keys, ACL cache)
+      - /volume1/docker/stacks/pihole/ts-state:/var/lib/tailscale
+      # Tailscale Serve config + HTTPS certificate provisioning
+      - /volume1/docker/stacks/pihole/ts-config:/config
+
+    # Environment
     environment:
-    - TS_HOSTNAME=pihole
-    - TS_AUTHKEY=${TS_AUTHKEY}
-    - TS_STATE_DIR=/var/lib/tailscale
-    - TS_AUTH_ONCE=true
-    - TS_SERVE_CONFIG=/config/serve.json
-    - TS_CERT_DOMAIN=${TS_CERT_DOMAIN}
+      # MagicDNS hostname for this Tailscale node
+      - TS_HOSTNAME=pihole
+      # Pre-authorized auth key (generated at Tailscale admin console)
+      - TS_AUTHKEY=${TS_AUTHKEY}
+      # Persist state directory across container restarts
+      - TS_STATE_DIR=/var/lib/tailscale
+      # Only authenticate on first run; skip re-auth on subsequent starts
+      - TS_AUTH_ONCE=true
+      # Tailscale Serve reverse-proxy config (routes 443 → Caddy)
+      - TS_SERVE_CONFIG=/config/serve.json
+      # MagicDNS domain for automatic Let's Encrypt certificates
+      - TS_CERT_DOMAIN=${TS_CERT_DOMAIN}
+
+    # Runtime
     cap_add:
-    - NET_ADMIN
-    - NET_RAW
+      # Create and manage the TUN virtual network interface
+      - NET_ADMIN
+      # Raw socket operations for Tailscale's userspace networking
+      - NET_RAW
     devices:
-    - /dev/net/tun:/dev/net/tun
+      # TUN device — required by Tailscale for kernel-level packet tunneling
+      - /dev/net/tun:/dev/net/tun
