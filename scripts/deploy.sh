@@ -7,16 +7,33 @@
 # is provisioned the same way instead of each having bespoke setup logic.
 #
 # Usage:
-#   scripts/deploy.sh env   <stack>                  # generate <stack>/env.txt locally
-#   scripts/deploy.sh dirs  <stack> <ssh-host>       # mkdir -p + chown on the NAS
-#   scripts/deploy.sh push  <stack> <ssh-host>       # scp compose/.env/extra files
-#   scripts/deploy.sh serve <stack> <ssh-host>       # apply host-level tailscale serve (Pattern A/hybrid stacks)
-#   scripts/deploy.sh up    <stack> <ssh-host>       # ssh in, docker compose up -d
-#   scripts/deploy.sh info  <stack>                  # print step-by-step deploy instructions
-#   scripts/deploy.sh all   <stack> <ssh-host>       # env + dirs + push + serve + up
+#   scripts/deploy.sh env    <stack>                  # generate <stack>/env.txt locally
+#   scripts/deploy.sh dirs   <stack> <ssh-host>       # mkdir -p + chown on the NAS
+#   scripts/deploy.sh push   <stack> <ssh-host>       # scp compose/env.txt/extra files
+#   scripts/deploy.sh extras <stack> <ssh-host>       # scp ONLY the bind-mounted extra
+#                                                      # config (serve.json, Caddyfile,
+#                                                      # etc.) — no compose file, no
+#                                                      # env.txt
+#   scripts/deploy.sh serve  <stack> <ssh-host>       # apply host-level tailscale serve (Pattern A/hybrid stacks)
+#   scripts/deploy.sh up     <stack> <ssh-host>       # ssh in, docker compose up -d
+#   scripts/deploy.sh info   <stack>                  # print step-by-step deploy instructions
+#   scripts/deploy.sh all    <stack> <ssh-host>       # env + dirs + push + serve + up
 #
 # <ssh-host> is anything ssh/scp accepts, e.g. `nas` (an ssh config alias)
 # or `user@192.168.1.20`.
+#
+# push vs. extras: `push` is for stacks brought up directly via
+# `docker compose up -d` on the NAS (the `up` command below) — it stages
+# everything the compose file needs, including itself and env.txt. For
+# stacks deployed through Portainer's Repository/GitOps mode instead (the
+# documented method in most stacks' PORTAINER.md), the compose file is
+# never read from the NAS filesystem — Portainer clones its own copy from
+# GitHub — and env.txt is meant to be selected from your laptop via
+# Portainer's "Load variables from .env file" picker, not present on the
+# NAS at all. Pushing either there just leaves a stale, unused duplicate
+# sitting next to the real bind-mounted config. Use `extras` instead for
+# those stacks: it pushes only the files containers actually read via
+# host bind-mounts (serve.json, Caddyfile, ...).
 
 set -euo pipefail
 
@@ -32,6 +49,9 @@ Commands:
   env    <stack>               generate <stack>/env.txt locally from the secrets file
   dirs   <stack> <ssh-host>    mkdir -p + chown the stack's directories on the NAS
   push   <stack> <ssh-host>    scp compose file, env.txt, and extra config into place
+  extras <stack> <ssh-host>    scp ONLY the extra bind-mounted config (no compose, no
+                                env.txt) — use for stacks deployed via Portainer
+                                Repository/GitOps instead of `docker compose up -d`
   serve  <stack> <ssh-host>    apply host-level tailscale serve mappings (if any)
   up     <stack> <ssh-host>    ssh in and run `docker compose up -d`
   info   <stack>               print deploy instructions for this stack
@@ -86,7 +106,20 @@ cmd_push() {
     scp "$stack/env.txt" "$host:$remote/env.txt"
   fi
 
+  cmd_extras "$stack" "$host"
+}
+
+cmd_extras() {
+  local stack="$1" host="$2"
+  require_stack "$stack"
+  local remote="${STACK_REMOTE_DIR[$stack]}"
   local extras="${STACK_EXTRA_FILES[$stack]:-}"
+
+  if [[ -z "$extras" ]]; then
+    echo "==> $stack: no extra config files to push"
+    return 0
+  fi
+
   for pair in $extras; do
     local local_path remote_rel
     local_path="${pair%%:*}"
@@ -229,7 +262,7 @@ case "$command" in
   env|info)
     cmd_"$command" "$stack"
     ;;
-  dirs|push|serve|up|all)
+  dirs|push|extras|serve|up|all)
     [[ -n "$host" ]] || usage
     "cmd_${command}" "$stack" "$host"
     ;;
