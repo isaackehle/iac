@@ -12,7 +12,7 @@
 
 SSH into the NAS:
 
-```bash
+```shell
 ssh your-user@nas-ip
 sudo -i
 mkdir -p /volume1/docker/stacks/portainer/data
@@ -44,7 +44,7 @@ sidecar-fronted services, with a config dir, a files dir, and the sidecar's own 
 └── docker-compose.yml
 ```
 
-```bash
+```shell
 mkdir -p /volume1/docker/stacks/n8n/{config,files,ts-state,ts-config}
 chown -R 1000:1000 /volume1/docker/stacks/n8n/config   # n8n container runs as uid 1000 by default
 ```
@@ -66,7 +66,7 @@ alongside it:
 From your local machine (Mac/Linux/WSL terminal), with `docker-compose.yml` and `serve.json` saved locally, copy both
 into the directory you just created (`serve.json` goes inside `ts-config/`):
 
-```bash
+```shell
 scp docker-compose.yml your-user@nas-ip:/volume1/docker/stacks/n8n/
 scp serve.json your-user@nas-ip:/volume1/docker/stacks/n8n/ts-config/
 ```
@@ -80,7 +80,7 @@ docker-compose.yml your-user@nas-ip:/volume1/docker/stacks/n8n/`.
 
 Verify they landed correctly:
 
-```bash
+```shell
 ssh your-user@nas-ip "ls -la /volume1/docker/stacks/n8n/"
 ```
 

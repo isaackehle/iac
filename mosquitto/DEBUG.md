@@ -4,20 +4,20 @@ Quick reference for troubleshooting the Mosquitto stack.
 
 ## Container Access
 
-```bash
+```shell
 docker exec -it mosquitto sh
 ```
 
 ## Container Logs
 
-```bash
+```shell
 docker logs mosquitto
 docker logs -f mosquitto
 ```
 
 ## MQTT Testing
 
-```bash
+```shell
 # Subscribe to all topics (from another device on the tailnet)
 mosquitto_sub -h <mosquitto-ip> -u zigbee -P "$MQTT_PASSWORD" -t "#"
 
@@ -36,7 +36,7 @@ mosquitto_pub -t "test/topic" -m "hello"
 
 ## Restart Services
 
-```bash
+```shell
 docker compose -f /volume1/docker/stacks/mosquitto/docker-compose.yaml restart mosquitto
 ```
 

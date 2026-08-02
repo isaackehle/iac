@@ -6,7 +6,7 @@ Replace `<stack>`, `ts-<stack>`, and `/volume1/docker/stacks/<stack>` with real 
 
 ## Container Access
 
-```bash
+```shell
 # Enter the Tailscale sidecar container
 docker exec -it ts-<stack> sh
 
@@ -16,7 +16,7 @@ docker exec -it <stack> sh
 
 ## Tailscale Serve Configuration
 
-```bash
+```shell
 # View the current serve config mounted in the container
 cat /config/serve.json
 
@@ -26,7 +26,7 @@ docker exec ts-<stack> tailscale serve status
 
 ## Container Logs
 
-```bash
+```shell
 # App logs
 docker logs <stack>
 
@@ -39,7 +39,7 @@ docker logs -f ts-<stack>
 
 ## Tailscale Connectivity
 
-```bash
+```shell
 # Check Tailscale status and IP
 docker exec ts-<stack> tailscale status
 
@@ -50,7 +50,7 @@ docker exec ts-<stack> tailscale serve status
 
 ## Restart Services
 
-```bash
+```shell
 # Restart both containers
 docker compose -f /volume1/docker/stacks/<stack>/docker-compose.yml restart
 # Restart a single service

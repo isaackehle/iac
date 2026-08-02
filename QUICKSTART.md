@@ -7,7 +7,7 @@ secrets/deploy model and Tailscale pattern details.
 
 ## One-time: set up the secrets file
 
-```bash
+```shell
 cp iac-secrets.env.example iac-secrets.env
 $EDITOR iac-secrets.env   # fill in real values
 ```
@@ -21,13 +21,13 @@ stack's real `env.txt` is generated from it.
 
 Preview the steps for any stack:
 
-```bash
+```shell
 scripts/deploy.sh info <stack>
 ```
 
 Run the full deploy in one command:
 
-```bash
+```shell
 scripts/deploy.sh all <stack> <ssh-host>
 ```
 
@@ -40,7 +40,7 @@ pushes the compose file + `env.txt` + any extra config, applies host-level
 Run the steps individually if you'd rather stage files first and deploy via
 the Portainer UI instead of `docker compose up -d` directly:
 
-```bash
+```shell
 scripts/deploy.sh env   <stack>                # generate <stack>/env.txt locally
 scripts/deploy.sh dirs  <stack> <ssh-host>      # mkdir -p + chown on the NAS
 scripts/deploy.sh push  <stack> <ssh-host>      # scp files into place
@@ -73,7 +73,7 @@ most OS "Open File" dialogs hide dotfiles by default.
 
 ## Applying all host-level serve mappings at once
 
-```bash
+```shell
 scripts/serve-all.sh <ssh-host>              # apply all stacks
 scripts/serve-all.sh <ssh-host> --reset      # reset everything, then re-apply
 ```

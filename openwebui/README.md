@@ -8,7 +8,7 @@ Tailscale sidecar deployment for OpenWebUI (AI chat interface) with multi-backen
 
 Deploy the stack first:
 
-```bash
+```shell
 cd /volume1/docker/stacks/openwebui
 docker compose up -d
 ```
@@ -19,7 +19,7 @@ Open Web UI at `https://openwebui.${TS_TAILNET_DOMAIN}`, create your admin accou
 
 Set environment variables and deploy:
 
-```bash
+```shell
 export OPENWEBUI_API_URL="https://openwebui.${TS_TAILNET_DOMAIN}"
 export OPENWEBUI_API_KEY="sk-your-api-key-here"
 export OLLAMA_ENGINES='[
@@ -98,7 +98,7 @@ See [`example-engines.json`](./example-engines.json) for a complete example with
 
 If you need to reconfigure after initial deploy:
 
-```bash
+```shell
 export OPENWEBUI_API_URL="https://openwebui.${TS_TAILNET_DOMAIN}"
 export OPENWEBUI_API_KEY="sk-new-api-key-here"
 export OLLAMA_ENGINES='[{"name":"local","url":"http://host.docker.internal:11434"}]'
@@ -116,21 +116,21 @@ docker run --rm \
 
 1. **Create required directories:**
 
-   ```bash
+   ```shell
    mkdir -p /volume1/docker/stacks/openwebui/{config,ts-state,ts-config,data}
    sudo chown -R $UID:${GROUPS[0]} /volume1/docker/stacks/openwebui
    ```
 
 2. **Copy files to the stack directory:**
 
-   ```bash
+   ```shell
    cp docker-compose.yml init.sh serve.json .env.example configure-ollama.sh example-engines.json /volume1/docker/stacks/openwebui/
    cd /volume1/docker/stacks/openwebui
    ```
 
 3. **Set up Tailscale auth key:**
 
-   ```bash
+   ```shell
    export TS_AUTHKEY=${TS_AUTHKEY}  # From https://login.tailscale.com/admin/key/new
    cp .env.example env.txt
    nano env.txt  # Add your auth key
@@ -143,7 +143,7 @@ docker run --rm \
 
 4. **Deploy the stack:**
 
-   ```bash
+   ```shell
    docker compose --env-file env.txt up -d
    ```
 

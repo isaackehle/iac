@@ -4,7 +4,7 @@ Quick reference for troubleshooting the n8n stack.
 
 ## Container Access
 
-```bash
+```shell
 docker exec -it n8n-ts sh
 docker exec -it n8n sh
 docker exec -it n8n-browserless sh
@@ -12,7 +12,7 @@ docker exec -it n8n-browserless sh
 
 ## Tailscale Serve Configuration
 
-```bash
+```shell
 # Inside the sidecar:
 cat /config/serve.json
 tailscale serve status
@@ -20,7 +20,7 @@ tailscale serve status
 
 ## Container Logs
 
-```bash
+```shell
 docker logs n8n
 docker logs n8n-ts
 docker logs n8n-browserless
@@ -29,7 +29,7 @@ docker logs -f n8n
 
 ## Tailscale Connectivity
 
-```bash
+```shell
 docker exec n8n-ts tailscale status
 docker exec n8n-ts tailscale ip
 docker exec n8n-ts tailscale serve status
@@ -41,7 +41,7 @@ docker exec n8n-ts tailscale serve status
 
 ## Restart Services
 
-```bash
+```shell
 docker compose -f /volume1/docker/stacks/n8n/docker-compose.yml restart
 docker compose -f /volume1/docker/stacks/n8n/docker-compose.yml restart n8n
 docker compose -f /volume1/docker/stacks/n8n/docker-compose.yml restart n8n-ts

@@ -4,8 +4,8 @@ Quick reference for troubleshooting the Portainer stack.
 
 ## Container Access
 
-```bash
-docker exec -it portainer-ts sh
+```shell
+docker exec -it ts-portainer sh
 ```
 
 > ⚠️ This stack is a Tailscale sidecar that provides tailnet HTTPS access
@@ -14,7 +14,7 @@ docker exec -it portainer-ts sh
 
 ## Tailscale Serve Configuration
 
-```bash
+```shell
 # Inside the sidecar:
 cat /config/serve.json
 tailscale serve status
@@ -22,17 +22,17 @@ tailscale serve status
 
 ## Container Logs
 
-```bash
-docker logs portainer-ts
-docker logs -f portainer-ts
+```shell
+docker logs ts-portainer
+docker logs -f ts-portainer
 ```
 
 ## Tailscale Connectivity
 
-```bash
-docker exec portainer-ts tailscale status
-docker exec portainer-ts tailscale ip
-docker exec portainer-ts tailscale serve status
+```shell
+docker exec ts-portainer tailscale status
+docker exec ts-portainer tailscale ip
+docker exec ts-portainer tailscale serve status
 ```
 
 ## Access
@@ -42,13 +42,13 @@ docker exec portainer-ts tailscale serve status
 
 ## Restart Services
 
-```bash
-docker compose -f /volume1/docker/stacks/portainer/docker-compose.yml restart portainer-ts
+```shell
+docker compose -f /volume1/docker/stacks/portainer/docker-compose.yml restart ts-portainer
 ```
 
 ## Config Files
 
-| Purpose | Host Path |
-|---------|-----------|
+| Purpose                | Host Path                                               |
+| ---------------------- | ------------------------------------------------------- |
 | Tailscale serve config | `/volume1/docker/stacks/portainer/ts-config/serve.json` |
-| Tailscale state | `/volume1/docker/stacks/portainer/ts-state` |
+| Tailscale state        | `/volume1/docker/stacks/portainer/ts-state`             |

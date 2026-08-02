@@ -4,7 +4,7 @@ Quick reference for troubleshooting the OpenWebUI stack.
 
 ## Container Access
 
-```bash
+```shell
 docker exec -it openwebui-ts sh
 docker exec -it openwebui sh
 docker exec -it openwebui-config sh
@@ -12,7 +12,7 @@ docker exec -it openwebui-config sh
 
 ## Tailscale Serve Configuration
 
-```bash
+```shell
 # Inside the sidecar:
 cat /config/serve.json
 tailscale serve status
@@ -20,7 +20,7 @@ tailscale serve status
 
 ## Container Logs
 
-```bash
+```shell
 docker logs openwebui
 docker logs openwebui-ts
 docker logs openwebui-config
@@ -29,7 +29,7 @@ docker logs -f openwebui
 
 ## Tailscale Connectivity
 
-```bash
+```shell
 docker exec openwebui-ts tailscale status
 docker exec openwebui-ts tailscale ip
 docker exec openwebui-ts tailscale serve status
@@ -37,7 +37,7 @@ docker exec openwebui-ts tailscale serve status
 
 ## OpenWebUI-Specific Commands
 
-```bash
+```shell
 # Check if OpenWebUI is responding inside the container
 docker exec openwebui curl -sf http://localhost:8080/health
 
@@ -51,7 +51,7 @@ docker exec openwebui-config cat /scripts/configure-ollama.sh
 
 ## Restart Services
 
-```bash
+```shell
 docker compose -f /volume1/docker/stacks/openwebui/docker-compose.yml restart
 docker compose -f /volume1/docker/stacks/openwebui/docker-compose.yml restart openwebui
 docker compose -f /volume1/docker/stacks/openwebui/docker-compose.yml restart openwebui-ts

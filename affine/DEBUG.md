@@ -4,7 +4,7 @@ Quick reference for troubleshooting the Affine stack.
 
 ## Container Access
 
-```bash
+```shell
 docker exec -it affine_server sh
 docker exec -it affine_redis sh
 docker exec -it affine_postgres sh
@@ -13,7 +13,7 @@ docker exec -it affine_migration_job sh
 
 ## Container Logs
 
-```bash
+```shell
 docker logs affine_server
 docker logs -f affine_server
 
@@ -25,7 +25,7 @@ docker logs affine_migration_job
 
 ## Health Checks
 
-```bash
+```shell
 # Redis health
 docker exec affine_redis redis-cli ping
 
@@ -39,7 +39,7 @@ docker exec affine_postgres pg_isready -U root -d affine
 
 ## Restart Services
 
-```bash
+```shell
 docker compose -f /volume1/docker/stacks/affine/docker-compose.yaml restart
 docker compose -f /volume1/docker/stacks/affine/docker-compose.yaml restart affine_server
 ```

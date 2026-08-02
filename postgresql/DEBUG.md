@@ -4,14 +4,14 @@ Quick reference for troubleshooting the PostgreSQL stack.
 
 ## Container Access
 
-```bash
+```shell
 docker exec -it PostgreSQL sh
 docker exec -it pgAdmin sh
 ```
 
 ## Container Logs
 
-```bash
+```shell
 docker logs PostgreSQL
 docker logs pgAdmin
 docker logs -f PostgreSQL
@@ -31,7 +31,7 @@ against an empty data dir, and this instance already has data):
 
 To add a new one:
 
-```bash
+```shell
 docker exec -it PostgreSQL psql -U root -c "CREATE DATABASE <name>;"
 docker exec -it PostgreSQL psql -U root -c "CREATE USER <name> WITH PASSWORD '<password>';"
 docker exec -it PostgreSQL psql -U root -c "GRANT ALL PRIVILEGES ON DATABASE <name> TO <name>;"
@@ -41,7 +41,7 @@ Connect from elsewhere on the tailnet via `postgresql://<user>:<password>@<host>
 
 ## Database Commands
 
-```bash
+```shell
 # Connect to PostgreSQL
 docker exec -it PostgreSQL psql -U root -d thunder_db
 
@@ -57,7 +57,7 @@ docker exec PostgreSQL psql -U root -d thunder_db -c "SELECT * FROM pg_stat_acti
 
 ## pgAdmin
 
-```bash
+```shell
 # Verify pgAdmin is responding
 docker exec pgAdmin wget -qO- http://localhost:5050 | head -20
 ```
@@ -70,7 +70,7 @@ docker exec pgAdmin wget -qO- http://localhost:5050 | head -20
 
 ## Restart Services
 
-```bash
+```shell
 docker compose -f /volume1/docker/stacks/postgresql/docker-compose.yml restart
 docker compose -f /volume1/docker/stacks/postgresql/docker-compose.yml restart PostgreSQL
 docker compose -f /volume1/docker/stacks/postgresql/docker-compose.yml restart pgAdmin

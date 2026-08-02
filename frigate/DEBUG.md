@@ -4,20 +4,20 @@ Quick reference for troubleshooting the Frigate stack.
 
 ## Container Access
 
-```bash
+```shell
 docker exec -it frigate sh
 ```
 
 ## Container Logs
 
-```bash
+```shell
 docker logs frigate
 docker logs -f frigate
 ```
 
 ## Frigate-Specific Commands
 
-```bash
+```shell
 # Inside the container:
 cat /config/config.yml        # current config
 ls /media/frigate/            # recorded clips
@@ -29,7 +29,7 @@ ls /media/frigate/            # recorded clips
 
 ## Restart Services
 
-```bash
+```shell
 docker compose -f /volume1/docker/stacks/frigate/docker-compose.yaml restart frigate
 ```
 
