@@ -1,16 +1,8 @@
 {
   "TCP": {
     "443": {
-      "HTTPS": true
-    }
-  },
-  "Web": {
-    "${TS_CERT_DOMAIN}:443": {
-      "Handlers": {
-        "/": {
-          "Proxy": "https+insecure://voyager.{{TS_TAILNET_DOMAIN}}:19443"
-        }
-      }
+      "TCPForward": "127.0.0.1:8444",
+      "TerminateTLS": "portainer.{{TS_TAILNET_DOMAIN}}"
     }
   }
 }

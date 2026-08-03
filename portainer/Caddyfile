@@ -1,0 +1,21 @@
+# Caddy sits behind ts-portainer's TCPForward+TerminateTLS serve config.
+# Tailscale terminates TLS on the tailnet-facing side (443) using its own
+# automatic cert for portainer.${TS_TAILNET_DOMAIN}, then forwards the
+# decrypted plaintext HTTP as a raw TCP stream to Caddy on 8444 — this port
+# is never published to the host, it's only reachable via the shared
+# network namespace (network_mode: service:ts-portainer) from ts-portainer's
+# loopback.
+#
+# Caddy exists here purely to do the actual HTTP-level reverse proxying,
+# since tailscaled's own built-in Web/Proxy serve mode is documented as
+# 5-10x slower under concurrent load (tailscale/tailscale#18307) — confirmed
+# 2026-08-03 as an accept-then-hang on any response above a trivial size
+# (small JSON responses worked, the full HTML UI did not), on both the
+# tailnet HTTPS URL and the "direct" published port:9000 path — both were
+# being relayed through tailscaled's own userspace proxy since no real
+# tailscale0 kernel interface exists in this container. Caddy doesn't need
+# its own TLS cert or config beyond this — the tailnet-facing TLS is
+# entirely Tailscale's job.
+:8444 {
+	reverse_proxy 127.0.0.1:9000
+}
