@@ -1,255 +1,186 @@
 # Portainer Server Installation
 
-> **Recommended**: Deploy via Synology Container Manager UI — one-click import from YAML with `.env` binding.
-> The manual steps below are the equivalent broken out for troubleshooting or automation.
+Portainer is the only stack deployed via Synology Container Manager rather than
+Portainer's own UI — you're bootstrapping Portainer itself. Everything else in
+this repo gets deployed *from* Portainer once this is running.
 
-Deploy the Portainer server stack itself via Synology Container Manager. This is the only stack that requires Container Manager (not Portainer UI) because
-you're bootstrapping Portainer itself.
+## Architecture
+
+Three containers sharing one network namespace (Pattern B — see the root
+`README.md`):
+
+| Container         | Role                                                          |
+| ----------------- | ------------------------------------------------------------- |
+| `portainer`       | Portainer CE. Listens on `:9000` (HTTP) and `:9443` (HTTPS).  |
+| `ts-portainer`    | Tailscale sidecar. Owns the namespace; joins the tailnet.     |
+| `caddy-portainer` | Reverse proxy. Listens on `:8444`, forwards to `:9000`.       |
+
+Request path for `https://portainer.<tailnet>.ts.net`:
+
+```text
+client → tailscaled (:443, TerminateTLS) → Caddy (:8444) → Portainer (:9000)
+```
+
+Tailscale terminates TLS with its own auto-issued Let's Encrypt cert, then hands
+Caddy raw decrypted TCP. **Caddy does the HTTP-level proxying, not tailscaled** —
+tailscaled's built-in `Web`/`Proxy` serve mode is documented as 5-10x slower
+under load ([tailscale/tailscale#18307](https://github.com/tailscale/tailscale/issues/18307))
+and has caused real outages here. Pi-hole uses the identical pattern.
+
+Because all three share `ts-portainer`'s namespace, they reach each other over
+`127.0.0.1`. Ports `9000`, `19443` (→`9443`), and `8000` are also published to
+the NAS host for LAN access; `8444` deliberately is not.
 
 ## Prerequisites
 
 - Synology NAS with Container Manager installed
-- Tailscale network configured on target machine
-- Tailscale auth key for device registration (`tskey-...`)
-- SSH access or File Station access to Synology NAS
+- A Tailscale auth key (`tskey-...`) from <https://login.tailscale.com/admin/settings/keys>
+- SSH or File Station access to the NAS
 
-## Directory Setup (on Synology NAS)
+## 1. Directory setup
+
+Secrets live outside the stack directory, since `/volume1/docker/stacks/` is
+world-writable on DSM.
 
 ```shell
-# On voyager (or target NAS)
-STACK_PATH="/volume1/docker/stacks/portainer"
+STACK=/volume1/docker/stacks/portainer
 
-# Create IAC-style directory structure
-mkdir -p $STACK_PATH/{data/compose/10,portainer-secrets,ts-config,ts-state}
+mkdir -p $STACK/{data,ts-config,ts-state,caddy-config}
 
-# Create secure secrets directory (700, root:root)
-mkdir -p $STACK_PATH/portainer-secrets/{certs,chisel}
-chmod 700 $STACK_PATH/portainer-secrets
-chown root:root $STACK_PATH/portainer-secrets
+# Secrets: 700, root-owned, separate tree
+sudo mkdir -p /volume1/docker/portainer-secrets/{certs,chisel}
+sudo chmod 700 /volume1/docker/portainer-secrets
+sudo chown root:root /volume1/docker/portainer-secrets
 
-# Place certificates and chisel key in secure location
-# cert.pem and key.pem go into certs/
-# private-key.pem goes into chisel/
-chmod 600 $STACK_PATH/portainer-secrets/certs/* $STACK_PATH/portainer-secrets/chisel/*
-chown root:root $STACK_PATH/portainer-secrets/certs/* $STACK_PATH/portainer-secrets/chisel/*
+# cert.pem + key.pem → certs/ ; private-key.pem → chisel/
+sudo chmod 600 /volume1/docker/portainer-secrets/{certs,chisel}/*
+sudo chown root:root /volume1/docker/portainer-secrets/{certs,chisel}/*
 ```
 
-## Environment File
+Resulting layout:
+
+```text
+/volume1/docker/portainer-secrets/     ← 700 root:root
+├── certs/{cert.pem,key.pem}           ← 600
+└── chisel/private-key.pem             ← 600
+
+/volume1/docker/stacks/portainer/
+├── .env                               ← 600, TS_AUTHKEY lives here
+├── docker-compose.yml
+├── caddy-config/Caddyfile
+├── ts-config/serve.json               ← rendered from serve.json.tmpl
+├── ts-state/                          ← tailscaled state (see DEBUG.md)
+└── data/                              ← portainer.db and Portainer's data
+```
+
+The chisel private key authenticates Portainer's reverse tunnel to its agents —
+if it leaks, treat it as a full compromise and rotate it.
+
+## 2. Environment file
 
 Create `/volume1/docker/stacks/portainer/.env`:
 
 ```shell
-# Tailscale configuration
 TS_HOSTNAME_PORTAINER=portainer
 TS_AUTHKEY=tskey-your-auth-key-here
-
-# Optional: custom domain for HTTPS routing
-# TS_CERT_DOMAIN=portainer.your-tailnet.ts.net
+TS_CERT_DOMAIN=portainer.your-tailnet.ts.net
 ```
-
-Generate the auth key from Tailscale console: <https://login.tailscale.com/admin/machines>
-
-## Deployment via Container Manager UI
-
-### Step 1: Get the Compose YAML
-
-Copy the compose file from your IAC repo:
 
 ```shell
-# On your Mac
-cat ~/code/isaackehle/iac/portainer/old/compose.yaml
+sudo chmod 600 /volume1/docker/stacks/portainer/.env
 ```
 
-Or SSH to NAS and copy from the IAC repo stored on disk:
+Note this file serves two separate purposes: Compose reads it for `${VAR}`
+substitution in the YAML (which requires it to sit in the directory you run
+`docker compose` from), and the `env_file:` directive injects it into the
+`portainer` container at runtime. A missing `.env` shows up as
+`WARN The "TS_AUTHKEY" variable is not set` — Compose substitution failing, not
+the `env_file` directive.
+
+## 3. Push the stack files
+
+From your Mac:
 
 ```shell
-# On NAS
-cat /volume1/docker/stacks/portainer/data/compose/10/portainer/docker-compose.yml
+cd ~/code/isaackehle/iac
+scripts/gen-env.sh portainer          # renders serve.json from serve.json.tmpl
+scripts/deploy.sh portainer voyager   # pushes compose, .env, serve.json, Caddyfile
 ```
 
-### Step 2: Import into Container Manager
-
-1. **Open Container Manager** → **Project** tab
-2. Click **Create** → **Project**
-3. Choose **Import from YAML/JSON**
-4. Paste the entire compose.yaml content into the YAML editor
-
-### Step 3: Configure Environment
-
-1. Click **Next**
-2. Select **Use existing .env file**
-3. Browse to: `/volume1/docker/stacks/portainer/.env`
-4. Click **Apply**
-
-### Step 4: Wait for Deployment
-
-Container Manager will deploy two containers:
-
-- `ts-portainer` - Tailscale sidecar proxy
-- `portainer` - Portainer CE server (attached to Tailscale network)
-
-Wait 30-60 seconds for both to start.
-
-## Verification
-
-### Check Container Status
+Or manually — note `-O`, which forces the legacy SCP protocol. Without it,
+modern OpenSSH uses SFTP, which DSM's sshd doesn't reliably serve, and you get a
+misleading `No such file or directory` on a directory that plainly exists:
 
 ```shell
-sudo /var/packages/ContainerManager/target/tool/docker ps | grep portainer
+scp -O portainer/docker-compose.yml isaac@voyager:/volume1/docker/stacks/portainer/
+scp -O portainer/Caddyfile          isaac@voyager:/volume1/docker/stacks/portainer/caddy-config/
+scp -O portainer/serve.json         isaac@voyager:/volume1/docker/stacks/portainer/ts-config/
 ```
 
-Expected output:
+## 4. Deploy
 
-```text
-ts-portainer       tailscale/tailscale:latest      "start.sh"             Up       portainer_net
-portainer          portainer/portainer-ce:latest   "/run.sh"              Up       portainer_net
-```
-
-### Check Tailscale Status
+CLI (preferred — Container Manager keeps its own internal copy of imported YAML,
+which then drifts from what's on disk):
 
 ```shell
-sudo /var/packages/ContainerManager/target/tool/docker exec ts-portainer tailscale status
+cd /volume1/docker/stacks/portainer
+docker compose up -d
 ```
 
-You should see `portainer` listed as online with a Tailscale IP.
+Via Container Manager UI: **Project** → **Create** → **Import from YAML/JSON**,
+paste `docker-compose.yml`, then **Use existing .env file** →
+`/volume1/docker/stacks/portainer/.env` → **Apply**.
 
-### Access Portainer
+> `tailscaled` reads `serve.json` **once at container start**. Always write the
+> config first, then bring the stack up — a config written after startup is
+> silently ignored, and the log says `no serve config at "/config/serve.json", skipping`.
 
-Open in browser:
+## 5. Verify
 
-- **Tailscale URL**: `http://voyager.tail303fda.ts.net:9000`
-- **Local URL**: `http://voyager.local:9000` (if on local network)
+```shell
+docker ps -a --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'
+docker exec ts-portainer tailscale status
+docker exec ts-portainer tailscale serve status
+```
 
-On first launch, you'll be prompted to:
+Expect all three containers `Up` with **matching uptimes**, and serve status
+showing `tcp://portainer.<tailnet>.ts.net:443 → tcp://127.0.0.1:8444`.
 
-1. Create admin user (username/password)
-2. Connect Portainer to external environments (optional)
+Then, from a machine on the tailnet (not the NAS itself — see DEBUG.md):
 
-## Serving via Tailscale HTTPS
+```shell
+curl -sS -o /dev/null -w '%{http_code}\n' https://portainer.<tailnet>.ts.net/
+```
 
-After initial setup, Tailscale's HTTP proxy routes traffic through your custom domain:
+## 6. First login
 
-1. **Render serve.json** from template:
+Open `https://portainer.<tailnet>.ts.net` and create the admin account.
 
-   ```shell
-   # On NAS
-   /volume1/docker/stacks/portainer/data/compose/10/scripts/gen-env.sh portainer > /volume1/docker/stacks/portainer/ts-config/serve.json
-   ```
+**Portainer self-locks 5 minutes after start if no admin account exists.** If you
+see `the Portainer instance timed out for security purposes`, restart it and
+grab the fresh setup token:
 
-2. **Restart the Tailscale sidecar** to pick up the config:
-
-   ```shell
-   sudo /var/packages/ContainerManager/target/tool/docker restart ts-portainer
-   ```
-
-3. **Access via HTTPS**:
-
-   ```text
-   https://portainer.your-tailnet.ts.net
-   ```
-
-The `serve.json.tmpl` renders:
-
-```json
-{
-  "Web": {
-    "portainer.your-tailnet.ts.net:443": {
-      "Handlers": {
-        "/": {
-          "Proxy": "http://127.0.0.1:9000"
-        }
-      }
-    }
-  }
-}
+```shell
+docker restart portainer
+docker logs --tail 20 portainer | grep setup_token
 ```
 
 ## Updates
 
-### Via Container Manager UI
-
-1. Open Container Manager → **Project** tab
-2. Select the `portainer` project
-3. Click **Update** → **Edit**
-4. Make changes to compose YAML or `.env`
-5. Click **Apply**
-
-### Via CLI
-
 ```shell
 cd /volume1/docker/stacks/portainer
-sudo /var/packages/ContainerManager/target/tool/docker compose pull
-sudo /var/packages/ContainerManager/target/tool/docker compose up -d
+docker compose pull
+docker compose down && docker compose up -d
 ```
 
-## Troubleshooting
+> **Never restart the sidecar alone.** `network_mode: service:ts-portainer`
+> binds the namespace at *container creation*. `docker restart ts-portainer`
+> leaves `portainer` and `caddy-portainer` pointed at a namespace that no longer
+> exists, which presents as `connection refused` to `127.0.0.1:9000` in the
+> sidecar log. Mismatched uptimes in `docker ps` are the tell. Always
+> `down && up -d` the whole stack.
 
-### Container Won't Start
+## Next steps
 
-Check logs:
-
-```shell
-sudo /var/packages/ContainerManager/target/tool/docker logs ts-portainer
-sudo /var/packages/ContainerManager/target/tool/docker logs portainer
-```
-
-Common issues:
-
-- **TS_AUTHKEY invalid**: Generate new key from Tailscale console
-- **Port already in use**: Check if 9000/19443/8000 are occupied
-- **Tailscale not connecting**: Verify `/dev/net/tun` device exists
-
-### Tailscale Not Online
-
-```shell
-# Check Tailscale auth
-sudo /var/packages/ContainerManager/target/tool/docker exec ts-portainer tailscale status
-
-# Restart Tailscale sidecar
-sudo /var/packages/ContainerManager/target/tool/docker restart ts-portainer
-
-# Re-authenticate if needed
-sudo /var/packages/ContainerManager/target/tool/docker exec -it ts-portainer tailscale up
-```
-
-### Portainer Not Accessible
-
-1. Verify container is running: `docker ps | grep portainer`
-2. Check port bindings: `docker port portainer`
-3. Test from local machine: `curl http://voyager.local:9000`
-4. Check Tailscale IP: `tailscale ip`
-
-## Files Reference
-
-**IAC Repo:**
-
-- Compose YAML: `~/code/isaackehle/iac/portainer/old/compose.yaml`
-- serve.json template: `~/code/isaackehle/iac/portainer/old/serve.json.tmpl`
-- gen-env script: `~/code/isaackehle/iac/portainer/old/scripts/gen-env.sh`
-
-**NAS Files:**
-
-- `.env`: `/volume1/docker/stacks/portainer/.env`
-- Compose YAML: `/volume1/docker/stacks/portainer/docker-compose.yml` (after deployment)
-- serve.json: `/volume1/docker/stacks/portainer/ts-config/serve.json`
-- Secure secrets: `/volume1/docker/portainer-secrets/`
-- Portainer data: `/volume1/docker/portainer/`
-
-**IAC Repo (on NAS):**
-
-- Source of truth: `/volume1/docker/stacks/portainer/data/compose/10/`
-- Portainer compose: `/volume1/docker/stacks/portainer/data/compose/10/portainer/docker-compose.yml`
-- Scripts: `/volume1/docker/stacks/portainer/data/compose/10/scripts/`
-
-## Next Steps
-
-After Portainer is running:
-
-1. **Deploy Synology MCP Server** via Portainer UI
-   - See `~/code/isaackehle/iac/synology-mcp/INSTALLATION.md`
-
-2. **Deploy other stacks** via Portainer UI
-   - Home Assistant, Frigate, n8n, Nextcloud, etc.
-
-3. **Configure backups** for Portainer data
-   - `/volume1/docker/portainer/` contains all Portainer configuration
+- Deploy remaining stacks from the Portainer UI
+- Back up `/volume1/docker/stacks/portainer/data/` (contains `portainer.db`)
