@@ -5,7 +5,7 @@
 #
 # Services:
 #   - plex
-#   - ts-plex (Tailscale sidecar)
+#   - tailscale-sidecar (Tailscale sidecar)
 #
 # Environment variables:
 #   - STACK_NAME=Plex
@@ -17,8 +17,8 @@
 #   docker compose -f plex.yaml up -d
 #   docker compose -f plex.yaml down
 #
+
 name: plex
-version: "3.8"
 
 services:
   # ── Identity ──────────────────────────────────────────────
@@ -29,10 +29,10 @@ services:
     # ── Lifecycle ─────────────────────────────────────────────
     restart: unless-stopped
     depends_on:
-      - ts-plex
+      - tailscale-sidecar
 
     # ── Network ───────────────────────────────────────────────
-    network_mode: service:ts-plex  # Borrow the sidecar's network namespace
+    network_mode: service:tailscale-sidecar  # Borrow the sidecar's network namespace
 
     # ── Storage ───────────────────────────────────────────────
     volumes:
@@ -47,7 +47,7 @@ services:
       - PLEX_CLAIM=${PLEX_CLAIM}        # Claim token from https://plex.tv/claim
 
   # ── Identity ──────────────────────────────────────────────
-  ts-plex:
+  tailscale-sidecar:
     image: tailscale/tailscale:latest
     container_name: ts-plex
 

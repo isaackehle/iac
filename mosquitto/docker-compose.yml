@@ -16,7 +16,6 @@
 #   docker compose -f mosquitto.yaml down
 #
 name: mosquitto
-version: "3.8"
 
 services:
   # ── Identity ──────────────────────────────────────────────

@@ -2,6 +2,13 @@
 
 This document defines the expected organization and ordering of docker-compose.yml files across the IAC repo.
 
+> Most of this document is about **style** — ordering, naming, grouping. The
+> [Correctness Rules](#correctness-rules) section is different: those are rules
+> where getting it wrong means the stack does not start, or starts and silently
+> does the wrong thing. They came out of a real eight-hour outage
+> (`portainer/OUTAGE-2026-08-03.md`) and a subsequent audit of all 15 compose
+> files. Style is negotiable; correctness is not.
+
 ## File Location
 
 Each stack lives in its own directory under the IAC repo root:
@@ -20,10 +27,11 @@ iac/<stack-name>/
 Services should be ordered by **dependency flow**:
 
 1. **Main application container** (the primary service)
-2. **Sidecar containers** (supporting services like Tailscale)
-3. **Auxiliary services** (databases, caches, etc. - if any)
+2. **Caddy sidecar** (if applicable - reverse proxy with HTTPS)
+3. **Tailscale sidecar** (network tunnel)
+4. **Auxiliary services** (databases, caches, etc. - if any)
 
-### Example: Portainer (with Tailscale sidecar)
+### Example: Portainer (with Caddy and Tailscale sidecars)
 
 ```yaml
 services:
@@ -33,14 +41,20 @@ services:
     container_name: portainer
     ...
 
-  # Sidecar (attached to main app's network)
-  ts-portainer:
+  # Caddy sidecar (reverse proxy with HTTPS)
+  caddy-sidecar:
+    image: caddy:latest
+    container_name: caddy-portainer
+    ...
+
+  # Tailscale sidecar (network tunnel)
+  tailscale-sidecar:
     image: tailscale/tailscale:latest
     container_name: ts-portainer
     ...
 ```
 
-### Example: Pihole (with Caddy sidecar)
+### Example: Pihole (with Caddy and Tailscale sidecars)
 
 ```yaml
 services:
@@ -50,12 +64,43 @@ services:
     container_name: pihole
     ...
 
-  # Sidecar (Caddy for HTTPS/Tailscale serve)
-  caddy:
+  # Caddy sidecar (reverse proxy with HTTPS)
+  caddy-sidecar:
     image: caddy:latest
-    container_name: pihole-caddy
+    container_name: caddy-pihole
+    ...
+
+  # Tailscale sidecar (network tunnel)
+  tailscale-sidecar:
+    image: tailscale/tailscale:latest
+    container_name: ts-pihole
     ...
 ```
+
+### Example: Home Assistant (Tailscale only)
+
+```yaml
+services:
+  # Main application — owns the namespace
+  homeassistant:
+    image: ghcr.io/home-assistant/home-assistant:stable
+    container_name: homeassistant
+    # no depends_on — see Correctness Rule 1
+    ...
+
+  # Tailscale sidecar (network tunnel) — borrows it
+  tailscale-sidecar:
+    image: tailscale/tailscale:latest
+    container_name: ts-homeassistant
+    network_mode: service:homeassistant
+    depends_on:
+      - homeassistant
+    ...
+```
+
+> Home Assistant currently runs `network_mode: host`, which is incompatible
+> with this pattern (Correctness Rule 3). The stack needs a decision before it
+> can work as written — don't copy it as a template.
 
 ## Property Ordering Within Services
 
@@ -135,33 +180,206 @@ volumes:
 ```yaml
 services:
   main-app:
-    network_mode: service:ts-sidecar
+    network_mode: service:tailscale-sidecar
     depends_on:
-      - ts-sidecar
+      - tailscale-sidecar
 
-  ts-sidecar:
-    # Tailscale configuration
-    network_mode: bridge
+  tailscale-sidecar:
+    # Tailscale configuration — owns the namespace, depends on nothing
     # ...
 ```
 
+---
+
+## Correctness Rules
+
+These are not style preferences. Each one below has broken a stack in this repo.
+
+### 1. `depends_on` direction follows namespace ownership — never both ways
+
+Exactly one service owns the network namespace. Everything using
+`network_mode: service:<owner>` **borrows** it. The borrower depends on the
+owner. **The owner must never depend on a borrower** — that's a cycle, and
+Compose refuses to start the stack with `cycle found in dependencies`.
+
+```yaml
+# CORRECT — sidecar owns the namespace, app and caddy borrow it
+services:
+  portainer:
+    network_mode: service:tailscale-sidecar
+    depends_on: [tailscale-sidecar]
+  caddy-sidecar:
+    network_mode: service:tailscale-sidecar
+    depends_on: [tailscale-sidecar, portainer]
+  tailscale-sidecar:
+    # no depends_on
+```
+
+```yaml
+# CORRECT — app owns the namespace (pihole pattern), sidecars borrow it
+services:
+  pihole:
+    # no depends_on
+  caddy-sidecar:
+    network_mode: service:pihole
+    depends_on: [pihole]
+  tailscale-sidecar:
+    network_mode: service:pihole
+    depends_on: [pihole]
+```
+
+```yaml
+# WRONG — cycle. This was homeassistant, and the stack could not start.
+services:
+  homeassistant:
+    depends_on: [tailscale-sidecar]
+  tailscale-sidecar:
+    network_mode: service:homeassistant
+    depends_on: [homeassistant]
+```
+
+Which service owns the namespace differs per stack — portainer's sidecar owns
+it, pihole's app owns it. Both are fine. Read `network_mode` first, then point
+every `depends_on` toward the owner.
+
+### 2. `depends_on` takes **service names**, not container names
+
+`depends_on` and `network_mode: service:` both resolve against the keys under
+`services:` — never `container_name`. `depends_on: [ts-portainer]` is an error;
+the service is `tailscale-sidecar`. This bites specifically because the two
+deliberately differ under our naming convention.
+
+### 3. `network_mode: host` is incompatible with the sidecar pattern
+
+A sidecar that borrows a host-networked container's namespace ends up on the
+**host** network — so `tailscaled` runs alongside the NAS's own `tailscaled`,
+two daemons in one netns, both trying to manage tailnet state. Pick one: host
+networking for device discovery, or a sidecar. Not both.
+
+### 4. Every service that mounts `ts-config` needs `TS_SERVE_CONFIG`
+
+`scripts/lib.sh` pushes `serve.json` into `ts-config/` for every stack listed in
+`STACK_EXTRA_FILES`. If the sidecar doesn't set
+`TS_SERVE_CONFIG=/config/serve.json` *and* mount `ts-config:/config`, that file
+is written and silently never read. If a stack is in `STACK_EXTRA_FILES`, its
+compose file must consume it — or remove it from `lib.sh`.
+
+Keep `lib.sh` and the compose file in sync generally: if `STACK_DIRS` provisions
+`clickhouse-data`, there had better be a ClickHouse service.
+
+### 5. Published port must match the port the process actually listens on
+
+`"2665:5454"` on a Postgres container published to a port nothing listens on —
+Postgres listens on 5432. The mapping is `host:container`, and the container
+side is not a free choice. Verify against the image's documented port.
+
+### 6. No literal secrets, and no redactions, in compose files
+
+Every secret comes from `${VAR}` resolved out of the stack's `.env`. A literal
+`***` where a password belongs (a pasted redaction) is a silent auth failure,
+not a placeholder — it was committed in affine's `DATABASE_URL` and stayed
+there. If you're tempted to redact a value while editing, that value shouldn't
+have been in the file.
+
+### 7. Prefer `condition: service_healthy` over bare `depends_on` for stateful deps
+
+Bare `depends_on` waits for the container to *start*, not to be *ready*. A
+database accepts connections seconds after it starts. Give databases and caches
+a `healthcheck`, then depend on it properly:
+
+```yaml
+depends_on:
+  postgres:
+    condition: service_healthy
+```
+
+Use `condition: service_completed_successfully` for one-shot migration jobs
+(see affine). Bare list form is fine only for genuinely order-insensitive deps.
+
+### 8. Absolute volume paths
+
+Use `/volume1/docker/stacks/<stack>/...`, not `./...`. Relative paths resolve
+against whatever directory Compose was invoked from, which differs between CLI,
+Container Manager, and Portainer — so the same file mounts different things
+depending on who ran it.
+
+### 9. No `version:` key
+
+Obsolete under Compose v2 and warns on every `up`. `name:` stays.
+
+### 10. Declare nothing you don't use
+
+Top-level `volumes:` and `networks:` entries that no service references are dead
+config that outlives its reason and confuses the next reader.
+
+### Operational rule: never restart a sidecar alone
+
+Not a file rule, but it belongs with them. `network_mode: service:X` binds the
+namespace at **container creation**. `docker restart <sidecar>` leaves every
+borrower pointed at a namespace that no longer exists — the app looks up, the
+sidecar logs `connection refused` to its own backend, and nothing works.
+Mismatched uptimes in `docker ps` are the tell.
+
+```shell
+docker compose down && docker compose up -d   # always both, always together
+```
+
+### Validating
+
+Before committing any compose change, this catches rules 1, 2, and most of 4:
+
+```shell
+docker compose -f <stack>/docker-compose.yml config -q
+```
+
+To check every stack at once for cycles and namespace/dependency mismatches, see
+the audit loop in `scripts/` — or minimally, confirm each file parses and that
+every `depends_on` / `network_mode: service:` target appears under `services:`.
+
 ## Naming Conventions
+
+### Service Names
+
+Service names (the keys under `services:`) must follow the standardized pattern:
+
+- **Main application**: `<app-name>` (e.g., `portainer`, `pihole`, `homeassistant`)
+- **Caddy sidecar**: `caddy-sidecar` (if applicable - reverse proxy with HTTPS)
+- **Tailscale sidecar**: `tailscale-sidecar` (network tunnel)
+- **Auxiliary services**: `<service-name>` (e.g., `db`, `redis`, `browserless`)
 
 ### Container Names
 
+Container names (`container_name:`) should be unique and descriptive:
+
 - **Main application**: `<stack-name>` (e.g., `portainer`, `pihole`)
-- **Sidecars**: `<stack-name>-<purpose>` (e.g., `ts-portainer`, `caddy-pihole`)
+- **Caddy sidecar**: `caddy-<stack-name>` (e.g., `caddy-portainer`, `caddy-pihole`)
+- **Tailscale sidecar**: `ts-<stack-name>` (e.g., `ts-portainer`, `ts-pihole`)
+- **Auxiliary services**: `<stack-name>-<service>` (e.g., `nextcloud-db`, `nextcloud-redis`)
 
-### Directory Names
+### Example: Standardized Naming
 
-- **Stack directory**: `<stack-name>` (e.g., `portainer/`, `pihole/`)
-- **Data directory**: `/volume1/docker/stacks/portainer/data/`
-- **IAC reference**: `/volume1/docker/stacks/portainer/iac/`
+```yaml
+services:
+  # Main application
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: portainer
+
+  # Caddy sidecar
+  caddy-sidecar:
+    image: caddy:latest
+    container_name: caddy-portainer
+
+  # Tailscale sidecar
+  tailscale-sidecar:
+    image: tailscale/tailscale:latest
+    container_name: ts-portainer
+```
 
 ## Example: Complete Portainer Compose
 
 ```yaml
-version: "3.8"
+name: portainer
 
 services:
   # Main application
@@ -171,15 +389,27 @@ services:
     restart: always
     security_opt:
       - no-new-privileges:true
-    network_mode: service:ts-portainer
+    network_mode: service:tailscale-sidecar
     depends_on:
-      - ts-portainer
+      - tailscale-sidecar
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - /volume1/docker/stacks/portainer/data:/data
 
-  # Tailscale sidecar
-  ts-portainer:
+  # Caddy sidecar (reverse proxy with HTTPS)
+  caddy-sidecar:
+    image: caddy:latest
+    container_name: caddy-portainer
+    restart: unless-stopped
+    depends_on:
+      - tailscale-sidecar
+      - portainer
+    network_mode: service:tailscale-sidecar
+    volumes:
+      - /volume1/docker/stacks/portainer/caddy-config:/etc/caddy:ro
+
+  # Tailscale sidecar (network tunnel)
+  tailscale-sidecar:
     image: tailscale/tailscale:latest
     container_name: ts-portainer
     restart: unless-stopped
@@ -210,21 +440,32 @@ services:
 networks:
   portainer_net:
     driver: bridge
-
-volumes:
-  ts-portainer-proxy-data:
 ```
 
 ## Verification Checklist
 
 Before committing a new or updated compose file:
 
-- [ ] YAML syntax is valid
-- [ ] Services are ordered by dependency (main first, sidecars second)
+**Correctness — a "no" here means it's broken:**
+
+- [ ] `docker compose config -q` passes
+- [ ] Exactly one service owns the namespace; every borrower `depends_on` it, and the owner depends on none of them (no cycles)
+- [ ] Every `depends_on` / `network_mode: service:` target is a **service name**, not a `container_name`
+- [ ] Published ports match the port the containerized process actually listens on
+- [ ] No literal secrets and no redactions (`***`) — all secrets via `${VAR}`
+- [ ] Stateful dependencies have a `healthcheck` and are depended on with `condition: service_healthy`
+- [ ] Volume paths are absolute
+- [ ] No `version:` key
+- [ ] Stack's entry in `scripts/lib.sh` matches what the compose file actually consumes
+- [ ] Every top-level `networks:` / `volumes:` entry is referenced by a service
+
+**Style:**
+
+- [ ] Services are ordered: main app → caddy-sidecar → tailscale-sidecar → auxiliary
+- [ ] Service names use standardized pattern (`caddy-sidecar`, `tailscale-sidecar`)
 - [ ] Properties are ordered by logical grouping
 - [ ] Volumes are ordered by importance (secrets, state, config)
-- [ ] Container names follow naming conventions
-- [ ] Network configuration is correct
+- [ ] Container names follow naming conventions (`caddy-<stack>`, `ts-<stack>`)
 - [ ] Environment variables use `${VAR:-default}` pattern for optional values
 - [ ] Restart policies are appropriate for each service
 - [ ] Security options are set (no-new-privileges, etc.)
@@ -233,11 +474,36 @@ Before committing a new or updated compose file:
 
 When updating existing compose files to match these standards:
 
-1. **Reorder services**: Move main app to top, sidecars below
-2. **Reorder properties**: Follow the property ordering guide
-3. **Reorder volumes**: Move secrets first, then state, then config
-4. **Update container names**: Ensure naming convention compliance
-5. **Test**: Verify the file deploys correctly
+1. **Reorder services**: Main app → caddy-sidecar → tailscale-sidecar → auxiliary
+2. **Rename services**: Change `ts-*` to `tailscale-sidecar`, `caddy-*` to `caddy-sidecar`
+3. **Reorder properties**: Follow the property ordering guide
+4. **Reorder volumes**: Move secrets first, then state, then config
+5. **Update container names**: Ensure naming convention compliance (`caddy-<stack>`, `ts-<stack>`)
+6. **Test**: Verify the file deploys correctly
+
+### Example: Migration from Old to New Pattern
+
+**Before:**
+
+```yaml
+services:
+  portainer:
+    ...
+  ts-portainer:
+    ...
+```
+
+**After:**
+
+```yaml
+services:
+  portainer:
+    ...
+  caddy-sidecar:
+    ...
+  tailscale-sidecar:
+    ...
+```
 
 ## Script Organization
 

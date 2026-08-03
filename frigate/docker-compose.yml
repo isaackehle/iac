@@ -20,7 +20,6 @@
 #   docker compose -f frigate.yaml down
 #
 name: frigate
-version: "3.8"
 
 services:
   # ── Identity ──────────────────────────────────────────────
