@@ -44,7 +44,7 @@ declare -A STACK_DIRS=(
   [openwebui]="config ts-state ts-config data"
   [pihole]="etc-pihole ts-state ts-config caddy-config"
   [plex]="config ts-state ts-config"
-  [portainer]="config data ts-state ts-config"
+  [portainer]="config data ts-state ts-config caddy-config"
   [postgresql]=""   # legacy stack, dirs already exist on the NAS
   [syncthing]="config sync data ts-state ts-config"
 )
@@ -63,7 +63,7 @@ declare -A STACK_EXTRA_FILES=(
   [openwebui]="serve.json:ts-config/serve.json"
   [pihole]="serve.json:ts-config/serve.json Caddyfile:caddy-config/Caddyfile"
   [plex]="serve.json:ts-config/serve.json"
-  [portainer]="serve.json:ts-config/serve.json"
+  [portainer]="serve.json:ts-config/serve.json Caddyfile:caddy-config/Caddyfile"
   [syncthing]="serve.json:ts-config/serve.json"
 )
 

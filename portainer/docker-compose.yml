@@ -5,7 +5,8 @@
 #
 # Services:
 #   - portainer
-#   - ts-portainer (Tailscale sidecar)
+#   - caddy-sidecar (Caddy reverse proxy)
+#   - tailscale-sidecar (Tailscale sidecar)
 #
 # Environment variables:
 #   - STACK_NAME=Portainer
@@ -17,8 +18,8 @@
 #   docker compose -f portainer.yaml up -d
 #   docker compose -f portainer.yaml down
 #
+
 name: portainer
-version: "3.8"
 
 services:
   # ── Identity ──────────────────────────────────────────────
@@ -29,10 +30,10 @@ services:
     # ── Lifecycle ─────────────────────────────────────────────
     restart: always
     depends_on:
-      - ts-portainer
+      - tailscale-sidecar
 
     # ── Network ───────────────────────────────────────────────
-    network_mode: service:ts-portainer
+    network_mode: service:tailscale-sidecar
     security_opt:
       - no-new-privileges:true
 
@@ -46,32 +47,32 @@ services:
       - /volume1/docker/stacks/portainer/.env
 
   # ── Identity ──────────────────────────────────────────────
-  # Caddy sits behind ts-portainer's TCPForward+TerminateTLS serve config.
+  # Caddy sits behind tailscale-sidecar's TCPForward+TerminateTLS serve config.
   # tailscaled's own built-in Web/Proxy serve mode is documented as 5-10x
   # slower under concurrent load (tailscale/tailscale#18307) — confirmed
   # tonight as an accept-then-hang on any response above a trivial size,
   # affecting both the tailnet HTTPS URL and the "direct" published port.
   # Caddy does the actual HTTP-level reverse proxying instead; see
   # pihole/Caddyfile for the identical, already-working pattern.
-  caddy:
+  caddy-sidecar:
     image: caddy:2-alpine
     container_name: caddy-portainer
 
     # ── Lifecycle ─────────────────────────────────────────────
     restart: unless-stopped
     depends_on:
-      - ts-portainer
+      - tailscale-sidecar
       - portainer
 
     # ── Network ───────────────────────────────────────────────
-    network_mode: service:ts-portainer  # Share ts-portainer's network stack
+    network_mode: service:tailscale-sidecar  # Share tailscale-sidecar's network stack
 
     # ── Storage ───────────────────────────────────────────────
     volumes:
       - /volume1/docker/stacks/portainer/caddy-config:/etc/caddy:ro
 
   # ── Identity ──────────────────────────────────────────────
-  ts-portainer:
+  tailscale-sidecar:
     image: tailscale/tailscale:latest
     container_name: ts-portainer
 
@@ -116,6 +117,3 @@ services:
 networks:
   portainer_net:
     driver: bridge
-
-volumes:
-  ts-portainer-proxy-data: null
