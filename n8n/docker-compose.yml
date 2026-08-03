@@ -6,7 +6,7 @@
 # Services:
 #   - n8n
 #   - browserless
-#   - ts-n8n (Tailscale sidecar)
+#   - tailscale-sidecar (Tailscale sidecar)
 #
 # Environment variables:
 #   - STACK_NAME=n8n
@@ -23,7 +23,6 @@
 #
 
 name: n8n
-version: "3.8"
 
 services:
   # ── Identity ──────────────────────────────────────────────
@@ -34,11 +33,11 @@ services:
     # ── Lifecycle ─────────────────────────────────────────────
     restart: unless-stopped
     depends_on:
-      - ts-n8n
+      - tailscale-sidecar
       - browserless
 
     # ── Network ───────────────────────────────────────────────
-    network_mode: service:ts-n8n
+    network_mode: service:tailscale-sidecar
 
     # ── Storage ───────────────────────────────────────────────
     volumes:
@@ -77,7 +76,7 @@ services:
       - TZ=${TZ}
 
   # ── Identity ──────────────────────────────────────────────
-  ts-n8n:
+  tailscale-sidecar:
     image: tailscale/tailscale:latest
     container_name: ts-n8n
 

@@ -5,8 +5,8 @@
 #
 # Services:
 #   - pihole
-#   - caddy (Reverse proxy with HTTPS)
-#   - ts-pihole (Tailscale sidecar)
+#   - caddy-sidecar (Reverse proxy with HTTPS)
+#   - tailscale-sidecar (Tailscale sidecar)
 #
 # Environment variables:
 #   - STACK_NAME=PiHole
@@ -21,8 +21,8 @@
 #   docker compose -f pihole.yaml up -d
 #   docker compose -f pihole.yaml down
 #
+
 name: pihole
-version: "3.8"
 
 services:
   # ── Identity ──────────────────────────────────────────────
@@ -54,7 +54,7 @@ services:
       - FTLCONF_webserver_domain=${TS_CERT_DOMAIN}  # Domain for HTTPS
 
   # ── Identity ──────────────────────────────────────────────
-  caddy:
+  caddy-sidecar:
     image: caddy:2-alpine
     container_name: caddy-pihole
 
@@ -71,7 +71,7 @@ services:
       - /volume1/docker/stacks/pihole/caddy-config:/etc/caddy:ro
 
   # ── Identity ──────────────────────────────────────────────
-  ts-pihole:
+  tailscale-sidecar:
     image: tailscale/tailscale:latest
     container_name: ts-pihole
 

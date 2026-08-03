@@ -5,7 +5,7 @@
 #
 # Services:
 #   - syncthing
-#   - ts-syncthing (Tailscale sidecar)
+#   - tailscale-sidecar (Tailscale sidecar)
 #
 # Environment variables:
 #   - STACK_NAME=Syncthing
@@ -19,8 +19,8 @@
 #   docker compose -f syncthing.yaml up -d
 #   docker compose -f syncthing.yaml down
 #
+
 name: syncthing
-version: "3.8"
 
 services:
   # ── Identity ──────────────────────────────────────────────
@@ -60,7 +60,7 @@ services:
       retries: 3
 
   # ── Identity ──────────────────────────────────────────────
-  ts-syncthing:
+  tailscale-sidecar:
     image: tailscale/tailscale:latest
     container_name: ts-syncthing
 

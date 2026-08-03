@@ -22,7 +22,6 @@
 #
 
 name: synologymcp
-version: "3.8"
 
 services:
   # ── Identity ──────────────────────────────────────────────

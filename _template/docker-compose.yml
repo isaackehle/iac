@@ -5,7 +5,7 @@
 #
 # Services:
 #   - template
-#   - ts-template (Tailscale sidecar)
+#   - tailscale-sidecar (Tailscale sidecar)
 #
 # Environment variables:
 #   - STACK_NAME=Template
@@ -17,7 +17,6 @@
 #
 
 name: template
-version: "3.8"
 
 services:
   # ── Identity ──────────────────────────────────────────────
@@ -28,7 +27,7 @@ services:
     # ── Lifecycle ─────────────────────────────────────────────
     restart: unless-stopped
     depends_on:
-      - ts-template
+      - tailscale-sidecar
 
     # ── Network ───────────────────────────────────────────────
     # ports:
@@ -46,7 +45,7 @@ services:
     # shm_size: "1gb"
 
   # ── Identity ──────────────────────────────────────────────
-  ts-template:
+  tailscale-sidecar:
     image: tailscale/tailscale:latest
     container_name: ts-template
 
