@@ -5,7 +5,7 @@ Quick reference for troubleshooting the `langfuse` stack.
 ## Container Access
 
 ```shell
-docker exec -it langfuse-ts sh
+docker exec -it ts-langfuse sh
 docker exec -it langfuse sh
 docker exec -it langfuse-worker sh
 docker exec -it langfuse-clickhouse sh
@@ -20,7 +20,7 @@ docker exec -it langfuse-minio sh
 cat /config/serve.json
 
 # Check what Tailscale Serve is doing (from inside the sidecar)
-docker exec langfuse-ts tailscale serve status
+docker exec ts-langfuse tailscale serve status
 ```
 
 ## Container Logs
@@ -31,15 +31,15 @@ docker logs langfuse-worker      # async ingestion — if traces aren't showing 
 docker logs langfuse-clickhouse
 docker logs langfuse-minio
 docker logs langfuse-redis
-docker logs -f langfuse-ts
+docker logs -f ts-langfuse
 ```
 
 ## Tailscale Connectivity
 
 ```shell
-docker exec langfuse-ts tailscale status
-docker exec langfuse-ts tailscale ip
-docker exec langfuse-ts tailscale serve status
+docker exec ts-langfuse tailscale status
+docker exec ts-langfuse tailscale ip
+docker exec ts-langfuse tailscale serve status
 ```
 
 ## Postgres (reused from the `postgresql` stack, not local to this one)
@@ -63,7 +63,7 @@ docker exec PostgreSQL psql -U root -c "\l" | grep langfuse
    container.
 3. Confirm `langfuse-worker`/`clickhouse`/`redis`/`minio` can all reach
    each other — they're all on `langfuse-net`, but `langfuse` (the web
-   container) only reaches them because `langfuse-ts` also joined
+   container) only reaches them because `ts-langfuse` also joined
    `langfuse-net` and `langfuse` borrows its netns. If DNS resolution
    between them ever breaks, check that both conditions still hold.
 

@@ -1,82 +1,270 @@
 # Langfuse — Docker Compose Stack
 #
-# Stack version: 1.0
+# Stack version: 2.0
 # Purpose: LLM observability and tracing platform
 #
 # Services:
-#   - langfuse
-#   - postgres
+#   - langfuse          (web/API)
+#   - worker            (async trace ingestion)
+#   - tailscale-sidecar (Tailscale sidecar — owns the netns for `langfuse`)
+#   - clickhouse        (trace/observation storage)
+#   - redis             (queues/caching)
+#   - minio             (S3-compatible blob storage)
+#
+# Postgres is NOT part of this stack — it reuses the existing `postgresql`
+# stack on the NAS. There is a one-time manual CREATE DATABASE / CREATE USER
+# step before first deploy; see .env.example and postgresql/DEBUG.md.
+#
+# Pattern B (Tailscale sidecar) with siblings: `langfuse` runs
+# `network_mode: service:tailscale-sidecar` and has no ports/networks of its
+# own. The sidecar also joins `langfuse-net`, which is what lets `langfuse`
+# resolve `clickhouse`/`redis`/`minio` by name. Both conditions must hold —
+# see langfuse/DEBUG.md.
+#
+# MinIO's S3 API is published directly on the `minio` sibling (host 9090),
+# deliberately not routed through the sidecar — see README.md's port registry.
 #
 # Environment variables:
 #   - STACK_NAME=Langfuse
-#   - LANGFUSE_SALT=${LANGFUSE_SALT}
-#   - LANGFUSE_NEXTAUTH_SECRET=${LANGFUSE_NEXTAUTH_SECRET}
-#   - LANGFUSE_DB_USER=${LANGFUSE_DB_USER}
-#   - LANGFUSE_DB_PASSWORD=${LANGFUSE_DB_PASSWORD}
-#   - LANGFUSE_DB_NAME=${LANGFUSE_DB_NAME}
-#   - LANGFUSE_NEXTAUTH_URL=${LANGFUSE_NEXTAUTH_URL}
-#   See .env.example for all required variables
+#   See .env.example for all required variables — none have working defaults,
+#   the stack fails to start rather than running with a placeholder secret.
 #
 # Deployment:
-#   docker compose -f langfuse.yaml up -d
-#   docker compose -f langfuse.yaml down
+#   docker compose up -d
+#   docker compose down
 #
 name: langfuse
-version: "3.8"
 
 services:
   # ── Identity ──────────────────────────────────────────────
   langfuse:
-    image: langfuse/langfuse:latest
+    image: langfuse/langfuse:3
     container_name: langfuse
 
     # ── Lifecycle ─────────────────────────────────────────────
     restart: unless-stopped
     depends_on:
-      postgres:
+      tailscale-sidecar:
+        condition: service_started
+      clickhouse:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
         condition: service_healthy
 
     # ── Network ───────────────────────────────────────────────
-    ports:
-      - "3000:3000"                 # Web UI port
-
-    # ── Storage ───────────────────────────────────────────────
-    volumes:
-      - /volume1/docker/stacks/langfuse/data:/data  # Persistent data directory
+    network_mode: service:tailscale-sidecar  # Borrow the sidecar's namespace
 
     # ── Environment ───────────────────────────────────────────
     environment:
-      - SALT=${LANGFUSE_SALT}                     # Random salt for encryption
-      - NEXTAUTH_SECRET=${LANGFUSE_NEXTAUTH_SECRET}  # NextAuth secret
-      - LANGFUSE_SALT=${LANGFUSE_SALT}            # Encryption salt
-      - POSTGRES_USER=${LANGFUSE_DB_USER}         # Database username
-      - POSTGRES_PASSWORD=${LANGFUSE_DB_PASSWORD} # Database password
-      - POSTGRES_HOST=postgres                    # Database hostname
-      - POSTGRES_PORT=5432                        # Database port
-      - POSTGRES_DB=${LANGFUSE_DB_NAME}           # Database name
-      - NEXTAUTH_URL=${LANGFUSE_NEXTAUTH_URL}     # NextAuth URL
+      # Postgres — external, from the `postgresql` stack
+      - DATABASE_URL=postgresql://langfuse:${LANGFUSE_DB_PASSWORD}@${LANGFUSE_DB_HOST}:${LANGFUSE_DB_PORT:-2665}/langfuse
+      # App secrets
+      - SALT=${SALT}
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+      - NEXTAUTH_URL=https://${TS_CERT_DOMAIN}
+      # ClickHouse
+      - CLICKHOUSE_URL=http://clickhouse:8123
+      - CLICKHOUSE_MIGRATION_URL=clickhouse://clickhouse:9000
+      - CLICKHOUSE_USER=default
+      - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD}
+      - CLICKHOUSE_CLUSTER_ENABLED=false
+      # Redis
+      - REDIS_CONNECTION_STRING=redis://:${REDIS_AUTH}@redis:6379
+      # MinIO / S3 — event and media blob storage
+      - LANGFUSE_S3_EVENT_UPLOAD_BUCKET=langfuse
+      - LANGFUSE_S3_EVENT_UPLOAD_REGION=auto
+      - LANGFUSE_S3_EVENT_UPLOAD_ENDPOINT=http://minio:9000
+      - LANGFUSE_S3_EVENT_UPLOAD_ACCESS_KEY_ID=minio
+      - LANGFUSE_S3_EVENT_UPLOAD_SECRET_ACCESS_KEY=${MINIO_ROOT_PASSWORD}
+      - LANGFUSE_S3_EVENT_UPLOAD_FORCE_PATH_STYLE=true
+      - LANGFUSE_S3_EVENT_UPLOAD_PREFIX=events/
+      # Headless bootstrap — skips the first-run signup wizard
+      - LANGFUSE_INIT_ORG_ID=default
+      - LANGFUSE_INIT_PROJECT_ID=default
+      - LANGFUSE_INIT_PROJECT_PUBLIC_KEY=${LANGFUSE_INIT_PROJECT_PUBLIC_KEY}
+      - LANGFUSE_INIT_PROJECT_SECRET_KEY=${LANGFUSE_INIT_PROJECT_SECRET_KEY}
+      - LANGFUSE_INIT_USER_EMAIL=${LANGFUSE_INIT_USER_EMAIL}
+      - LANGFUSE_INIT_USER_PASSWORD=${LANGFUSE_INIT_USER_PASSWORD}
+      - TELEMETRY_ENABLED=false
 
   # ── Identity ──────────────────────────────────────────────
-  postgres:
-    image: postgres:16-alpine
-    container_name: langfuse-postgres
+  # Async ingestion. Traces land here, not in the web container — if traces
+  # aren't showing up in the UI, read this container's logs first.
+  worker:
+    image: langfuse/langfuse-worker:3
+    container_name: langfuse-worker
+
+    # ── Lifecycle ─────────────────────────────────────────────
+    restart: unless-stopped
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+
+    # ── Network ───────────────────────────────────────────────
+    networks:
+      - langfuse-net
+
+    # ── Environment ───────────────────────────────────────────
+    environment:
+      - DATABASE_URL=postgresql://langfuse:${LANGFUSE_DB_PASSWORD}@${LANGFUSE_DB_HOST}:${LANGFUSE_DB_PORT:-2665}/langfuse
+      - SALT=${SALT}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+      - CLICKHOUSE_URL=http://clickhouse:8123
+      - CLICKHOUSE_MIGRATION_URL=clickhouse://clickhouse:9000
+      - CLICKHOUSE_USER=default
+      - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD}
+      - CLICKHOUSE_CLUSTER_ENABLED=false
+      - REDIS_CONNECTION_STRING=redis://:${REDIS_AUTH}@redis:6379
+      - LANGFUSE_S3_EVENT_UPLOAD_BUCKET=langfuse
+      - LANGFUSE_S3_EVENT_UPLOAD_REGION=auto
+      - LANGFUSE_S3_EVENT_UPLOAD_ENDPOINT=http://minio:9000
+      - LANGFUSE_S3_EVENT_UPLOAD_ACCESS_KEY_ID=minio
+      - LANGFUSE_S3_EVENT_UPLOAD_SECRET_ACCESS_KEY=${MINIO_ROOT_PASSWORD}
+      - LANGFUSE_S3_EVENT_UPLOAD_FORCE_PATH_STYLE=true
+      - LANGFUSE_S3_EVENT_UPLOAD_PREFIX=events/
+      - TELEMETRY_ENABLED=false
+
+  # ── Identity ──────────────────────────────────────────────
+  tailscale-sidecar:
+    image: tailscale/tailscale:latest
+    container_name: ts-langfuse
 
     # ── Lifecycle ─────────────────────────────────────────────
     restart: unless-stopped
 
+    # ── Network ───────────────────────────────────────────────
+    # Must join langfuse-net: `langfuse` borrows this namespace, so this is
+    # what lets it resolve clickhouse/redis/minio by name.
+    networks:
+      - langfuse-net
+
     # ── Storage ───────────────────────────────────────────────
     volumes:
-      - /volume1/docker/stacks/langfuse/postgres:/var/lib/postgresql/data  # PostgreSQL data
+      - /volume1/docker/stacks/langfuse/ts-state:/var/lib/tailscale
+      - /volume1/docker/stacks/langfuse/ts-config:/config
 
     # ── Environment ───────────────────────────────────────────
     environment:
-      - POSTGRES_USER=${LANGFUSE_DB_USER}         # Database username
-      - POSTGRES_PASSWORD=${LANGFUSE_DB_PASSWORD} # Database password
-      - POSTGRES_DB=${LANGFUSE_DB_NAME}           # Database name
+      - TS_HOSTNAME=langfuse
+      - TS_AUTHKEY=${TS_AUTHKEY}
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_AUTH_ONCE=true
+      - TS_SERVE_CONFIG=/config/serve.json
+      - TS_CERT_DOMAIN=${TS_CERT_DOMAIN}
 
     # ── Runtime ───────────────────────────────────────────────
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    devices:
+      - /dev/net/tun:/dev/net/tun
+
+  # ── Identity ──────────────────────────────────────────────
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.3
+    container_name: langfuse-clickhouse
+
+    # ── Lifecycle ─────────────────────────────────────────────
+    restart: unless-stopped
+
+    # ── Network ───────────────────────────────────────────────
+    networks:
+      - langfuse-net
+
+    # ── Storage ───────────────────────────────────────────────
+    volumes:
+      - /volume1/docker/stacks/langfuse/clickhouse-data:/var/lib/clickhouse
+      - /volume1/docker/stacks/langfuse/clickhouse-logs:/var/log/clickhouse-server
+
+    # ── Environment ───────────────────────────────────────────
+    environment:
+      - CLICKHOUSE_DB=default
+      - CLICKHOUSE_USER=default
+      - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD}
+
+    # ── Runtime ───────────────────────────────────────────────
+    user: "101:101"     # clickhouse-server's own uid/gid — mounted volumes
+                        # must match or it can't write on first start
+                        # (mirrored in scripts/lib.sh STACK_CHOWN_OVERRIDES)
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${LANGFUSE_DB_USER} -d ${LANGFUSE_DB_NAME}"]
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8123/ping || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  # ── Identity ──────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: langfuse-redis
+
+    # ── Lifecycle ─────────────────────────────────────────────
+    restart: unless-stopped
+
+    # ── Network ───────────────────────────────────────────────
+    networks:
+      - langfuse-net
+
+    # ── Storage ───────────────────────────────────────────────
+    volumes:
+      - /volume1/docker/stacks/langfuse/redis-data:/data
+
+    # ── Environment ───────────────────────────────────────────
+    environment:
+      - REDIS_AUTH=${REDIS_AUTH}
+
+    # ── Runtime ───────────────────────────────────────────────
+    command: --requirepass ${REDIS_AUTH}
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a $${REDIS_AUTH} ping | grep -q PONG"]
       interval: 10s
       timeout: 5s
       retries: 5
+
+  # ── Identity ──────────────────────────────────────────────
+  minio:
+    image: minio/minio:latest
+    container_name: langfuse-minio
+
+    # ── Lifecycle ─────────────────────────────────────────────
+    restart: unless-stopped
+
+    # ── Network ───────────────────────────────────────────────
+    networks:
+      - langfuse-net
+    ports:
+      - "9090:9000"     # S3 API — published directly, not via the sidecar
+
+    # ── Storage ───────────────────────────────────────────────
+    volumes:
+      - /volume1/docker/stacks/langfuse/minio-data:/data
+
+    # ── Environment ───────────────────────────────────────────
+    environment:
+      - MINIO_ROOT_USER=minio
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+
+    # ── Runtime ───────────────────────────────────────────────
+    entrypoint: sh
+    command: -c 'mkdir -p /data/langfuse && minio server /data --address ":9000" --console-address ":9001"'
+    healthcheck:
+      test: ["CMD-SHELL", "mc ready local || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+networks:
+  langfuse-net:
+    driver: bridge

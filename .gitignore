@@ -8,3 +8,4 @@ iac-secrets.env
 # Every sidecar stack keeps its committed source as serve.json.tmpl; the
 # rendered serve.json is generated at deploy time.
 */serve.json
+*/ts-config/serve.json
