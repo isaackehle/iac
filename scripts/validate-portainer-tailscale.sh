@@ -1,13 +1,17 @@
 #!/usr/bin/env bash
 # scripts/validate-portainer-tailscale.sh
 # Validate Portainer Tailscale interface after deployment
+#
+# Usage:
+#   NAS_USER=user NAS_HOST=host ./scripts/validate-portainer-tailscale.sh
 
 set -euo pipefail
 
-NAS_USER="isaac"
-NAS_HOST="voyager.tail303fda.ts.net"
-PORTAINER_HTTP="http://$NAS_HOST:9000"
-PORTAINER_HTTPS="https://portainer.$NAS_HOST"
+# Default values (can be overridden by environment variables)
+NAS_USER="${NAS_USER:-your-username}"
+NAS_HOST="${NAS_HOST:-your-host.tail303fda.ts.net}"
+PORTAINER_HTTP="http://${NAS_HOST}:9000"
+PORTAINER_HTTPS="https://portainer.${NAS_HOST}"
 
 echo "=== Portainer Tailscale Validation ==="
 echo ""

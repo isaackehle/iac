@@ -8,14 +8,14 @@ set -euo pipefail
 STACK_NAME="portainer"
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 STACK_DIR="$ROOT_DIR/$STACK_NAME"
-NAS_USER="isaac"
+NAS_USER="${NAS_USER:-your-username}"
 
 # Default values (can be overridden by environment variables)
-TS_TAILNET_DOMAIN="${TS_TAILNET_DOMAIN:-tail303fda.ts.net}"
+TS_TAILNET_DOMAIN="${TS_TAILNET_DOMAIN:-your-tailnet-name.ts.net}"
 TS_HOSTNAME="${TS_HOSTNAME:-portainer}"
-ADMIN_EMAIL="${ADMIN_EMAIL:-isaac@kehle.org}"
+ADMIN_EMAIL="${ADMIN_EMAIL:-user@email.net}"
 TZ="${TZ:-America/New_York}"
-NAS_LAN_IP="${NAS_LAN_IP:-192.168.68.50}"
+NAS_LAN_IP="${NAS_LAN_IP:-192.168.x.x}"
 
 usage() {
   cat >&2 <<EOF
