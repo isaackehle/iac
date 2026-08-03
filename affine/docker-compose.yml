@@ -26,7 +26,6 @@
 #   docker compose -f affine.yaml down
 #
 name: affine
-version: "3.8"
 
 services:
   # ── Identity ──────────────────────────────────────────────
@@ -56,7 +55,7 @@ services:
     # ── Environment ───────────────────────────────────────────
     environment:
       - REDIS_SERVER_HOST=redis
-      - DATABASE_URL=postgresql://${DB_USERNAME}:***@postgres:5432/${DB_DATABASE:-affine}
+      - DATABASE_URL=postgresql://${DB_USERNAME}:${DB_PASSWORD}@postgres:5432/${DB_DATABASE:-affine}
       - AFFINE_INDEXER_ENABLED=false
 
   # ── Identity ──────────────────────────────────────────────
@@ -79,7 +78,7 @@ services:
     # ── Environment ───────────────────────────────────────────
     environment:
       - REDIS_SERVER_HOST=redis
-      - DATABASE_URL=postgresql://${DB_USERNAME}:***@postgres:5432/${DB_DATABASE:-affine}
+      - DATABASE_URL=postgresql://${DB_USERNAME}:${DB_PASSWORD}@postgres:5432/${DB_DATABASE:-affine}
       - AFFINE_INDEXER_ENABLED=false
 
     # ── Runtime ───────────────────────────────────────────────
