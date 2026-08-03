@@ -19,7 +19,7 @@
 #   docker compose -f frigate.yaml up -d
 #   docker compose -f frigate.yaml down
 #
-name: Frigate
+name: frigate
 version: "3.8"
 
 services:

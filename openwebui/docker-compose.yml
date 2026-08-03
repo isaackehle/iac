@@ -6,7 +6,7 @@
 # Services:
 #   - openwebui
 #   - openwebui-config
-#   - openwebui-ts (Tailscale sidecar)
+#   - ts-openwebui (Tailscale sidecar)
 #
 # Environment variables:
 #   - STACK_NAME=OpenWebUI
@@ -19,7 +19,8 @@
 #   docker compose -f openwebui.yaml up -d
 #   docker compose -f openwebui.yaml down
 #
-name: OpenWebUI
+
+name: openwebui
 version: "3.8"
 
 services:
@@ -31,10 +32,10 @@ services:
     # ── Lifecycle ─────────────────────────────────────────────
     restart: unless-stopped
     depends_on:
-      - openwebui-ts
+      - ts-openwebui
 
     # ── Network ───────────────────────────────────────────────
-    network_mode: service:openwebui-ts
+    network_mode: service:ts-openwebui
 
     # ── Storage ───────────────────────────────────────────────
     volumes:
@@ -67,9 +68,9 @@ services:
     command: "sh -c \"chmod +x /scripts/configure-ollama.sh && timeout 30 /bin/sh -c 'until curl -sf ${OPENWEBUI_API_URL}/api/models >/dev/null 2>&1; do sleep 2; done' && /scripts/configure-ollama.sh\""
 
   # ── Identity ──────────────────────────────────────────────
-  openwebui-ts:
+  ts-openwebui:
     image: tailscale/tailscale:latest
-    container_name: openwebui-ts
+    container_name: ts-openwebui
 
     # ── Lifecycle ─────────────────────────────────────────────
     restart: unless-stopped

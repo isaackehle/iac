@@ -21,7 +21,7 @@
 #   docker compose -f pihole.yaml up -d
 #   docker compose -f pihole.yaml down
 #
-name: PiHole
+name: pihole
 version: "3.8"
 
 services:

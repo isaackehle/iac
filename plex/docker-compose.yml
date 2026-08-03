@@ -17,7 +17,7 @@
 #   docker compose -f plex.yaml up -d
 #   docker compose -f plex.yaml down
 #
-name: Plex
+name: plex
 version: "3.8"
 
 services:

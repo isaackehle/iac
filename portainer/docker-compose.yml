@@ -17,7 +17,7 @@
 #   docker compose -f portainer.yaml up -d
 #   docker compose -f portainer.yaml down
 #
-name: Portainer
+name: portainer
 version: "3.8"
 
 services:
@@ -44,6 +44,31 @@ services:
     # ── Environment ───────────────────────────────────────────
     env_file:
       - /volume1/docker/stacks/portainer/.env
+
+  # ── Identity ──────────────────────────────────────────────
+  # Caddy sits behind ts-portainer's TCPForward+TerminateTLS serve config.
+  # tailscaled's own built-in Web/Proxy serve mode is documented as 5-10x
+  # slower under concurrent load (tailscale/tailscale#18307) — confirmed
+  # tonight as an accept-then-hang on any response above a trivial size,
+  # affecting both the tailnet HTTPS URL and the "direct" published port.
+  # Caddy does the actual HTTP-level reverse proxying instead; see
+  # pihole/Caddyfile for the identical, already-working pattern.
+  caddy:
+    image: caddy:2-alpine
+    container_name: caddy-portainer
+
+    # ── Lifecycle ─────────────────────────────────────────────
+    restart: unless-stopped
+    depends_on:
+      - ts-portainer
+      - portainer
+
+    # ── Network ───────────────────────────────────────────────
+    network_mode: service:ts-portainer  # Share ts-portainer's network stack
+
+    # ── Storage ───────────────────────────────────────────────
+    volumes:
+      - /volume1/docker/stacks/portainer/caddy-config:/etc/caddy:ro
 
   # ── Identity ──────────────────────────────────────────────
   ts-portainer:

@@ -14,7 +14,8 @@
 #   docker compose -f portainer-simple.yaml up -d
 #   docker compose -f portainer-simple.yaml down
 #
-name: PortainerSimple
+
+name: portainer-simple
 version: "3.8"
 
 services:
@@ -24,13 +25,17 @@ services:
     container_name: portainer
 
     # ── Lifecycle ─────────────────────────────────────────────
-    restart: always
+    restart: unless-stopped
 
     # ── Network ───────────────────────────────────────────────
     ports:
-      - "9000:9000"               # Portainer web interface
+      - "9000:9000"
 
     # ── Storage ───────────────────────────────────────────────
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - /volume1/docker/portainer-data:/data
+      - /volume1/docker/stacks/portainer/data:/data
+
+    # ── Environment ───────────────────────────────────────────
+    environment:
+      - TZ=${TZ}

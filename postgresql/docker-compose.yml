@@ -18,14 +18,14 @@
 #   docker compose -f postgresql.yaml up -d
 #   docker compose -f postgresql.yaml down
 #
-name: PostgreSQL
+name: postgresql
 version: "3.8"
 
 services:
   # ── Identity ──────────────────────────────────────────────
   db:
     image: postgres
-    container_name: PostgreSQL
+    container_name: postgresql
 
     # ── Lifecycle ─────────────────────────────────────────────
     restart: on-failure:5

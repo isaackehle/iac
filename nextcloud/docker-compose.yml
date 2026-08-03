@@ -5,7 +5,7 @@
 #
 # Services:
 #   - nextcloud
-#   - nextcloud-ts (Tailscale sidecar)
+#   - ts-nextcloud (Tailscale sidecar)
 #   - db (PostgreSQL database)
 #   - redis (Redis cache)
 #
@@ -22,7 +22,8 @@
 #   docker compose -f nextcloud.yaml up -d
 #   docker compose -f nextcloud.yaml down
 #
-name: Nextcloud
+
+name: nextcloud
 version: "3.8"
 
 services:
@@ -64,9 +65,9 @@ services:
       - PHP_UPLOAD_LIMIT=10G
 
   # ── Identity ──────────────────────────────────────────────
-  nextcloud-ts:
+  ts-nextcloud:
     image: tailscale/tailscale:latest
-    container_name: nextcloud-ts
+    container_name: ts-nextcloud
 
     # ── Lifecycle ─────────────────────────────────────────────
     restart: unless-stopped

@@ -21,7 +21,7 @@
 #   docker compose -f langfuse.yaml up -d
 #   docker compose -f langfuse.yaml down
 #
-name: Langfuse
+name: langfuse
 version: "3.8"
 
 services:

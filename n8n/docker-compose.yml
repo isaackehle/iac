@@ -6,7 +6,7 @@
 # Services:
 #   - n8n
 #   - browserless
-#   - n8n-ts (Tailscale sidecar)
+#   - ts-n8n (Tailscale sidecar)
 #
 # Environment variables:
 #   - STACK_NAME=n8n
@@ -21,6 +21,7 @@
 #   docker compose -f n8n.yaml up -d
 #   docker compose -f n8n.yaml down
 #
+
 name: n8n
 version: "3.8"
 
@@ -33,11 +34,11 @@ services:
     # ── Lifecycle ─────────────────────────────────────────────
     restart: unless-stopped
     depends_on:
-      - n8n-ts
+      - ts-n8n
       - browserless
 
     # ── Network ───────────────────────────────────────────────
-    network_mode: service:n8n-ts
+    network_mode: service:ts-n8n
 
     # ── Storage ───────────────────────────────────────────────
     volumes:
@@ -76,9 +77,9 @@ services:
       - TZ=${TZ}
 
   # ── Identity ──────────────────────────────────────────────
-  n8n-ts:
+  ts-n8n:
     image: tailscale/tailscale:latest
-    container_name: n8n-ts
+    container_name: ts-n8n
 
     # ── Lifecycle ─────────────────────────────────────────────
     restart: unless-stopped
