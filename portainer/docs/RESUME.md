@@ -1,157 +1,195 @@
-# Portainer Recovery — Resume Point (paused overnight, 2026-08-02)
+# Portainer Recovery — Consolidated Walkthrough (updated 2026-08-02, evening)
 
-Picking this back up tomorrow (or a fresh Claude session): read this file first,
-don't re-diagnose from scratch. Everything below reflects confirmed state as of
-the last command output received, not assumptions.
+Read this top-to-bottom, in order, at a real keyboard. It supersedes the
+earlier version of this file — a lot changed in this repo between then and
+now (see "What changed since the last note" below), and this reflects the
+actual current state of the repo as read directly, not assumptions carried
+over from earlier tonight.
 
-## Safe to leave exactly as-is overnight — confirmed, not a hedge
+**No agent has live shell access to `voyager`.** Every command below needs to
+be run by you, over SSH or Container Manager's console — nothing here executes
+itself.
 
-- Both `portainer` and `ts-portainer` are cleanly **stopped** (`Exited`), not
-  crash-looping, not retrying, not consuming resources.
-- **Pi-hole is healthy and running**, untouched by anything in this recovery —
-  DNS keeps working overnight regardless of Portainer's state.
-- The original root cause (port 19443 held by a stale host-level `tailscale
-serve` mapping) is resolved. Nothing is fighting over that port anymore.
-- No mid-write files, no partial merges sitting in a bad state, no reboot or
-  network reconfig in flight. The only pending filesystem change (the
-  certs/chisel/compose merge below) was deliberately left undone rather than
-  run unverified.
+---
 
-The one open risk (`syncthing`/`ts-syncthing` both `Exited`) predates tonight's
-Portainer work and isn't made worse by leaving Portainer down too — see below.
+## What changed since the last note
 
-## What's already done
+Between the original recovery session and now, significant additional work
+happened in this repo — restructured docs into `portainer/docs/`, moved
+`certs/`/`chisel/` secrets to a new `/volume1/docker/portainer-secrets/`
+location (700, root:root), updated `portainer/docker-compose.yml` to mount
+from there, and added an `env_file:` directive pointing at
+`/volume1/docker/stacks/portainer/.env`. `portainer/old/compose.yaml` — which
+one of the docs (`DEPLOYMENT-CHECKLIST.md`) still references — **no longer
+exists**; the canonical compose file is the top-level
+`portainer/docker-compose.yml`.
 
-- Root cause fixed: cleared a stale host-level `tailscale serve` mapping on
-  port 19443 (was bound to `100.67.2.89:19443` / the tailnet IPv6 address by
-  the host's native `tailscaled`, PID 19750 at the time).
-  - Side effect: `tailscale serve reset` wiped the _other_ host-serve mappings
-    too (affine :3010, frigate :8971, postgresql :2660). Not urgent, but run
-    `scripts/serve-all.sh <ssh-host>` to reapply once Portainer's settled.
-- `portainer/docker-compose.yml` (local repo, **not yet committed to git**):
-  - Added the missing `portainer` service (it only had `ts-portainer` before)
-    — `network_mode: service:ts-portainer`, docker socket + `/data` volume,
-    `depends_on: ts-portainer`.
-  - Removed `hostname: portainer` from the `ts-portainer` sidecar — violated
-    the repo's own documented rule (README: `hostname:` on a sidecar collides
-    with Docker's internal DNS and breaks MagicDNS for every other sidecar on
-    the host, not just this one).
-  - Volume paths point at the **standard** `/volume1/docker/stacks/portainer/`
-    layout, not the legacy `/volume1/docker/portainer/` path Portainer was
-    actually running from.
-- Confirmed `ts-config/serve.json` at the new location is correctly rendered:
-  `"Proxy": "https+insecure://voyager.tail303fda.ts.net:19443"` — no leftover
-  `{{ }}` template tokens.
-- Two docker networks exist from the old pre-rename project vs. the current
-  one: `portainer-ts_portainer_net` (orphaned) and `portainer_portainer_net`
-  (current) — Compose auto-prefixes with project name, so neither is
-  literally called `portainer_net`.
+The docs in `portainer/docs/` (`CONSOLIDATION-PLAN.md`,
+`DIRECTORY-STRUCTURE.md`, `DEPLOYMENT-CHECKLIST.md`, `CHISEL-SECURITY.md`)
+disagree with each other in places on exact final paths — treat them as
+history/rationale, not as the source of truth. The source of truth is
+whatever's actually deployed on the NAS, which is why step 4 below is a
+verification pass before doing anything else.
 
-## Data migration — IN PROGRESS, safely paused mid-way
+---
 
-Moving `/volume1/docker/portainer/` (legacy, where the _real_ data actually
-lives — `portainer.db` last modified Aug 1 23:13, `ts-state` Aug 2 00:52) to
-`/volume1/docker/stacks/portainer/` (standard path, matches every other stack
-in this repo).
+## 1. Quick typo check (10 seconds)
 
-**Moved successfully:**
+Confirm you're actually browsing to `https://portainer.tail303fda.ts.net` —
+`.ts.net`, not `.net`. Every working check tonight used the `.ts.net` suffix;
+rule this out first.
 
-- `ts-state/` → `/volume1/docker/stacks/portainer/ts-state/`
-- `ts-config/` → `/volume1/docker/stacks/portainer/ts-config/`
-- `bin`, `tls`, `portainer.db`, `portainer.key`, `portainer.pub` →
-  `/volume1/docker/stacks/portainer/data/`
+## 2. Diagnose laptop → NAS SSH
 
-**NOT moved — still safely sitting in the OLD location, untouched:**
-
-- `/volume1/docker/portainer/certs/`
-- `/volume1/docker/portainer/chisel/`
-- `/volume1/docker/portainer/compose/`
-
-`mv` refused these three with "Directory not empty" — something already
-exists at `/volume1/docker/stacks/portainer/data/{certs,chisel,compose}`,
-almost certainly auto-generated by Portainer briefly starting against the new
-(then-empty) path earlier in tonight's session, before the compose file got
-corrected back to point at the live data. **Nothing was lost or overwritten**
-— the real copies are still intact at the old path.
-
-## Next 3 commands — do this first, in order, before anything else
-
-```shell
-# 1. Compare before merging — confirm which side is real vs. auto-generated
-ls -la /volume1/docker/portainer/certs /volume1/docker/portainer/chisel /volume1/docker/portainer/compose
-ls -la /volume1/docker/stacks/portainer/data/certs /volume1/docker/stacks/portainer/data/chisel /volume1/docker/stacks/portainer/data/compose
+```bash
+ssh -vvv isaac@voyager.local
 ```
 
-Expected: the OLD path's copies look like real, previously-used data; the NEW
-path's copies look like fresh, minimal, just-generated stand-ins. If that
-checks out:
+Read where it actually stops, then pick the matching fix:
 
-```shell
-# 2. Merge old (real) into new, letting the real data win on conflicts
-cp -a /volume1/docker/portainer/certs/.   /volume1/docker/stacks/portainer/data/certs/
-cp -a /volume1/docker/portainer/chisel/.  /volume1/docker/stacks/portainer/data/chisel/
-cp -a /volume1/docker/portainer/compose/. /volume1/docker/stacks/portainer/data/compose/
+- **`REMOTE HOST IDENTIFICATION HAS CHANGED`** → the NAS's SSH host key looks
+  different than what's saved locally (can happen after DSM/package changes).
+  Confirm it's genuinely your NAS (nothing else on your LAN would answer at
+  `voyager.local`), then:
+  ```bash
+  ssh-keygen -R voyager.local
+  ssh isaac@voyager.local
+  ```
+- **`no matching key exchange method found` / `no matching host key type
+  found`** → newer macOS OpenSSH refusing DSM's older sshd algorithms:
+  ```bash
+  ssh -o HostKeyAlgorithms=+ssh-rsa -o PubkeyAcceptedAlgorithms=+ssh-rsa isaac@voyager.local
+  ```
+  If that connects, make it permanent by adding to `~/.ssh/config`:
+  ```
+  Host voyager.local
+    HostKeyAlgorithms +ssh-rsa
+    PubkeyAcceptedAlgorithms +ssh-rsa
+  ```
+- **Times out / no route** → DNS/mDNS issue, not a key issue. Try
+  `ping voyager.local`, and fall back to the Tailscale IP or
+  `voyager.tail303fda.ts.net` as the SSH target instead.
 
-# 3. Verify the merge before deleting anything
-ls -la /volume1/docker/stacks/portainer/data/certs /volume1/docker/stacks/portainer/data/chisel /volume1/docker/stacks/portainer/data/compose
+## 3. No-SSH fallback: Container Manager's console
+
+If SSH stays broken, you don't need it. Container Manager → **Container** →
+`ts-portainer` → **Terminal**/**Details** tab has a built-in console. Run:
+
+```bash
+tailscale status
 ```
 
-**Do not run `rm -rf` on the old `certs`/`chisel`/`compose` directories until
-step 3 has been visually confirmed correct.** That's the one genuinely
-destructive step left in this whole recovery — it should never run
-unsupervised.
+If it shows logged-out / NeedsLogin / no peers, that alone explains
+"unreachable" — the sidecar isn't actually on the tailnet regardless of
+anything else being correct.
 
-## Then resume the original 6-phase plan from Phase 3
+## 4. Establish ground truth on the NAS (do this before changing anything)
 
-1. ~~Verify current state~~ — done, captured above.
-2. ~~Confirm data migration~~ — done, captured above (partial, resuming here).
-3. **Remove stale containers + network:**
+So much changed in parallel tonight that local repo state and NAS state may
+have drifted. Check, don't assume:
 
-   ```shell
-   docker rm portainer ts-portainer
-   docker network inspect portainer_portainer_net --format '{{range .Containers}}{{.Name}} {{end}}'   # confirm empty
-   docker network rm portainer_portainer_net
-   ```
+```bash
+# a. Does the new secrets location actually exist with real content?
+ls -la /volume1/docker/portainer-secrets/
+ls -la /volume1/docker/portainer-secrets/certs/
+ls -la /volume1/docker/portainer-secrets/chisel/
 
-4. **Redeploy via CLI** (not Container Manager's GUI rebuild — it already
-   failed once tonight on this exact network-busy condition):
+# b. Does the .env file the compose file now requires actually exist?
+ls -la /volume1/docker/stacks/portainer/.env
+cat /volume1/docker/stacks/portainer/.env   # confirm TS_AUTHKEY etc. are real values, not placeholders
 
-   ```shell
-   cd /volume1/docker/stacks/portainer
-   docker compose up -d
-   ```
+# c. What compose file is Container Manager's "Portainer" project actually
+#    running? Compare it against the repo's canonical copy.
+cat /volume1/docker/stacks/portainer/docker-compose.yml
+```
 
-5. **Verify:**
+Pull that last one down and diff against your laptop's copy if you want to be
+sure they match:
+```bash
+scp isaac@voyager.local:/volume1/docker/stacks/portainer/docker-compose.yml /tmp/nas-portainer-compose.yml
+diff /tmp/nas-portainer-compose.yml ~/code/isaackehle/iac/portainer/docker-compose.yml
+```
+No output = they match. If they differ, the NAS's copy is what's actually
+running — treat that as truth for now, and decide whether to push your
+laptop's version over it or pull the NAS's version back into git.
 
-   ```shell
-   docker ps -a --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'
-   docker logs --tail 50 ts-portainer
-   docker logs --tail 50 portainer
-   docker exec ts-portainer tailscale status
-   ```
+Also check what Container Manager's UI itself shows for the project's YAML
+(Project → Portainer → Edit) — if it was ever created via "Import from
+YAML/JSON" rather than pointed at a file on disk, Container Manager stores its
+own copy internally, separate from anything in `/volume1/docker/stacks/`.
 
-   Both `Up`. Sidecar connected to tailnet. **Log into the Portainer UI and
-   confirm it shows your existing admin login — not a fresh "create admin
-   user" prompt.** That's the proof `portainer.db` migrated correctly. Then
-   confirm `https://portainer.tail303fda.ts.net` resolves through the
-   `voyager:19443` proxy chain.
-6. **Cleanup, only after Phase 5 is fully green:**
-   - `mv /volume1/docker/portainer /volume1/docker/portainer.bak` (rename,
-     don't delete — keep a free fallback for a few days)
-   - `scripts/serve-all.sh <ssh-host>` — reapply the affine/frigate/postgresql
-     mappings wiped by tonight's `tailscale serve reset`
-   - Investigate why `syncthing`/`ts-syncthing` are `Exited` — open, separate
-     from Portainer, noticed mid-session but never chased down
-   - Remove orphaned `portainer-ts_portainer_net` network if confirmed empty
-   - **Commit `portainer/docker-compose.yml` to git** — the missing-service
-     fix, the `hostname:` removal, and the path corrections only exist in the
-     local working tree right now, `git status` shows it modified/uncommitted
+If `.env` is missing or has placeholder values, `docker compose up -d` in
+step 7 will fail immediately — fix that first, don't skip to step 7 hoping
+it'll work.
 
-## Execution note for whoever picks this up
+## 5. Confirm the certs/chisel/compose merge landed, and handle the still-open secrets exposure
 
-No agent in this session had live shell/network access to `voyager` — the
-sandbox this ran in has no route to the tailnet or LAN (confirmed directly:
-DNS resolution failed, and the egress proxy returned `403
-blocked-by-allowlist` on the hostname). Every command above needs a human (or
-an agent with actual SSH access) to run it and report back the output before
-the next step.
+Your last directory listing showed `cert.pem`/`key.pem` under `certs/`,
+`private-key.pem` under `chisel/`, and content under `compose/` — that part
+looks done. Quick confirm:
+
+```bash
+ls -la /volume1/docker/stacks/portainer/certs/ /volume1/docker/stacks/portainer/chisel/
+ls -la /volume1/docker/portainer/ 2>/dev/null   # old legacy path — should be empty or gone
+```
+
+**Separately — and this is still open regardless of the certs/chisel work:**
+your directory tree showed `iac-secrets.env` sitting inside the deployed
+data/compose copy of this repo. The consolidation docs explicitly decided to
+*keep* a working copy of the repo inside Portainer's data volume (documented
+in `docs/CONSOLIDATION-PLAN.md` as intentional, not a bug) — that's a
+reasonable call to leave as-is. But a real secrets file has no reason to be
+part of that copy regardless. Check and remove it specifically:
+
+```bash
+find /volume1/docker/stacks/portainer/data/compose -iname "iac-secrets.env*"
+```
+
+If found, delete just those files (not the whole repo copy):
+```bash
+rm -f /volume1/docker/stacks/portainer/data/compose/*/iac-secrets.env
+rm -f /volume1/docker/stacks/portainer/data/compose/*/iac-secrets.env.example
+```
+
+Given a real secrets file briefly sat inside a Portainer-browsable volume,
+the prudent move is rotating whatever Tailscale auth key(s) are in that file
+once things are stable again — treat it as potentially exposed, not
+definitely safe.
+
+## 6. Bring the stack up
+
+```bash
+cd /volume1/docker/stacks/portainer
+docker compose up -d
+```
+
+If it errors on the `env_file` directive, that's step 4b unresolved — go
+fix the `.env` file first.
+
+## 7. Verify
+
+```bash
+docker ps -a --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'
+docker logs --tail 50 ts-portainer
+docker logs --tail 50 portainer
+docker exec ts-portainer tailscale status
+```
+
+Want: both containers `Up`, no errors in either log, `tailscale status`
+showing connected. Then log into `https://portainer.tail303fda.ts.net` (or
+the LAN fallback `http://<host>:9000`) and confirm it shows your **existing**
+admin login, not a fresh "create admin user" screen — that's the proof the
+migrated `portainer.db` is the one actually being read.
+
+---
+
+## Still on the list after this (not blocking, from the original session)
+
+- `scripts/serve-all.sh <ssh-host>` — reapply affine/frigate/postgresql
+  host-serve mappings wiped by an earlier `tailscale serve reset`
+- Investigate why `syncthing`/`ts-syncthing` were `Exited` earlier — separate,
+  never chased down
+- Remove the orphaned `portainer-ts_portainer_net` / `portainer_portainer_net`
+  Docker networks if unused
+- Commit `portainer/docker-compose.yml` and the new `docs/` restructuring to
+  git — confirm `git status` in the repo, there's uncommitted work here

@@ -5,7 +5,7 @@
 #
 # Services:
 #   - template
-#   - template-ts (Tailscale sidecar)
+#   - ts-template (Tailscale sidecar)
 #
 # Environment variables:
 #   - STACK_NAME=Template
@@ -15,7 +15,8 @@
 #   docker compose -f template.yaml up -d
 #   docker compose -f template.yaml down
 #
-name: Template
+
+name: template
 version: "3.8"
 
 services:
@@ -27,7 +28,7 @@ services:
     # ── Lifecycle ─────────────────────────────────────────────
     restart: unless-stopped
     depends_on:
-      - template-ts
+      - ts-template
 
     # ── Network ───────────────────────────────────────────────
     # ports:
@@ -45,9 +46,9 @@ services:
     # shm_size: "1gb"
 
   # ── Identity ──────────────────────────────────────────────
-  template-ts:
+  ts-template:
     image: tailscale/tailscale:latest
-    container_name: template-ts
+    container_name: ts-template
 
     # ── Lifecycle ─────────────────────────────────────────────
     restart: unless-stopped

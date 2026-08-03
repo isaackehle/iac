@@ -8,6 +8,10 @@
 #
 # Environment variables:
 #   - STACK_NAME=SynologyMCP
+#   - SYNOLOGY_HOST=${SYNOLOGY_HOST}
+#   - SYNOLOGY_PORT=${SYNOLOGY_PORT}
+#   - SYNOLOGY_SSL=${SYNOLOGY_SSL}
+#   - SYNOLOGY_USERNAME=${SYNOLOGY_USERNAME}
 #   - SYNOLOGY_PASSWORD=${SYNOLOGY_PASSWORD}
 #   - SYNOLOGY_OTP_CODE=${SYNOLOGY_OTP_CODE}
 #   See .env.example for all required variables
@@ -16,7 +20,8 @@
 #   docker compose -f synology-mcp.yaml up -d
 #   docker compose -f synology-mcp.yaml down
 #
-name: SynologyMCP
+
+name: synologymcp
 version: "3.8"
 
 services:
@@ -34,10 +39,10 @@ services:
 
     # ── Environment ───────────────────────────────────────────
     environment:
-      - SYNOLOGY_HOST=synology.tail303fda.ts.net
-      - SYNOLOGY_PORT=5001
-      - SYNOLOGY_SSL=true
-      - SYNOLOGY_USERNAME=isaac
+      - SYNOLOGY_HOST=${SYNOLOGY_HOST}
+      - SYNOLOGY_PORT=${SYNOLOGY_PORT}
+      - SYNOLOGY_SSL=${SYNOLOGY_SSL}
+      - SYNOLOGY_USERNAME=${SYNOLOGY_USERNAME}
       - SYNOLOGY_PASSWORD=${SYNOLOGY_PASSWORD}
       - SYNOLOGY_OTP_CODE=${SYNOLOGY_OTP_CODE}
 

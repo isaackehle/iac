@@ -19,7 +19,7 @@
 #   docker compose -f syncthing.yaml up -d
 #   docker compose -f syncthing.yaml down
 #
-name: Syncthing
+name: syncthing
 version: "3.8"
 
 services:

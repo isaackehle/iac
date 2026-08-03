@@ -17,7 +17,7 @@
 #   docker compose -f homeassistant.yaml up -d
 #   docker compose -f homeassistant.yaml down
 #
-name: HomeAssistant
+name: homeassistant
 version: "3.8"
 
 services:

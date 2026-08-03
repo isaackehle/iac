@@ -25,7 +25,7 @@
 #   docker compose -f affine.yaml up -d
 #   docker compose -f affine.yaml down
 #
-name: Affine
+name: affine
 version: "3.8"
 
 services:
