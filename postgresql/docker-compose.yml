@@ -19,7 +19,6 @@
 #   docker compose -f postgresql.yaml down
 #
 name: postgresql
-version: "3.8"
 
 services:
   # ── Identity ──────────────────────────────────────────────
@@ -32,7 +31,7 @@ services:
 
     # ── Network ───────────────────────────────────────────────
     ports:
-      - "2665:5454"               # PostgreSQL port (mapped from 5432)
+      - "2665:5432"               # PostgreSQL port (mapped from 5432)
 
     # ── Storage ───────────────────────────────────────────────
     volumes:
