@@ -191,6 +191,15 @@ before reapplying this elsewhere — it's a real, reusable pattern for any
 other Pattern B stack that hits the same slow-proxy wall, just not
 something to copy blind.
 
+**`portainer` now uses that same Caddy variant** (added 2026-08-03):
+`ts-portainer` does `TCPForward`/`TerminateTLS` → `caddy-portainer` on
+`:8444` → Portainer's plain HTTP `:9000`. Note it inverts pihole's
+direction — here the *sidecar* owns the namespace and both `portainer` and
+`caddy-sidecar` borrow it, so the `depends_on` edges point the opposite way.
+Worth reading alongside pihole's version to see which parts of the pattern
+are essential (the serve.json shape, Caddy doing the HTTP hop) and which are
+per-stack (who owns the netns).
+
 ## Legacy directory paths — do not silently "fix"
 
 Four stacks were deployed before the `/volume1/docker/stacks/<name>`
@@ -202,6 +211,45 @@ recorded as-is in `scripts/lib.sh` (`STACK_REMOTE_DIR`). Renaming these
 paths in compose files would orphan real data on the NAS unless someone
 manually migrates it first — don't do it as a drive-by cleanup.
 
+## Compose correctness rules — read before editing any compose file
+
+`docs/006_docker_compose_standards.md` is mostly a *style* guide (ordering,
+naming). Its **Correctness Rules** section is not — those are the rules where
+getting it wrong means the stack won't start, or starts and silently does the
+wrong thing. Every one of them has broken a stack in this repo. Read that
+section before editing compose files; the short version:
+
+1. **`depends_on` follows namespace ownership, one direction only.** Exactly
+   one service owns the netns; borrowers (`network_mode: service:<owner>`)
+   depend on it, and the owner depends on **none** of them. Both directions =
+   `cycle found in dependencies` = stack won't start. Which service owns it
+   differs per stack (portainer: the sidecar; pihole/syncthing: the app) —
+   check `network_mode` first.
+2. **`depends_on` takes service names, never `container_name`.** Under our
+   naming convention those deliberately differ (`tailscale-sidecar` vs
+   `ts-portainer`), so this is easy to get wrong.
+3. **`network_mode: host` is incompatible with the sidecar pattern** — the
+   sidecar lands on the host network next to the NAS's own `tailscaled`.
+4. **If a stack is in `STACK_EXTRA_FILES`, its compose file must consume what
+   `lib.sh` pushes** (`TS_SERVE_CONFIG` + the `ts-config` mount), or the file
+   is written and silently never read. Keep `lib.sh` and compose in sync both
+   ways.
+5. **Published ports must match the port the process actually listens on.**
+6. **No literal secrets and no redactions.** A pasted `***` where a password
+   belongs is a silent auth failure, not a placeholder.
+7. **Stateful deps get a `healthcheck` + `condition: service_healthy`.** Bare
+   `depends_on` waits for *start*, not *ready*.
+8. **Absolute volume paths** — relative paths resolve against whatever
+   directory Compose was invoked from, which differs between CLI, Container
+   Manager, and Portainer.
+9. **No `version:` key** (obsolete in Compose v2), and no unreferenced
+   top-level `networks:`/`volumes:`.
+
+**Operational, not a file rule: never `docker restart` a sidecar alone.**
+`network_mode: service:X` binds the namespace at container *creation*, so
+restarting one container leaves the others pointed at a namespace that no
+longer exists. Always `docker compose down && docker compose up -d`.
+
 ## Known bugs already fixed (context for git blame / history)
 
 - `postgresql/docker-compose.yml` used to have real DB/pgAdmin credentials
@@ -211,8 +259,31 @@ manually migrates it first — don't do it as a drive-by cleanup.
   files here.
 - `postgresql/.env.example` used to contain Plex's variables (copy-paste
   bug) instead of Postgres/pgAdmin ones.
+- `postgresql/docker-compose.yml` published `2665:5454`, but Postgres listens
+  on 5432 — nothing could connect. Now `2665:5432`.
 - `homeassistant/docker-compose.yml` had a stray `depends_on: - nextcloud`
   on its Tailscale sidecar (copy-paste leftover, removed).
+- `homeassistant/docker-compose.yml` then had a genuine `depends_on` cycle
+  (app ↔ sidecar) that prevented the stack from starting at all. Removed the
+  app→sidecar edge. **Still unresolved:** it runs `network_mode: host` while
+  the sidecar borrows that namespace (see correctness rule 3), and it has no
+  `TS_SERVE_CONFIG` despite `lib.sh` pushing a `serve.json` for it. This stack
+  needs a design decision, not a patch.
+- `affine/docker-compose.yml` had a literal `***` in `DATABASE_URL` where the
+  password belongs, in both `affine` and `affine_migration` — a committed
+  redaction, silently breaking auth. Now `${DB_PASSWORD}`.
+- `langfuse/docker-compose.yml` defines only `langfuse` + `postgres`, while
+  `scripts/lib.sh` provisions `ts-state`, `ts-config`, `clickhouse-data`,
+  `clickhouse-logs`, `minio-data`, `redis-data` and pushes a `serve.json`.
+  One of the two is stale — **unresolved**, don't assume either is correct.
+- `portainer` was down for ~8 hours on 2026-08-03. Root cause was corrupted
+  `tailscaled` path/MTU state persisted in `ts-state/`, producing a
+  payload-size-dependent hang (small responses fine, anything larger died
+  after the TCP handshake). Not a compose problem, not a serve-config problem
+  — both were also broken and fixing them changed nothing. Full writeup and
+  the diagnostic technique that isolated it in
+  `portainer/OUTAGE-2026-08-03.md`; symptom-indexed troubleshooting in
+  `portainer/DEBUG.md`.
 
 ## Environment variable conventions
 

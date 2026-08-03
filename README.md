@@ -11,7 +11,7 @@ self-hosted Synology server on the `${TS_TAILNET_DOMAIN}` tailnet.
 | --------------- | ------------------------------------------------- | ------------------ |
 | `affine`        | `https://nas.${TS_TAILNET_DOMAIN}:3010`           | host serve         |
 | `frigate`       | `https://nas.${TS_TAILNET_DOMAIN}:8971`           | host serve         |
-| `homeassistant` | `https://homeassistant.${TS_TAILNET_DOMAIN}`      | TS sidecar         |
+| `homeassistant` | `https://homeassistant.${TS_TAILNET_DOMAIN}`      | host serve         |
 | `langfuse`      | `https://langfuse.${TS_TAILNET_DOMAIN}`           | TS sidecar         |
 | `mosquitto`     | n/a — LAN/tailnet IP only, port 1883              | none               |
 | `n8n`           | `https://n8n.${TS_TAILNET_DOMAIN}`                | TS sidecar         |
@@ -113,7 +113,13 @@ service.
 
 ### Pattern A — Host-level `tailscale serve` (NAS node)
 
-Used by: `affine`, `frigate`, `postgresql`
+Used by: `affine`, `frigate`, `homeassistant`, `postgresql`
+
+`homeassistant` is here rather than Pattern B for a specific reason: it needs
+`network_mode: host` for device discovery (mDNS, Chromecast, HomeKit), and a
+sidecar borrowing a host-networked namespace would run a second `tailscaled`
+inside the host netns alongside the NAS's own. Host networking and the sidecar
+pattern are mutually exclusive — if a stack needs the former, it belongs here.
 
 The container binds a port on the host. The NAS host's own Tailscale daemon
 reverse-proxies that port over HTTPS via `tailscale serve --bg`. Access is
@@ -130,8 +136,8 @@ Backend scheme matters:
 
 ### Pattern B — Tailscale sidecar container (own tailnet node)
 
-Used by: `homeassistant`, `langfuse`, `n8n`, `nextcloud`, `openwebui`, `plex`,
-`portainer`, `syncthing` (`pihole` uses a variant of this, see below)
+Used by: `langfuse`, `n8n`, `nextcloud`, `openwebui`, `plex`, `portainer`,
+`syncthing` (`pihole` and `portainer` use a variant of this, see below)
 
 Each stack includes a `tailscale/tailscale:latest` sidecar that joins the
 tailnet as its own node (e.g. `plex.${TS_TAILNET_DOMAIN}`). The app container
@@ -247,7 +253,7 @@ not handled by `tailscale serve` (HTTP/HTTPS only):
 | Service             | Port  | Protocol  | Notes                                                                                                                                       |
 | ------------------- | ----- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
 | Pi-hole DNS         | 53    | TCP + UDP | Configure as tailnet DNS resolver in admin console                                                                                          |
-| Langfuse / MinIO    | 9090  | TCP       | S3 API for direct media uploads — see langfuse's Pattern note (published directly on the `minio` sibling, not routed through `langfuse-ts`) |
+| Langfuse / MinIO    | 9090  | TCP       | S3 API for direct media uploads — see langfuse's Pattern note (published directly on the `minio` sibling, not routed through `ts-langfuse`) |
 | Frigate RTSP        | 8554  | TCP       | Use an RTSP client pointed at the Tailscale IP                                                                                              |
 | Frigate WebRTC      | 8555  | TCP + UDP | UDP not proxiable via serve                                                                                                                 |
 | Syncthing sync      | 22000 | TCP + UDP | Syncthing handles tailnet peers natively                                                                                                    |
