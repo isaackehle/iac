@@ -36,7 +36,7 @@ declare -A STACK_REMOTE_DIR=(
 declare -A STACK_DIRS=(
   [affine]="data/storage data/config data/postgres"
   [frigate]="config storage"
-  [homeassistant]="ts-state ts-config"
+  [homeassistant]="config"   # Pattern A (host-level serve) — no ts-state/ts-config
   [langfuse]="ts-state ts-config clickhouse-data clickhouse-logs minio-data redis-data"
   [mosquitto]="config data certs"
   [n8n]="config files ts-state ts-config"
@@ -56,7 +56,6 @@ declare -A STACK_DIRS=(
 # and are cwd-sensitive when relative).
 declare -A STACK_EXTRA_FILES=(
   [frigate]="frigate-config.yml:config/config.yml"
-  [homeassistant]="serve.json:ts-config/serve.json"
   [langfuse]="serve.json:ts-config/serve.json"
   [mosquitto]="config/mosquitto.conf:config/mosquitto.conf"
   [n8n]="serve.json:ts-config/serve.json"
@@ -86,8 +85,13 @@ declare -A STACK_CHOWN_OVERRIDES=(
 declare -A STACK_SERVE_PORTS=(
   [affine]="3010:http://127.0.0.1:3010"
   [frigate]="8971:http://127.0.0.1:8971"
+  [homeassistant]="8123:http://127.0.0.1:8123"
   [postgresql]="2660:http://127.0.0.1:2660"
 )
+# homeassistant moved from Pattern B to Pattern A on 2026-08-03: it needs
+# `network_mode: host` for device discovery, which is incompatible with a
+# Tailscale sidecar (the sidecar would land in the host netns alongside the
+# NAS's own tailscaled). Its serve.json.tmpl, ts-state and ts-config are gone.
 # pihole was removed from this list 2026-08-01: it's now a Caddy+TCPForward
 # sidecar setup (see pihole/serve.json.tmpl), not host-level tailscale serve.
 # This entry pointed at a NAS host port nothing has ever actually listened
