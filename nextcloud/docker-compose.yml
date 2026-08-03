@@ -5,7 +5,7 @@
 #
 # Services:
 #   - nextcloud
-#   - ts-nextcloud (Tailscale sidecar)
+#   - tailscale-sidecar (Tailscale sidecar)
 #   - db (PostgreSQL database)
 #   - redis (Redis cache)
 #
@@ -24,7 +24,6 @@
 #
 
 name: nextcloud
-version: "3.8"
 
 services:
   # ── Identity ──────────────────────────────────────────────
@@ -65,12 +64,14 @@ services:
       - PHP_UPLOAD_LIMIT=10G
 
   # ── Identity ──────────────────────────────────────────────
-  ts-nextcloud:
+  tailscale-sidecar:
     image: tailscale/tailscale:latest
     container_name: ts-nextcloud
 
     # ── Lifecycle ─────────────────────────────────────────────
     restart: unless-stopped
+    depends_on:
+      - nextcloud
 
     # ── Network ───────────────────────────────────────────────
     networks:
