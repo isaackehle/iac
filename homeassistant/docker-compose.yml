@@ -1,24 +1,40 @@
 # Home Assistant — Docker Compose Stack
 #
-# Stack version: 1.0
+# Stack version: 2.0
 # Purpose: Smart home automation platform
 #
 # Services:
 #   - homeassistant
-#   - ts-homeassistant (Tailscale sidecar)
+#
+# Tailnet access: Pattern A (host-level `tailscale serve`), NOT a sidecar.
+#
+#   Home Assistant requires `network_mode: host` for device discovery — mDNS,
+#   Chromecast, HomeKit, and most local-network integrations do not work from
+#   inside a bridge network. That rules out the Tailscale sidecar pattern: a
+#   sidecar using `network_mode: service:homeassistant` would land in the
+#   *host* network namespace, running a second tailscaled alongside the NAS's
+#   own daemon. Both would compete to manage tailnet state on the same netns.
+#
+#   So this stack uses the NAS host's own tailscaled instead, same as affine,
+#   frigate, and postgresql. The mapping lives in scripts/lib.sh under
+#   STACK_SERVE_PORTS and is applied by scripts/serve-all.sh — there is
+#   deliberately no serve.json, no ts-state, and no ts-config here.
+#
+#   See AGENTS.md "Two competing Tailscale deployment patterns" and
+#   docs/006_docker_compose_standards.md correctness rule 3.
 #
 # Environment variables:
 #   - STACK_NAME=HomeAssistant
 #   - TZ=${TZ}
-#   - TS_AUTHKEY=${TS_AUTHKEY}
 #   See .env.example for all required variables
 #
 # Deployment:
-#   docker compose -f homeassistant.yaml up -d
-#   docker compose -f homeassistant.yaml down
+#   docker compose up -d
+#   docker compose down
+#   scripts/serve-all.sh <ssh-host>    # applies the host-level serve mapping
 #
+
 name: homeassistant
-version: "3.8"
 
 services:
   # ── Identity ──────────────────────────────────────────────
@@ -29,11 +45,9 @@ services:
     # ── Lifecycle ─────────────────────────────────────────────
     restart: unless-stopped
     privileged: true                # Required for some hardware integrations
-    depends_on:
-      - ts-homeassistant
 
     # ── Network ───────────────────────────────────────────────
-    network_mode: host              # Use host networking for device discovery
+    network_mode: host              # Required for device discovery — see header
 
     # ── Storage ───────────────────────────────────────────────
     volumes:
@@ -44,27 +58,3 @@ services:
     # ── Environment ───────────────────────────────────────────
     environment:
       - TZ=${TZ}
-
-  # ── Identity ──────────────────────────────────────────────
-  ts-homeassistant:
-    image: tailscale/tailscale:latest
-    container_name: ts-homeassistant
-
-    # ── Lifecycle ─────────────────────────────────────────────
-    restart: unless-stopped
-    depends_on:
-      - homeassistant
-
-    # ── Network ───────────────────────────────────────────────
-    network_mode: service:homeassistant
-
-    # ── Storage ───────────────────────────────────────────────
-    volumes:
-      - /volume1/docker/stacks/homeassistant/ts-state:/var/lib/tailscale
-
-    # ── Environment ───────────────────────────────────────────
-    environment:
-      - TS_AUTHKEY=${TS_AUTHKEY}
-      - TS_HOSTNAME=homeassistant
-      - TS_STATE_DIR=/var/lib/tailscale
-      - TS_AUTH_ONCE=true
