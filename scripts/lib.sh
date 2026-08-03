@@ -8,7 +8,7 @@
 
 ALL_STACKS=(
   affine frigate homeassistant langfuse mosquitto n8n nextcloud
-  openwebui pihole plex portainer postgresql syncthing
+  openwebui pihole plex portainer postgresql syncthing synology-mcp
 )
 
 # Remote directory each stack is deployed into on the NAS. Standard is
@@ -29,6 +29,7 @@ declare -A STACK_REMOTE_DIR=(
   [portainer]="/volume1/docker/stacks/portainer"
   [postgresql]="/volume1/docker/stacks/postgresql"
   [syncthing]="/volume1/docker/stacks/syncthing"
+  [synology-mcp]="/volume1/docker/stacks/synology-mcp"
 )
 
 # Directories to `mkdir -p` (relative to STACK_REMOTE_DIR[$stack]) before
