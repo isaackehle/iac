@@ -319,11 +319,12 @@ longer exists. Always `docker compose down && docker compose up -d`.
 4. If adding a new sidecar-pattern stack, start from `_template/` and
    follow `_template/README.md`, which lists everything to wire up in
    `scripts/lib.sh`.
-5. **Markdown linting is required** — all `.md` files must pass `rumdl`
-   before commit. Use `lefthook` pre-commit hook which runs `rumdl`
-   automatically. Line length limit is 160 characters, blank lines
-   required before/after fenced code blocks, lists must be preceded by
-   blank lines.
+5. **Markdown linting is required** — all `.md` files must pass `rumdl` before commit.
+   - Configuration: `.rumdl.toml` (line length: 160, excludes common files)
+   - Run checks: `rumdl check .`
+   - Auto-fix: `rumdl fmt .`
+   - Pre-commit hook: `lefthook` runs `rumdl` automatically
+   - Line length limit is 160 characters, blank lines required before/after fenced code blocks, lists must be preceded by blank lines. Don't treat linting warnings as blocking — fix them before committing.
 
 ## Commands
 
@@ -352,18 +353,29 @@ All `.md` files **must** pass `rumdl` linter before commit. The pre-commit
 hook (`lefthook`) will run `rumdl` automatically, but agents should also
 verify linting before writing files.
 
-**Rules:**
-- Line length: max 160 characters (MD013)
-- Blank lines before fenced code blocks (MD031)
-- Blank lines after fenced code blocks (MD031)
+**Configuration:** `.rumdl.toml` defines the linting rules:
+- Line length: 160 characters (MD013)
+- Blank lines before/after fenced code blocks (MD031)
 - Lists must be preceded by blank lines (MD032)
-- No trailing whitespace
-- Proper heading hierarchy
+- Unordered list indentation: 2 spaces (MD007)
+- Allowed inline HTML elements: code, kbd, pre, samp, var (MD033)
+
+**Commands:**
+```shell
+# Check all markdown files
+rumdl check .
+
+# Auto-fix issues
+rumdl fmt .
+
+# Check a single file
+rumdl check <file.md>
+```
 
 **When writing markdown:**
 1. Write the content with linting in mind
-2. Run `rumdl` locally if possible: `rumdl <file.md>`
-3. If `rumdl` reports issues, fix them before committing
+2. Run `rumdl check .` locally before committing
+3. If issues are found, run `rumdl fmt .` to auto-fix
 4. Never skip linting — it's a hard requirement
 
 **If linting fails:**
@@ -382,6 +394,7 @@ All commits must follow Conventional Commits format:
 - `chore: <description>` — for maintenance tasks
 
 **Examples:**
+
 - `docs: add SSH deployment instructions to INSTALLATION.md`
 - `feat(deploy): add new stack template`
 - `fix(compose): correct depends_on cycle in homeassistant`
