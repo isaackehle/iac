@@ -25,6 +25,14 @@ self-hosted Synology server on the `${TS_TAILNET_DOMAIN}` tailnet.
 
 ---
 
+## Portainer UI Basics
+
+For instructions on using the Portainer web interface to deploy and manage stacks:
+
+- **[docs/PORTAINER-UI-BASICS.md](docs/PORTAINER-UI-BASICS.md)** — Complete guide to Portainer UI operations: deploying stacks, viewing logs, restarting services, managing volumes/networks, and troubleshooting.
+
+---
+
 ## Secrets
 
 Real secrets (Tailscale auth keys, passwords, API keys) live in a single
