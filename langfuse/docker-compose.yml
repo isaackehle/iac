@@ -61,24 +61,24 @@ services:
       # Postgres — external, from the `postgresql` stack
       - DATABASE_URL=postgresql://langfuse:${LANGFUSE_DB_PASSWORD}@${LANGFUSE_DB_HOST}:${LANGFUSE_DB_PORT:-2665}/langfuse
       # App secrets
-      - SALT=${SALT}
-      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
-      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+      - SALT=${LANGFUSE_SALT}
+      - NEXTAUTH_SECRET=${LANGFUSE_NEXTAUTH_SECRET}
+      - ENCRYPTION_KEY=${LANGFUSE_ENCRYPTION_KEY}
       - NEXTAUTH_URL=https://${TS_CERT_DOMAIN}
       # ClickHouse
       - CLICKHOUSE_URL=http://clickhouse:8123
       - CLICKHOUSE_MIGRATION_URL=clickhouse://clickhouse:9000
       - CLICKHOUSE_USER=default
-      - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD}
+      - CLICKHOUSE_PASSWORD=${LANGFUSE_CLICKHOUSE_PASSWORD}
       - CLICKHOUSE_CLUSTER_ENABLED=false
       # Redis
-      - REDIS_CONNECTION_STRING=redis://:${REDIS_AUTH}@redis:6379
+      - REDIS_CONNECTION_STRING=redis://:${LANGFUSE_REDIS_AUTH}@redis:6379
       # MinIO / S3 — event and media blob storage
       - LANGFUSE_S3_EVENT_UPLOAD_BUCKET=langfuse
       - LANGFUSE_S3_EVENT_UPLOAD_REGION=auto
       - LANGFUSE_S3_EVENT_UPLOAD_ENDPOINT=http://minio:9000
       - LANGFUSE_S3_EVENT_UPLOAD_ACCESS_KEY_ID=minio
-      - LANGFUSE_S3_EVENT_UPLOAD_SECRET_ACCESS_KEY=${MINIO_ROOT_PASSWORD}
+      - LANGFUSE_S3_EVENT_UPLOAD_SECRET_ACCESS_KEY=${LANGFUSE_MINIO_ROOT_PASSWORD}
       - LANGFUSE_S3_EVENT_UPLOAD_FORCE_PATH_STYLE=true
       - LANGFUSE_S3_EVENT_UPLOAD_PREFIX=events/
       # Headless bootstrap — skips the first-run signup wizard
@@ -114,19 +114,19 @@ services:
     # ── Environment ───────────────────────────────────────────
     environment:
       - DATABASE_URL=postgresql://langfuse:${LANGFUSE_DB_PASSWORD}@${LANGFUSE_DB_HOST}:${LANGFUSE_DB_PORT:-2665}/langfuse
-      - SALT=${SALT}
-      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+      - SALT=${LANGFUSE_SALT}
+      - ENCRYPTION_KEY=${LANGFUSE_ENCRYPTION_KEY}
       - CLICKHOUSE_URL=http://clickhouse:8123
       - CLICKHOUSE_MIGRATION_URL=clickhouse://clickhouse:9000
       - CLICKHOUSE_USER=default
-      - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD}
+      - CLICKHOUSE_PASSWORD=${LANGFUSE_CLICKHOUSE_PASSWORD}
       - CLICKHOUSE_CLUSTER_ENABLED=false
-      - REDIS_CONNECTION_STRING=redis://:${REDIS_AUTH}@redis:6379
+      - REDIS_CONNECTION_STRING=redis://:${LANGFUSE_REDIS_AUTH}@redis:6379
       - LANGFUSE_S3_EVENT_UPLOAD_BUCKET=langfuse
       - LANGFUSE_S3_EVENT_UPLOAD_REGION=auto
       - LANGFUSE_S3_EVENT_UPLOAD_ENDPOINT=http://minio:9000
       - LANGFUSE_S3_EVENT_UPLOAD_ACCESS_KEY_ID=minio
-      - LANGFUSE_S3_EVENT_UPLOAD_SECRET_ACCESS_KEY=${MINIO_ROOT_PASSWORD}
+      - LANGFUSE_S3_EVENT_UPLOAD_SECRET_ACCESS_KEY=${LANGFUSE_MINIO_ROOT_PASSWORD}
       - LANGFUSE_S3_EVENT_UPLOAD_FORCE_PATH_STYLE=true
       - LANGFUSE_S3_EVENT_UPLOAD_PREFIX=events/
       - TELEMETRY_ENABLED=false
@@ -187,7 +187,7 @@ services:
     environment:
       - CLICKHOUSE_DB=default
       - CLICKHOUSE_USER=default
-      - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD}
+      - CLICKHOUSE_PASSWORD=${LANGFUSE_CLICKHOUSE_PASSWORD}
 
     # ── Runtime ───────────────────────────────────────────────
     user: "101:101"     # clickhouse-server's own uid/gid — mounted volumes
@@ -222,12 +222,12 @@ services:
 
     # ── Environment ───────────────────────────────────────────
     environment:
-      - REDIS_AUTH=${REDIS_AUTH}
+      - REDIS_AUTH=${LANGFUSE_REDIS_AUTH}
 
     # ── Runtime ───────────────────────────────────────────────
-    command: --requirepass ${REDIS_AUTH}
+    command: --requirepass ${LANGFUSE_REDIS_AUTH}
     healthcheck:
-      test: ["CMD-SHELL", "redis-cli -a $${REDIS_AUTH} ping | grep -q PONG"]
+      test: ["CMD-SHELL", "redis-cli -a $${LANGFUSE_REDIS_AUTH} ping | grep -q PONG"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -253,7 +253,7 @@ services:
     # ── Environment ───────────────────────────────────────────
     environment:
       - MINIO_ROOT_USER=minio
-      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+      - MINIO_ROOT_PASSWORD=${LANGFUSE_MINIO_ROOT_PASSWORD}
 
     # ── Runtime ───────────────────────────────────────────────
     entrypoint: sh
