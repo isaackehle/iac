@@ -8,30 +8,30 @@ self-hosted Synology server on the `${TS_TAILNET_DOMAIN}` tailnet.
 ## Stacks
 
 || Stack           | Tailscale URL                                     | Pattern            |
-| --------------- | ------------------------------------------------- | ------------------ |
-| `affine`        | `https://nas.${TS_TAILNET_DOMAIN}:3010`           | host serve         |
-| `frigate`       | `https://nas.${TS_TAILNET_DOMAIN}:8971`           | host serve         |
-| `homeassistant` | `https://homeassistant.${TS_TAILNET_DOMAIN}`      | host serve         |
-| `langfuse`      | `https://langfuse.${TS_TAILNET_DOMAIN}`           | TS sidecar         |
-| `mosquitto`     | n/a — LAN/tailnet IP only, port 1883              | none               |
-| `n8n`           | `https://n8n.${TS_TAILNET_DOMAIN}`                | TS sidecar         |
-| `nextcloud`     | `https://nextcloud.${TS_TAILNET_DOMAIN}`          | TS sidecar         |
-| `openwebui`     | `https://openwebui.${TS_TAILNET_DOMAIN}`          | TS sidecar         |
-| `pihole`        | `https://pihole.${TS_TAILNET_DOMAIN}`             | TS sidecar + Caddy |
-| `plex`          | `https://plex.${TS_TAILNET_DOMAIN}`               | TS sidecar         |
-| `portainer`     | `https://portainer.${TS_TAILNET_DOMAIN}`          | TS sidecar         |
-| `postgresql`    | `https://nas.${TS_TAILNET_DOMAIN}:2660` (pgAdmin) | host serve         |
-| `syncthing`     | `https://syncthing.${TS_TAILNET_DOMAIN}`          | TS sidecar         |
+| --------------- | ------------------------------------------------- | ------------------ |  |
+| `affine` | `https://nas.${TS_TAILNET_DOMAIN}:3010` | host serve |  |
+| `frigate` | `https://nas.${TS_TAILNET_DOMAIN}:8971` | host serve |  |
+| `homeassistant` | `https://homeassistant.${TS_TAILNET_DOMAIN}` | host serve |  |
+| `langfuse` | `https://langfuse.${TS_TAILNET_DOMAIN}` | TS sidecar |  |
+| `mosquitto` | n/a — LAN/tailnet IP only, port 1883 | none |  |
+| `n8n` | `https://n8n.${TS_TAILNET_DOMAIN}` | TS sidecar |  |
+| `nextcloud` | `https://nextcloud.${TS_TAILNET_DOMAIN}` | TS sidecar |  |
+| `openwebui` | `https://openwebui.${TS_TAILNET_DOMAIN}` | TS sidecar |  |
+| `pihole` | `https://pihole.${TS_TAILNET_DOMAIN}` | TS sidecar + Caddy |  |
+| `plex` | `https://plex.${TS_TAILNET_DOMAIN}` | TS sidecar |  |
+| `portainer` | `https://portainer.${TS_TAILNET_DOMAIN}` | TS sidecar |  |
+| `postgresql` | `https://nas.${TS_TAILNET_DOMAIN}:2660` (pgAdmin) | host serve |  |
+| `syncthing` | `https://syncthing.${TS_TAILNET_DOMAIN}` | TS sidecar |  |
 
 ---
 
 ## Documentation
 
-- **[docs/PORTAINER-UI-BASICS.md](docs/PORTAINER-UI-BASICS.md)** — Complete guide to Portainer UI operations
-- **[docs/tailscale-patterns.md](docs/tailscale-patterns.md)** — Tailscale deployment patterns (A & B)
-- **[docs/tailscale-serve-reference.md](docs/tailscale-serve-reference.md)** — Host-level `tailscale serve` reference
-- **[docs/port-registry.md](docs/port-registry.md)** — Master port registry across all stacks
-- **[docs/006_docker_compose_standards.md](docs/006_docker_compose_standards.md)** — Docker Compose best practices
+- **[docs/portainer_ui_basics.md](docs/portainer_ui_basics.md)** — Complete guide to Portainer UI operations
+- **[docs/tailscale_patterns.md](docs/tailscale_patterns.md)** — Tailscale deployment patterns (A & B)
+- **[docs/tailscale_serve_reference.md](docs/tailscale_serve_reference.md)** — Host-level `tailscale serve` reference
+- **[docs/port_registry.md](docs/port_registry.md)** — Master port registry across all stacks
+- **[docs/docker_compose_standards.md](docs/docker_compose_standards.md)** — Docker Compose best practices
 
 ---
 
@@ -131,17 +131,17 @@ These ports are reachable directly via the Tailscale IP/hostname but are
 not handled by `tailscale serve` (HTTP/HTTPS only):
 
 || Service             | Port  | Protocol  | Notes                                                                                                                                       |
-| ------------------- | ----- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| Pi-hole DNS         | 53    | TCP + UDP | Configure as tailnet DNS resolver in admin console                                                                                          |
-| Langfuse / MinIO    | 9090  | TCP       | S3 API for direct media uploads — see langfuse's Pattern note (published directly on the `minio` sibling, not routed through `ts-langfuse`) |
-| Frigate RTSP        | 8554  | TCP       | Use an RTSP client pointed at the Tailscale IP                                                                                              |
-| Frigate WebRTC      | 8555  | TCP + UDP | UDP not proxiable via serve                                                                                                                 |
-| Syncthing sync      | 22000 | TCP + UDP | Syncthing handles tailnet peers natively                                                                                                    |
-| Syncthing discovery | 21027 | UDP       | —                                                                                                                                           |
-| PostgreSQL          | 2665  | TCP       | Connect via Tailscale IP directly                                                                                                           |
-| Mosquitto MQTT      | 1883  | TCP       | No Tailscale integration; reachable because the NAS host itself runs `tailscaled`                                                           |
+| ------------------- | ----- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------- |  |
+| Pi-hole DNS | 53 | TCP + UDP | Configure as tailnet DNS resolver in admin console |  |
+| Langfuse / MinIO | 9090 | TCP | S3 API for direct media uploads — see langfuse's Pattern note (published directly on the `minio` sibling, not routed through `ts-langfuse`) |  |
+| Frigate RTSP | 8554 | TCP | Use an RTSP client pointed at the Tailscale IP |  |
+| Frigate WebRTC | 8555 | TCP + UDP | UDP not proxiable via serve |  |
+| Syncthing sync | 22000 | TCP + UDP | Syncthing handles tailnet peers natively |  |
+| Syncthing discovery | 21027 | UDP | — |  |
+| PostgreSQL | 2665 | TCP | Connect via Tailscale IP directly |  |
+| Mosquitto MQTT | 1883 | TCP | No Tailscale integration; reachable because the NAS host itself runs `tailscaled` |  |
 
-See **[docs/port-registry.md](docs/port-registry.md)** for the complete master list.
+See **[docs/port_registry.md](docs/port_registry.md)** for the complete master list.
 
 ---
 
