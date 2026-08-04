@@ -99,11 +99,11 @@ cmd_push() {
   compose="$(compose_file_for "$stack")"
 
   echo "==> $stack: pushing $compose to $host:$remote/"
-  scp "$stack/$compose" "$host:$remote/$compose"
+  scp -O "$stack/$compose" "$host:$remote/$compose"
 
   if [[ -f "$stack/.env" ]]; then
     echo "==> $stack: pushing .env to $host:$remote/"
-    scp "$stack/.env" "$host:$remote/.env"
+    scp -O "$stack/.env" "$host:$remote/.env"
   fi
 
   cmd_extras "$stack" "$host"
@@ -131,7 +131,7 @@ cmd_extras() {
     fi
     echo "==> $stack: pushing $local_path to $host:$remote/$remote_rel"
     ssh "$host" "mkdir -p '$remote/$(dirname "$remote_rel")'"
-    scp "$stack/$local_path" "$host:$remote/$remote_rel"
+    scp -O "$stack/$local_path" "$host:$remote/$remote_rel"
   done
 }
 
