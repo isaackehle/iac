@@ -30,6 +30,63 @@ mkdir -p $STACK_PATH/{config,storage}
    - `FRIGATE_RTSP_PASSWORD` — RTSP camera password (if cameras require auth)
 5. Click **Deploy the stack**
 
+---
+
+## Deploy via SSH (Recommended for GitOps)
+
+> **Recommended:** `scripts/deploy.sh all frigate <ssh-host>` from the repo root handles everything in one step.
+
+### Prerequisites
+
+- SSH access to the NAS (e.g., `nas` alias in `~/.ssh/config`)
+- The `scripts/deploy.sh` and `scripts/gen-env.sh` tools available on your laptop
+- The central secrets file `iac-secrets.env` with `FRIGATE_MQTT_HOST`, `FRIGATE_MQTT_USER`, `FRIGATE_MQTT_PASSWORD`, `FRIGATE_RTSP_USER`, and `FRIGATE_RTSP_PASSWORD` set
+
+### One-Line Deployment
+
+```shell
+cd ~/code/isaackehle/iac
+scripts/deploy.sh all frigate nas
+```
+
+This single command does:
+1. Generates `frigate/env.txt` from `iac-secrets.env`
+2. Creates `/volume1/docker/stacks/frigate/{config,storage}` on the NAS
+3. Copies `docker-compose.yml` and `env.txt` via SCP
+4. Runs `docker compose up -d` on the NAS
+
+### Step-by-Step (if you need more control)
+
+```shell
+# 1. Generate env.txt locally
+scripts/gen-env.sh frigate
+
+# 2. Create directories on the NAS
+ssh nas "mkdir -p /volume1/docker/stacks/frigate/{config,storage}"
+
+# 3. Push files to the NAS
+scp -O frigate/docker-compose.yml nas:/volume1/docker/stacks/frigate/
+scp -O frigate/env.txt nas:/volume1/docker/stacks/frigate/
+
+# 4. Start the stack
+ssh nas "cd /volume1/docker/stacks/frigate && docker compose up -d"
+```
+
+### Verify Deployment
+
+```shell
+# Check container is running
+ssh nas "docker ps | grep frigate"
+
+# Check logs
+ssh nas "docker logs --tail 50 frigate"
+
+# Verify Frigate is accessible
+curl -v https://nas.tail303fda.ts.net:8971
+```
+
+---
+
 ## Configure Frigate
 
 After deploying the stack, you need to create the Frigate configuration file:
@@ -75,6 +132,7 @@ cameras:
 ```
 
 **Important:** Replace the RTSP URLs with your actual camera streams. Common RTSP paths:
+
 - Generic: `rtsp://username:password@camera_ip:554/stream1`
 - Hikvision: `rtsp://username:password@camera_ip:554/Streaming/Channel/1/Main`
 - Dahua: `rtsp://username:password@camera_ip:554/cam/realmonitor?channel=1&subtype=0`
@@ -92,9 +150,11 @@ The container is pinned to a specific version (`0.16.4`) rather than using `:sta
 1. Wait for the stack to start (check `docker ps` for the container)
 2. Create the `config.yml` file as shown above
 3. Restart the container to pick up the config:
+
    ```shell
    docker restart frigate
    ```
+
 4. Access the Frigate Web UI:
    - Open `https://nas.tail303fda.ts.net:8971` (or the direct Tailscale IP)
 5. Verify camera streams are connecting:
@@ -167,6 +227,7 @@ docker compose down && docker compose up -d
 ## Backups
 
 Include `$STACK_PATH/storage` in your Synology backup task (Hyper Backup, Syncthing, etc.). This directory contains:
+
 - Video recordings
 - Motion clips
 - Snapshot images
@@ -178,10 +239,12 @@ Include `$STACK_PATH/storage` in your Synology backup task (Hyper Backup, Syncth
 ### Camera Not Connecting
 
 1. Check camera RTSP URL is correct:
+
    ```shell
    # Test from your laptop:
    ffplay rtsp://username:password@camera_ip:554/stream1
    ```
+
 2. Verify camera credentials are correct
 3. Check network connectivity to the camera
 4. Verify the camera supports the stream format Frigate expects
@@ -189,11 +252,14 @@ Include `$STACK_PATH/storage` in your Synology backup task (Hyper Backup, Syncth
 ### Object Detection Not Working
 
 1. Check the Coral device is detected:
+
    ```shell
    docker exec frigate ls -l /dev/ttyUSB0
    ```
+
 2. Verify the Coral firmware is up to date
 3. Check Frigate logs for detection errors:
+
    ```shell
    docker logs frigate | grep -i detector
    ```
@@ -203,24 +269,30 @@ Include `$STACK_PATH/storage` in your Synology backup task (Hyper Backup, Syncth
 1. Verify recording is enabled in `config.yml`
 2. Check motion detection is working (view the motion map in the UI)
 3. Verify there's enough disk space:
+
    ```shell
    df -h /volume1/docker/stacks/frigate/storage
    ```
+
 4. Check the recording schedule and retention settings
 
 ### High CPU Usage
 
 1. Reduce the detection FPS in `config.yml`:
+
    ```yaml
    detect:
      fps: 5  # Lower if CPU is overloaded
    ```
+
 2. Reduce the resolution if cameras are high-res:
+
    ```yaml
    detect:
      width: 1280  # Lower if needed
      height: 720
    ```
+
 3. Check for other resource-intensive processes
 
 ## References

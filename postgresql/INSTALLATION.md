@@ -27,6 +27,64 @@ mkdir -p $STACK_PATH/{data,pgadmin,ts-state,ts-config}
    - `TS_CERT_DOMAIN` — Tailscale MagicDNS domain (auto-derived as `postgresql.${TS_TAILNET_DOMAIN}`)
 5. Click **Deploy the stack**
 
+---
+
+## Deploy via SSH (Recommended for GitOps)
+
+> **Recommended:** `scripts/deploy.sh all postgresql <ssh-host>` from the repo root handles everything in one step.
+
+### Prerequisites
+
+- SSH access to the NAS (e.g., `nas` alias in `~/.ssh/config`)
+- The `scripts/deploy.sh` and `scripts/gen-env.sh` tools available on your laptop
+- The central secrets file `iac-secrets.env` with `POSTGRES_PASSWORD`, `PGADMIN_DEFAULT_EMAIL`, and `PGADMIN_DEFAULT_PASSWORD` set
+
+### One-Line Deployment
+
+```shell
+cd ~/code/isaackehle/iac
+scripts/deploy.sh all postgresql nas
+```
+
+This single command does:
+1. Generates `postgresql/env.txt` from `iac-secrets.env`
+2. Creates `/volume1/docker/stacks/postgresql/{data,pgadmin,ts-state,ts-config}` on the NAS
+3. Copies `docker-compose.yml`, `env.txt`, and any extra files via SCP
+4. Runs `docker compose up -d` on the NAS
+
+### Step-by-Step (if you need more control)
+
+```shell
+# 1. Generate env.txt locally
+scripts/gen-env.sh postgresql
+
+# 2. Create directories on the NAS
+ssh nas "mkdir -p /volume1/docker/stacks/postgresql/{data,pgadmin,ts-state,ts-config}"
+
+# 3. Push files to the NAS
+scp -O postgresql/docker-compose.yml nas:/volume1/docker/stacks/postgresql/
+scp -O postgresql/env.txt nas:/volume1/docker/stacks/postgresql/
+
+# 4. Start the stack
+ssh nas "cd /volume1/docker/stacks/postgresql && docker compose up -d"
+```
+
+### Verify Deployment
+
+```shell
+# Check containers are running
+ssh nas "docker ps | grep -E 'postgresql|pgAdmin'"
+
+# Check logs
+ssh nas "docker logs --tail 50 postgresql"
+ssh nas "docker logs --tail 50 pgAdmin"
+
+# Verify pgAdmin is accessible
+curl -v https://nas.tail303fda.ts.net:2660
+```
+
+---
+
 ## What the Stack Contains
 
 | Container    | Image                   | Role                                                                         |

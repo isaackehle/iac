@@ -34,6 +34,67 @@ mkdir -p $STACK_PATH/config
    - `TS_CERT_DOMAIN` — Tailscale MagicDNS domain (auto-derived as `homeassistant.${TS_TAILNET_DOMAIN}`)
 5. Click **Deploy the stack**
 
+---
+
+## Deploy via SSH (Recommended for GitOps)
+
+> **Recommended:** `scripts/deploy.sh all homeassistant <ssh-host>` from the repo root handles everything in one step.
+
+### Prerequisites
+
+- SSH access to the NAS (e.g., `nas` alias in `~/.ssh/config`)
+- The `scripts/deploy.sh` and `scripts/gen-env.sh` tools available on your laptop
+- The central secrets file `iac-secrets.env` with `TZ` and `TS_AUTHKEY` set
+
+### One-Line Deployment
+
+```shell
+cd ~/code/isaackehle/iac
+scripts/deploy.sh all homeassistant nas
+```
+
+This single command does:
+1. Generates `homeassistant/env.txt` from `iac-secrets.env`
+2. Creates `/volume1/docker/stacks/homeassistant/config` on the NAS
+3. Copies `docker-compose.yml` and `env.txt` via SCP
+4. Runs `docker compose up -d` on the NAS
+5. Applies the host-level Tailscale serve mapping for port 8123
+
+### Step-by-Step (if you need more control)
+
+```shell
+# 1. Generate env.txt locally
+scripts/gen-env.sh homeassistant
+
+# 2. Create directories on the NAS
+ssh nas "mkdir -p /volume1/docker/stacks/homeassistant/config"
+
+# 3. Push files to the NAS
+scp -O homeassistant/docker-compose.yml nas:/volume1/docker/stacks/homeassistant/
+scp -O homeassistant/env.txt nas:/volume1/docker/stacks/homeassistant/
+
+# 4. Start the stack
+ssh nas "cd /volume1/docker/stacks/homeassistant && docker compose up -d"
+
+# 5. Apply Tailscale serve mapping
+ssh nas "sudo tailscale serve --bg --https=8123 http://127.0.0.1:8123"
+```
+
+### Verify Deployment
+
+```shell
+# Check container is running
+ssh nas "docker ps | grep homeassistant"
+
+# Check logs
+ssh nas "docker logs --tail 50 homeassistant"
+
+# Verify Home Assistant is accessible
+curl -v https://homeassistant.tail303fda.ts.net
+```
+
+---
+
 ## Apply Tailscale Serve Mapping
 
 After deploying the stack, you must apply the host-level Tailscale serve mapping:
@@ -63,6 +124,7 @@ The container runs with `network_mode: host` — it binds directly to the NAS ho
    - Name your home
    - Add integrations (lights, sensors, cameras, etc.)
 4. Verify the setup:
+
    ```shell
    docker logs homeassistant | grep "Setup completed"
    ```
@@ -117,6 +179,7 @@ cp -r /volume1/docker/stacks/homeassistant/config /volume1/backups/homeassistant
 ## Backups
 
 Include `$STACK_PATH/config` in your Synology backup task (Hyper Backup, Syncthing, etc.). This directory contains:
+
 - `configuration.yaml` — main configuration file
 - `automations.yaml` — automation rules
 - `scripts/` — automation scripts
@@ -131,11 +194,14 @@ Include `$STACK_PATH/config` in your Synology backup task (Hyper Backup, Syncthi
 ### Container Won't Start
 
 1. Check logs:
+
    ```shell
    docker logs homeassistant
    ```
+
 2. Verify the `config` directory exists and has correct permissions
 3. Check if port 8123 is already in use:
+
    ```shell
    ss -tlnp | grep 8123
    ```
@@ -143,14 +209,19 @@ Include `$STACK_PATH/config` in your Synology backup task (Hyper Backup, Syncthi
 ### Can't Access Web UI
 
 1. Verify the Tailscale serve mapping is applied:
+
    ```shell
    ssh <ssh-host> "sudo tailscale serve status"
    ```
+
 2. Check the container is running:
+
    ```shell
    docker ps | grep homeassistant
    ```
+
 3. Test from the NAS shell:
+
    ```shell
    curl http://127.0.0.1:8123
    ```
@@ -158,23 +229,29 @@ Include `$STACK_PATH/config` in your Synology backup task (Hyper Backup, Syncthi
 ### Device Discovery Not Working
 
 1. Verify the container is running with `network_mode: host`:
+
    ```shell
    docker inspect homeassistant | grep NetworkMode
    # Should show: "NetworkMode": "host"
    ```
+
 2. Check that required services are running (MQTT, Zeroconf, etc.)
 3. Verify your devices are on the same network as the NAS
 
 ### Configuration Errors
 
 1. Check the logs for errors:
+
    ```shell
    docker logs homeassistant | grep -i error
    ```
+
 2. Verify `configuration.yaml` is valid:
+
    ```shell
    docker exec homeassistant python -m homeassistant.util.yaml load /config/configuration.yaml
    ```
+
 3. Roll back recent changes if the issue started after a configuration update
 
 ## References

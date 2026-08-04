@@ -31,6 +31,63 @@ mkdir -p $STACK_PATH
    - `SYNOLOGY_OTP_CODE` — 2FA OTP code if 2FA is enabled (stored in central secrets file)
 5. Click **Deploy the stack**
 
+---
+
+## Deploy via SSH (Recommended for GitOps)
+
+> **Recommended:** `scripts/deploy.sh all synology-mcp <ssh-host>` from the repo root handles everything in one step.
+
+### Prerequisites
+
+- SSH access to the NAS (e.g., `nas` alias in `~/.ssh/config`)
+- The `scripts/deploy.sh` and `scripts/gen-env.sh` tools available on your laptop
+- The central secrets file `iac-secrets.env` with `SYNOLOGY_HOST`, `SYNOLOGY_PORT`, `SYNOLOGY_SSL`, `SYNOLOGY_USERNAME`, `SYNOLOGY_PASSWORD`, and `SYNOLOGY_OTP_CODE` set
+
+### One-Line Deployment
+
+```shell
+cd ~/code/isaackehle/iac
+scripts/deploy.sh all synology-mcp nas
+```
+
+This single command does:
+1. Generates `synology-mcp/env.txt` from `iac-secrets.env`
+2. Creates `/volume1/docker/stacks/synology-mcp` on the NAS
+3. Copies `docker-compose.yml` and `env.txt` via SCP
+4. Runs `docker compose up -d` on the NAS
+
+### Step-by-Step (if you need more control)
+
+```shell
+# 1. Generate env.txt locally
+scripts/gen-env.sh synology-mcp
+
+# 2. Create directories on the NAS
+ssh nas "mkdir -p /volume1/docker/stacks/synology-mcp"
+
+# 3. Push files to the NAS
+scp -O synology-mcp/docker-compose.yml nas:/volume1/docker/stacks/synology-mcp/
+scp -O synology-mcp/env.txt nas:/volume1/docker/stacks/synology-mcp/
+
+# 4. Start the stack
+ssh nas "cd /volume1/docker/stacks/synology-mcp && docker compose up -d"
+```
+
+### Verify Deployment
+
+```shell
+# Check container is running
+ssh nas "docker ps | grep synology-mcp"
+
+# Check logs
+ssh nas "docker logs --tail 50 synology-mcp"
+
+# Test connectivity to NAS
+ssh nas "docker exec synology-mcp curl -k https://synology.tail303fda.ts.net:5001"
+```
+
+---
+
 ## What the Stack Contains
 
 | Container | Image | Role |
@@ -42,15 +99,20 @@ The container runs on a bridge network (`synology_mcp_net`) and connects to the 
 ## First-Run Synology MCP Setup
 
 1. Wait for the container to start:
+
    ```shell
    docker ps | grep synology-mcp
    docker logs synology-mcp
    ```
+
 2. Verify connectivity to the NAS:
+
    ```shell
    docker exec synology-mcp curl -k https://synology.tail303fda.ts.net:5001
    ```
+
 3. Check MCP server logs for successful initialization:
+
    ```shell
    docker logs synology-mcp | grep -i "ready\|started"
    ```
@@ -108,11 +170,14 @@ The Synology MCP server is stateless — it doesn't store any data locally. All 
 ### Container Won't Start
 
 1. Check logs:
+
    ```shell
    docker logs synology-mcp
    ```
+
 2. Verify all required environment variables are set
 3. Check network connectivity to the NAS:
+
    ```shell
    docker exec synology-mcp ping synology.tail303fda.ts.net
    ```
@@ -127,14 +192,19 @@ The Synology MCP server is stateless — it doesn't store any data locally. All 
 ### MCP Server Not Responding
 
 1. Check the container is running:
+
    ```shell
    docker ps | grep synology-mcp
    ```
+
 2. Verify the MCP server process is running inside the container:
+
    ```shell
    docker exec synology-mcp ps aux | grep mcp
    ```
+
 3. Check logs for errors:
+
    ```shell
    docker logs synology-mcp --tail 50
    ```

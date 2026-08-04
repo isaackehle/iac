@@ -28,6 +28,64 @@ Copy `serve.json` into `$STACK_PATH/ts-config/` — the sidecar mounts the whole
    - `TS_CERT_DOMAIN` — Tailscale MagicDNS domain (auto-derived as `openwebui.${TS_TAILNET_DOMAIN}`)
 5. Click **Deploy the stack**
 
+---
+
+## Deploy via SSH (Recommended for GitOps)
+
+> **Recommended:** `scripts/deploy.sh all openwebui <ssh-host>` from the repo root handles everything in one step.
+
+### Prerequisites
+
+- SSH access to the NAS (e.g., `nas` alias in `~/.ssh/config`)
+- The `scripts/deploy.sh` and `scripts/gen-env.sh` tools available on your laptop
+- The central secrets file `iac-secrets.env` with `OPENWEBUI_API_KEY` and `TS_AUTHKEY` set
+
+### One-Line Deployment
+
+```shell
+cd ~/code/isaackehle/iac
+scripts/deploy.sh all openwebui nas
+```
+
+This single command does:
+1. Generates `openwebui/env.txt` from `iac-secrets.env`
+2. Creates `/volume1/docker/stacks/openwebui/{data,ts-state,ts-config}` on the NAS
+3. Copies `docker-compose.yml`, `env.txt`, and `serve.json` via SCP
+4. Runs `docker compose up -d` on the NAS
+
+### Step-by-Step (if you need more control)
+
+```shell
+# 1. Generate env.txt locally
+scripts/gen-env.sh openwebui
+
+# 2. Create directories on the NAS
+ssh nas "mkdir -p /volume1/docker/stacks/openwebui/{data,ts-state,ts-config}"
+
+# 3. Push files to the NAS
+scp -O openwebui/docker-compose.yml nas:/volume1/docker/stacks/openwebui/
+scp -O openwebui/env.txt nas:/volume1/docker/stacks/openwebui/
+scp -O openwebui/serve.json nas:/volume1/docker/stacks/openwebui/ts-config/
+
+# 4. Start the stack
+ssh nas "cd /volume1/docker/stacks/openwebui && docker compose up -d"
+```
+
+### Verify Deployment
+
+```shell
+# Check containers are running
+ssh nas "docker ps | grep openwebui"
+
+# Check logs
+ssh nas "docker logs --tail 50 openwebui"
+
+# Verify OpenWebUI is accessible
+curl -v https://openwebui.tail303fda.ts.net
+```
+
+---
+
 ## What the Stack Contains
 
 | Container          | Image                                  | Role                                                             |

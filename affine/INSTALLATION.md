@@ -31,6 +31,64 @@ mkdir -p $STACK_PATH/{data/storage,data/config,data/postgres}
    - `TS_CERT_DOMAIN` — Tailscale MagicDNS domain (auto-derived as `affine.${TS_TAILNET_DOMAIN}`)
 5. Click **Deploy the stack**
 
+---
+
+## Deploy via SSH (Recommended for GitOps)
+
+> **Recommended:** `scripts/deploy.sh all affine <ssh-host>` from the repo root handles everything in one step.
+
+### Prerequisites
+
+- SSH access to the NAS (e.g., `nas` alias in `~/.ssh/config`)
+- The `scripts/deploy.sh` and `scripts/gen-env.sh` tools available on your laptop
+- The central secrets file `iac-secrets.env` with `DB_PASSWORD` set
+
+### One-Line Deployment
+
+```shell
+cd ~/code/isaackehle/iac
+scripts/deploy.sh all affine nas
+```
+
+This single command does:
+1. Generates `affine/env.txt` from `iac-secrets.env`
+2. Creates `/volume1/docker/stacks/affine/{data/storage,data/config,data/postgres}` on the NAS
+3. Copies `docker-compose.yml` and `env.txt` via SCP
+4. Runs `docker compose up -d` on the NAS
+
+### Step-by-Step (if you need more control)
+
+```shell
+# 1. Generate env.txt locally
+scripts/gen-env.sh affine
+
+# 2. Create directories on the NAS
+ssh nas "mkdir -p /volume1/docker/stacks/affine/{data/storage,data/config,data/postgres}"
+
+# 3. Push files to the NAS
+scp -O affine/docker-compose.yml nas:/volume1/docker/stacks/affine/
+scp -O affine/env.txt nas:/volume1/docker/stacks/affine/
+
+# 4. Start the stack
+ssh nas "cd /volume1/docker/stacks/affine && docker compose up -d"
+```
+
+### Verify Deployment
+
+```shell
+# Check containers are running
+ssh nas "docker ps | grep affine"
+
+# Check logs
+ssh nas "docker logs --tail 50 affine_server"
+ssh nas "docker logs affine_migration_job"
+
+# Verify Affine is accessible
+curl -v https://nas.tail303fda.ts.net:3010
+```
+
+---
+
 ## What the Stack Contains
 
 | Container | Image | Role |
@@ -46,9 +104,11 @@ The stack includes an embedded PostgreSQL database and Redis cache — it's self
 
 1. Wait for the stack to start (check `docker ps` for all containers)
 2. The migration job will run first — check logs:
+
    ```shell
    docker logs affine_migration_job
    ```
+
 3. Once migrations complete, access the web UI:
    - Open `https://nas.tail303fda.ts.net:3010` (or the direct Tailscale IP)
 4. Create your admin account
@@ -120,6 +180,7 @@ tar czf /volume1/docker/stacks/affine/backup.tar.gz /volume1/docker/stacks/affin
 ## Backups
 
 Include `$STACK_PATH/data` in your Synology backup task (Hyper Backup, Syncthing, etc.). This directory contains:
+
 - PostgreSQL database files (all documents, pages, user data)
 - User uploads and attachments
 - Application configuration
@@ -131,14 +192,19 @@ Include `$STACK_PATH/data` in your Synology backup task (Hyper Backup, Syncthing
 ### Migration Job Fails
 
 1. Check migration logs:
+
    ```shell
    docker logs affine_migration_job
    ```
+
 2. Verify PostgreSQL is healthy:
+
    ```shell
    docker exec affine_postgres pg_isready -U affine -d affine
    ```
+
 3. Check Redis is accessible:
+
    ```shell
    docker exec affine_redis redis-cli ping
    ```
@@ -146,14 +212,19 @@ Include `$STACK_PATH/data` in your Synology backup task (Hyper Backup, Syncthing
 ### Can't Access Web UI
 
 1. Verify the Tailscale serve mapping is applied:
+
    ```shell
    ssh <ssh-host> "sudo tailscale serve status"
    ```
+
 2. Check the container is running:
+
    ```shell
    docker ps | grep affine_server
    ```
+
 3. Test from the NAS shell:
+
    ```shell
    curl http://127.0.0.1:3010
    ```
@@ -161,26 +232,35 @@ Include `$STACK_PATH/data` in your Synology backup task (Hyper Backup, Syncthing
 ### Database Connection Failed
 
 1. Check PostgreSQL logs:
+
    ```shell
    docker logs affine_postgres
    ```
+
 2. Verify the database exists:
+
    ```shell
    docker exec affine_postgres psql -U affine -d affine -c "\l"
    ```
+
 3. Check the password matches what's in the environment variables
 
 ### Redis Not Responding
 
 1. Check Redis logs:
+
    ```shell
    docker logs affine_redis
    ```
+
 2. Test Redis connectivity:
+
    ```shell
    docker exec affine_redis redis-cli ping
    ```
+
 3. Verify Redis is healthy:
+
    ```shell
    docker exec affine_redis redis-cli --raw incr ping
    ```

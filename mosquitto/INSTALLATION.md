@@ -69,6 +69,64 @@ log_type subscription
    - `MQTT_PASSWORD` — strong password (generate with `openssl rand -base64 32`)
 5. Click **Deploy the stack**
 
+---
+
+## Deploy via SSH (Recommended for GitOps)
+
+> **Recommended:** `scripts/deploy.sh all mosquitto <ssh-host>` from the repo root handles everything in one step.
+
+### Prerequisites
+
+- SSH access to the NAS (e.g., `nas` alias in `~/.ssh/config`)
+- The `scripts/deploy.sh` and `scripts/gen-env.sh` tools available on your laptop
+- The central secrets file `iac-secrets.env` with `MQTT_USER` and `MQTT_PASSWORD` set
+
+### One-Line Deployment
+
+```shell
+cd ~/code/isaackehle/iac
+scripts/deploy.sh all mosquitto nas
+```
+
+This single command does:
+1. Generates `mosquitto/env.txt` from `iac-secrets.env`
+2. Creates `/volume1/docker/stacks/mosquitto/{config/mosquitto,config/certs,data}` on the NAS
+3. Copies `docker-compose.yml`, `env.txt`, and any extra files via SCP
+4. Runs `docker compose up -d` on the NAS
+
+### Step-by-Step (if you need more control)
+
+```shell
+# 1. Generate env.txt locally
+scripts/gen-env.sh mosquitto
+
+# 2. Create directories on the NAS
+ssh nas "mkdir -p /volume1/docker/stacks/mosquitto/{config/mosquitto,config/certs,data}"
+
+# 3. Push files to the NAS
+scp -O mosquitto/docker-compose.yml nas:/volume1/docker/stacks/mosquitto/
+scp -O mosquitto/env.txt nas:/volume1/docker/stacks/mosquitto/
+
+# 4. Start the stack
+ssh nas "cd /volume1/docker/stacks/mosquitto && docker compose up -d"
+```
+
+### Verify Deployment
+
+```shell
+# Check containers are running
+ssh nas "docker ps | grep mosquitto"
+
+# Check logs
+ssh nas "docker logs mosquitto"
+
+# Test MQTT connectivity from your laptop
+brew install mosquitto
+mosquitto_sub -h mosquitto.tail303fda.ts.net -p 1883 -u zigbee -P 'your-password' -t 'test/#'
+```
+
+---
+
 ## What the Stack Contains
 
 | Container   | Image                   | Role                                                            |
