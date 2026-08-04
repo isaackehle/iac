@@ -319,10 +319,11 @@ longer exists. Always `docker compose down && docker compose up -d`.
 4. If adding a new sidecar-pattern stack, start from `_template/` and
    follow `_template/README.md`, which lists everything to wire up in
    `scripts/lib.sh`.
-5. There's no linter/CI wired up for compose or shell; a markdown linter
-   (`rumdl`) runs via LSP diagnostics on `.md` files but the existing docs
-   already violate its line-length rule extensively — don't treat those
-   warnings as blocking.
+5. **Markdown linting is required** — all `.md` files must pass `rumdl`
+   before commit. Use `lefthook` pre-commit hook which runs `rumdl`
+   automatically. Line length limit is 160 characters, blank lines
+   required before/after fenced code blocks, lists must be preceded by
+   blank lines.
 
 ## Commands
 
@@ -342,3 +343,60 @@ scripts/deploy.sh all <stack> <ssh-host>
 scripts/serve-all.sh <ssh-host>
 scripts/serve-all.sh <ssh-host> --reset
 ```
+
+## Agent Rules
+
+### Markdown Linting (MANDATORY)
+
+All `.md` files **must** pass `rumdl` linter before commit. The pre-commit
+hook (`lefthook`) will run `rumdl` automatically, but agents should also
+verify linting before writing files.
+
+**Rules:**
+- Line length: max 160 characters (MD013)
+- Blank lines before fenced code blocks (MD031)
+- Blank lines after fenced code blocks (MD031)
+- Lists must be preceded by blank lines (MD032)
+- No trailing whitespace
+- Proper heading hierarchy
+
+**When writing markdown:**
+1. Write the content with linting in mind
+2. Run `rumdl` locally if possible: `rumdl <file.md>`
+3. If `rumdl` reports issues, fix them before committing
+4. Never skip linting — it's a hard requirement
+
+**If linting fails:**
+- Fix the issues manually (usually easy: add blank lines, wrap long lines)
+- Do NOT commit unlinted files
+- If you can't fix it, ask the user for guidance
+
+### Git Commit Messages
+
+All commits must follow Conventional Commits format:
+
+- `docs: <description>` — for documentation changes
+- `feat: <description>` — for new features
+- `fix: <description>` — for bug fixes
+- `refactor: <description>` — for code changes that don't affect behavior
+- `chore: <description>` — for maintenance tasks
+
+**Examples:**
+- `docs: add SSH deployment instructions to INSTALLATION.md`
+- `feat(deploy): add new stack template`
+- `fix(compose): correct depends_on cycle in homeassistant`
+
+### File Organization
+
+- Never write to `~/.hermes/skills/` directly — use the git repo pattern
+- Never write secrets to files — use environment variables or 1Password
+- Never commit `.env` files — only `.env.example` templates
+- Keep stack directories self-contained
+- Use `docs/` for cross-stack documentation
+
+### Deployment Safety
+
+- Always validate compose files with `docker compose config` before deploying
+- Never restart sidecar containers alone — always use `docker compose down && up -d`
+- For sidecar stacks, ensure `serve.json` is mounted correctly before starting
+- For host-level serve stacks, ensure `tailscale serve` is applied after deployment
