@@ -84,6 +84,7 @@ scripts/deploy.sh all langfuse nas
 ```
 
 This single command does:
+
 1. Generates `langfuse/env.txt` from `iac-secrets.env`
 2. Creates `/volume1/docker/stacks/langfuse/{clickhouse-data,clickhouse-logs,redis-data,minio-data,ts-state,ts-config}` on the NAS
 3. Copies `docker-compose.yml`, `env.txt`, and `serve.json` via SCP

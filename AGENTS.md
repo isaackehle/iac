@@ -354,6 +354,7 @@ hook (`lefthook`) will run `rumdl` automatically, but agents should also
 verify linting before writing files.
 
 **Configuration:** `.rumdl.toml` defines the linting rules:
+
 - Line length: 160 characters (MD013)
 - Blank lines before/after fenced code blocks (MD031)
 - Lists must be preceded by blank lines (MD032)
@@ -361,6 +362,7 @@ verify linting before writing files.
 - Allowed inline HTML elements: code, kbd, pre, samp, var (MD033)
 
 **Commands:**
+
 ```shell
 # Check all markdown files
 rumdl check .
@@ -373,12 +375,14 @@ rumdl check <file.md>
 ```
 
 **When writing markdown:**
+
 1. Write the content with linting in mind
 2. Run `rumdl check .` locally before committing
 3. If issues are found, run `rumdl fmt .` to auto-fix
 4. Never skip linting — it's a hard requirement
 
 **If linting fails:**
+
 - Fix the issues manually (usually easy: add blank lines, wrap long lines)
 - Do NOT commit unlinted files
 - If you can't fix it, ask the user for guidance

@@ -51,6 +51,7 @@ scripts/deploy.sh all synology-mcp nas
 ```
 
 This single command does:
+
 1. Generates `synology-mcp/env.txt` from `iac-secrets.env`
 2. Creates `/volume1/docker/stacks/synology-mcp` on the NAS
 3. Copies `docker-compose.yml` and `env.txt` via SCP
