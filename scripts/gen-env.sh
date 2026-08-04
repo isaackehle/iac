@@ -98,6 +98,15 @@ gen_one() {
       fi
     fi
 
+    # NAS_LAN_IP expansion (used by langfuse and potentially other stacks)
+    if [[ "$value" == *'${NAS_LAN_IP}'* ]]; then
+      local lan_ip
+      lan_ip="$(get_secret_value "NAS_LAN_IP")"
+      if [[ -n "$lan_ip" ]]; then
+        value="${value//'${NAS_LAN_IP}'/$lan_ip}"
+      fi
+    fi
+
     echo "${key}=${value}" >>"$out"
 
     case "$value" in
