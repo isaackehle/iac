@@ -51,6 +51,7 @@ scripts/deploy.sh all affine nas
 ```
 
 This single command does:
+
 1. Generates `affine/env.txt` from `iac-secrets.env`
 2. Creates `/volume1/docker/stacks/affine/{data/storage,data/config,data/postgres}` on the NAS
 3. Copies `docker-compose.yml` and `env.txt` via SCP

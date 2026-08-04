@@ -48,6 +48,7 @@ scripts/deploy.sh all openwebui nas
 ```
 
 This single command does:
+
 1. Generates `openwebui/env.txt` from `iac-secrets.env`
 2. Creates `/volume1/docker/stacks/openwebui/{data,ts-state,ts-config}` on the NAS
 3. Copies `docker-compose.yml`, `env.txt`, and `serve.json` via SCP

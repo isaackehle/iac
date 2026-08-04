@@ -89,6 +89,7 @@ scripts/deploy.sh all mosquitto nas
 ```
 
 This single command does:
+
 1. Generates `mosquitto/env.txt` from `iac-secrets.env`
 2. Creates `/volume1/docker/stacks/mosquitto/{config/mosquitto,config/certs,data}` on the NAS
 3. Copies `docker-compose.yml`, `env.txt`, and any extra files via SCP

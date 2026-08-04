@@ -50,6 +50,7 @@ scripts/deploy.sh all frigate nas
 ```
 
 This single command does:
+
 1. Generates `frigate/env.txt` from `iac-secrets.env`
 2. Creates `/volume1/docker/stacks/frigate/{config,storage}` on the NAS
 3. Copies `docker-compose.yml` and `env.txt` via SCP

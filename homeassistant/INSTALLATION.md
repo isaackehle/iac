@@ -54,6 +54,7 @@ scripts/deploy.sh all homeassistant nas
 ```
 
 This single command does:
+
 1. Generates `homeassistant/env.txt` from `iac-secrets.env`
 2. Creates `/volume1/docker/stacks/homeassistant/config` on the NAS
 3. Copies `docker-compose.yml` and `env.txt` via SCP
