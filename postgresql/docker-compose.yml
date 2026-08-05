@@ -17,7 +17,7 @@
 #   - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
 #   - PGADMIN_DEFAULT_EMAIL=${PGADMIN_DEFAULT_EMAIL}
 #   - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_DEFAULT_PASSWORD}
-#   - TS_AUTHKEY=${TS_AUTHKEY_POSTGRESQL}
+#   - TS_AUTHKEY=${TS_AUTHKEY}
 #   See .env.example for all required variables
 #
 # Deployment:
@@ -117,7 +117,7 @@ services:
     # ── Environment ───────────────────────────────────────────
     environment:
       - TS_HOSTNAME=postgresql
-      - TS_AUTHKEY=${TS_AUTHKEY_POSTGRESQL}
+      - TS_AUTHKEY=${TS_AUTHKEY}
       - TS_STATE_DIR=/var/lib/tailscale
       - TS_AUTH_ONCE=true
       - TS_SERVE_CONFIG=/config/serve.json
