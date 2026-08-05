@@ -72,7 +72,7 @@ services:
 
   # ── Identity ──────────────────────────────────────────────
   tailscale-sidecar:
-    image: tailscale/tailscale:latest
+    image: tailscale/tailscale:unstable
     container_name: ts-pihole
 
     # ── Lifecycle ─────────────────────────────────────────────
@@ -103,3 +103,15 @@ services:
       - NET_RAW
     devices:
       - /dev/net/tun:/dev/net/tun
+
+# DSM's firewall only allow-lists 172.16.0.0/12 and the real LAN (192.168.68.0/22)
+# for forwarded traffic. Docker's dynamic address-pool allocates new bridge
+# networks from 192.168.0.0/16 in /20 blocks, which overlaps the LAN and isn't
+# covered by any allow rule, so an unpinned network falls through to DSM's
+# default-deny and the container loses all outbound connectivity. Pin to an
+# unused /24 inside the already-allowed 172.16.0.0/12 range instead.
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: 172.20.20.0/24
