@@ -150,7 +150,9 @@ cmd_serve() {
     port="${pair%%:*}"
     backend="${pair#*:}"
     echo "==> $stack: tailscale serve --bg --https=$port $backend"
-    ssh "$host" "sudo tailscale serve --bg --https=$port '$backend'"
+    # Use full path and sudo because /var/packages/Tailscale/target/bin is not in PATH
+    # and the Tailscale package requires root for serve commands
+    ssh "$host" "sudo /var/packages/Tailscale/target/bin/tailscale serve --bg --https=$port '$backend'"
   done
 }
 
@@ -164,7 +166,8 @@ cmd_up() {
   echo "==> $stack: docker compose up -d on $host"
   # .env is now referenced explicitly in docker-compose.yml via env_file directive,
   # so no need for --env-file flag here.
-  ssh "$host" "cd '$remote' && docker compose -f '$compose' up -d"
+  # Use full path because /usr/local/bin is not in PATH on the NAS
+  ssh "$host" "cd '$remote' && /usr/local/bin/docker compose -f '$compose' up -d"
 }
 
 cmd_all() {
