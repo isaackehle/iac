@@ -73,7 +73,7 @@ services:
 
   # ── Identity ──────────────────────────────────────────────
   tailscale-sidecar:
-    image: tailscale/tailscale:latest
+    image: tailscale/tailscale:unstable
     container_name: ts-portainer
 
     # ── Lifecycle ─────────────────────────────────────────────
