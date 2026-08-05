@@ -92,6 +92,14 @@ services:
       - TS_STATE_DIR=/var/lib/tailscale
       - TS_AUTH_ONCE=true
       - TS_SERVE_CONFIG=/config/serve.json
+      # Force DERP relay — see pihole/docker-compose.yml for the full write-up.
+      # This node can negotiate a bogus "direct" path via NAT hairpin off its
+      # public STUN endpoint, which passes disco pings but blackholes the
+      # multi-segment TLS ServerHello, hanging :443 at the handshake. Portainer
+      # hit this twice (2026-08-02 and 08-04); each apparent fix (state wipe,
+      # image bump) really just changed the container's UDP port and reshuffled
+      # path selection. Pin the relay so it is deterministic, not luck.
+      - TS_DEBUG_ALWAYS_USE_DERP=1
 
     # ── Storage ───────────────────────────────────────────────
     volumes:
@@ -114,6 +122,14 @@ services:
     devices:
       - /dev/net/tun:/dev/net/tun
 
+# Pinned for the same reason as pihole: DSM's firewall only allow-lists
+# 172.16.0.0/12 and the real LAN for forwarded traffic, while Docker's dynamic
+# pool hands out 192.168.0.0/16 /20 blocks that fall through to default-deny.
+# An unpinned network here silently loses all outbound access, which breaks
+# GitOps polling and image pulls.
 networks:
   portainer_net:
     driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.21.0/24
