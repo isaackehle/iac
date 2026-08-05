@@ -95,6 +95,14 @@ services:
       - TS_STATE_DIR=/var/lib/tailscale
       - TS_AUTH_ONCE=true
       - TS_SERVE_CONFIG=/config/serve.json
+      # Force DERP relay. This node otherwise negotiates a bogus "direct" path
+      # (my LAN peer sees it at 192.168.68.108 — a different physical host) via
+      # NAT hairpin off the container's public STUN endpoint. That path passes
+      # disco pings, which are fragmentable UDP, but silently blackholes the
+      # DF-set WireGuard data packets carrying a multi-segment TLS ServerHello,
+      # so :443 connects and then hangs forever at the handshake. Relaying costs
+      # ~30ms and is irrelevant for an admin UI.
+      - TS_DEBUG_ALWAYS_USE_DERP=1
       - TS_CERT_DOMAIN=${TS_CERT_DOMAIN}
 
     # ── Runtime ───────────────────────────────────────────────
