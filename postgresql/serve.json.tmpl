@@ -1,0 +1,16 @@
+{
+  "serve": {
+    "https": true,
+    "terminal": true,
+    "on_demand": false,
+    "web": {
+      "url": "http://127.0.0.1:5050"
+    }
+  },
+  "certs": [
+    {
+      "domain": "{{TS_CERT_DOMAIN}}",
+      "path": "/etc/tailscale/certs/{{TS_CERT_DOMAIN}}.key"
+    }
+  ]
+}

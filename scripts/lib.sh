@@ -46,7 +46,7 @@ declare -A STACK_DIRS=(
   [pihole]="etc-pihole ts-state ts-config caddy-config"
   [plex]="config ts-state ts-config"
   [portainer]="config data ts-state ts-config caddy-config"
-  [postgresql]=""   # legacy stack, dirs already exist on the NAS
+  [postgresql]="ts-state ts-config"   # converted to Pattern B (sidecar) on 2026-08-04
   [syncthing]="config sync data ts-state ts-config"
 )
 
@@ -65,6 +65,7 @@ declare -A STACK_EXTRA_FILES=(
   [pihole]="serve.json:ts-config/serve.json Caddyfile:caddy-config/Caddyfile"
   [plex]="serve.json:ts-config/serve.json"
   [portainer]="serve.json:ts-config/serve.json Caddyfile:caddy-config/Caddyfile"
+  [postgresql]="serve.json:ts-config/serve.json"
   [syncthing]="serve.json:ts-config/serve.json"
 )
 
@@ -87,7 +88,6 @@ declare -A STACK_SERVE_PORTS=(
   [affine]="3010:http://127.0.0.1:3010"
   [frigate]="8971:http://127.0.0.1:8971"
   [homeassistant]="8123:http://127.0.0.1:8123"
-  [postgresql]="2660:http://127.0.0.1:2660"
 )
 # homeassistant moved from Pattern B to Pattern A on 2026-08-03: it needs
 # `network_mode: host` for device discovery, which is incompatible with a

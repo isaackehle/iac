@@ -227,7 +227,7 @@ services:
     # ── Runtime ───────────────────────────────────────────────
     command: --requirepass ${LANGFUSE_REDIS_AUTH}
     healthcheck:
-      test: ["CMD-SHELL", "redis-cli -a $${LANGFUSE_REDIS_AUTH} ping | grep -q PONG"]
+      test: ["CMD-SHELL", "redis-cli -a ${LANGFUSE_REDIS_AUTH} ping | grep -q PONG"]
       interval: 10s
       timeout: 5s
       retries: 5

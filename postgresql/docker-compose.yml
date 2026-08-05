@@ -1,17 +1,23 @@
 # PostgreSQL — Docker Compose Stack
 #
-# Stack version: 1.0
+# Stack version: 2.0
 # Purpose: PostgreSQL database server with pgAdmin interface
+#
+# Pattern B (Tailscale sidecar): `db` and `pgadmin` both run
+# `network_mode: service:ts-postgresql` and have no ports of their own.
+# The sidecar owns the netns and publishes port 2660 via Tailscale serve.
 #
 # Services:
 #   - db (PostgreSQL database)
 #   - pgadmin (pgAdmin web interface)
+#   - ts-postgresql (Tailscale sidecar — owns the netns for db/pgadmin)
 #
 # Environment variables:
 #   - STACK_NAME=PostgreSQL
 #   - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
 #   - PGADMIN_DEFAULT_EMAIL=${PGADMIN_DEFAULT_EMAIL}
 #   - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_DEFAULT_PASSWORD}
+#   - TS_AUTHKEY=${TS_AUTHKEY_POSTGRESQL}
 #   See .env.example for all required variables
 #
 # Deployment:
@@ -28,10 +34,12 @@ services:
 
     # ── Lifecycle ─────────────────────────────────────────────
     restart: on-failure:5
+    depends_on:
+      ts-postgresql:
+        condition: service_started
 
     # ── Network ───────────────────────────────────────────────
-    ports:
-      - "2665:5432"               # PostgreSQL port (mapped from 5432)
+    network_mode: service:ts-postgresql  # Borrow the sidecar's namespace
 
     # ── Storage ───────────────────────────────────────────────
     volumes:
@@ -59,10 +67,14 @@ services:
 
     # ── Lifecycle ─────────────────────────────────────────────
     restart: on-failure:5
+    depends_on:
+      ts-postgresql:
+        condition: service_started
+      db:
+        condition: service_healthy
 
     # ── Network ───────────────────────────────────────────────
-    ports:
-      - "2660:5050"               # pgAdmin web interface
+    network_mode: service:ts-postgresql  # Borrow the sidecar's namespace
 
     # ── Storage ───────────────────────────────────────────────
     volumes:
@@ -83,3 +95,41 @@ services:
     mem_limit: 256m
     cpu_shares: 768
     user: "0:0"
+
+  # ── Identity ──────────────────────────────────────────────
+  ts-postgresql:
+    image: tailscale/tailscale:latest
+    container_name: ts-postgresql
+
+    # ── Lifecycle ─────────────────────────────────────────────
+    restart: unless-stopped
+
+    # ── Network ───────────────────────────────────────────────
+    # Must join postgresql-net: `db` and `pgadmin` borrow this namespace
+    networks:
+      - postgresql-net
+
+    # ── Storage ───────────────────────────────────────────────
+    volumes:
+      - /volume1/docker/stacks/postgresql/ts-state:/var/lib/tailscale
+      - /volume1/docker/stacks/postgresql/ts-config:/config
+
+    # ── Environment ───────────────────────────────────────────
+    environment:
+      - TS_HOSTNAME=postgresql
+      - TS_AUTHKEY=${TS_AUTHKEY_POSTGRESQL}
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_AUTH_ONCE=true
+      - TS_SERVE_CONFIG=/config/serve.json
+      - TS_CERT_DOMAIN=${TS_CERT_DOMAIN}
+
+    # ── Runtime ───────────────────────────────────────────────
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    devices:
+      - /dev/net/tun:/dev/net/tun
+
+networks:
+  postgresql-net:
+    driver: bridge
