@@ -79,7 +79,7 @@ copies the file through, since Tailscale's own `${TS_CERT_DOMAIN}`
 substitution covers the node's own domain. `{{KEY}}` tokens (filled from
 `./iac-secrets.env (repo root, gitignored)`) are only needed for values Tailscale can't
 substitute — e.g. a backend on a _different_ tailnet node, as in
-`portainer/serve.json.tmpl` (backend is the separate `voyager` node); or a
+`portainer/serve.json.tmpl` (backend is the separate `nas` node); or a
 value inside a `TCP` handler rather than a `Web` map key, since `${...}`
 runtime substitution is only confirmed to apply to the latter — see
 `pihole/serve.json.tmpl`'s `TerminateTLS` field, templated with

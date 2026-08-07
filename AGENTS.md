@@ -82,7 +82,7 @@ deploy time. For most stacks the render just copies the file through —
 Tailscale's own `${TS_CERT_DOMAIN}` runtime substitution covers the node's
 own domain. `{{KEY}}` tokens (filled from the secrets file) are only needed
 for values Tailscale can't substitute: a backend on a *different* tailnet
-node — `portainer/serve.json.tmpl` (backend is the separate `voyager`
+node — `portainer/serve.json.tmpl` (backend is the separate `nas`
 node) — or a value inside a `TCP` handler rather than a `Web` map key,
 since `${...}` runtime substitution is only confirmed to apply to the
 latter — `pihole/serve.json.tmpl`'s `TerminateTLS` field, templated with

@@ -1,10 +1,21 @@
 {
     "cSpell.words": [
         "AUTHKEY",
+        "Caddyfile",
+        "CLICKHOUSE",
+        "dpage",
+        "Fastmail",
+        "healthcheck",
+        "isready",
         "lscr",
         "mosquitto",
         "Mosquitto",
         "MQTT",
+        "netns",
+        "netstack",
+        "nslookup",
+        "NXDOMAIN",
+        "PGADMIN",
         "PGID",
         "pihole",
         "PUID",
@@ -12,6 +23,7 @@
         "STGUIADDRESS",
         "syncthing",
         "tailnet",
-        "Tailnet"
+        "Tailnet",
+        "tailscaled"
     ]
 }

@@ -95,14 +95,14 @@ bash scripts/gen-env.sh syncthing
 
 ```shell
 # Pihole
-scp pihole/docker-compose.yml voyager:/volume1/docker/stacks/portainer/data/pihole/
-scp pihole/.env voyager:/volume1/docker/stacks/portainer/data/pihole/
-scp pihole/serve.json voyager:/volume1/docker/stacks/portainer/data/pihole/
+scp pihole/docker-compose.yml nas:/volume1/docker/stacks/portainer/data/pihole/
+scp pihole/.env nas:/volume1/docker/stacks/portainer/data/pihole/
+scp pihole/serve.json nas:/volume1/docker/stacks/portainer/data/pihole/
 
 # Syncthing
-scp syncthing/docker-compose.yml voyager:/volume1/docker/stacks/portainer/data/syncthing/
-scp syncthing/.env voyager:/volume1/docker/stacks/portainer/data/syncthing/
-scp syncthing/serve.json voyager:/volume1/docker/stacks/portainer/data/syncthing/
+scp syncthing/docker-compose.yml nas:/volume1/docker/stacks/portainer/data/syncthing/
+scp syncthing/.env nas:/volume1/docker/stacks/portainer/data/syncthing/
+scp syncthing/serve.json nas:/volume1/docker/stacks/portainer/data/syncthing/
 ```
 
 ### 3. Deploy via Portainer
@@ -119,7 +119,7 @@ scp syncthing/serve.json voyager:/volume1/docker/stacks/portainer/data/syncthing
 
 ```shell
 # SSH to NAS
-ssh voyager
+ssh nas
 
 # Deploy pihole
 sudo docker compose -f /volume1/docker/stacks/portainer/data/pihole/docker-compose.yml up -d

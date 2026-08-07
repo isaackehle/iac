@@ -153,6 +153,15 @@ render_templates() {
       token="${BASH_REMATCH[1]}"
       local value
       value="$(get_secret_value "$token")"
+      
+      # TS_CERT_DOMAIN auto-derivation: if not explicitly set in secrets,
+      # derive from TS_TAILNET_DOMAIN as <stack>.<tailnet>
+      if [[ -z "$value" && "$token" == "TS_CERT_DOMAIN" ]]; then
+        local tailnet
+        tailnet="$(get_secret_value "TS_TAILNET_DOMAIN")"
+        [[ -n "$tailnet" ]] && value="${stack}.${tailnet}"
+      fi
+      
       if [[ -z "$value" ]]; then
         echo "    ⚠ $tmpl: {{$token}} has no value in $IAC_SECRETS_FILE, leaving as-is"
         break

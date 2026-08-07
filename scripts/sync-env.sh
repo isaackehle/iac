@@ -11,16 +11,16 @@
 #
 # SSH Configuration:
 #   Add to ~/.ssh/config:
-#     Host voyager
-#         HostName voyager.<tailnet>.ts.net
+#     Host nas
+#         HostName nas.<tailnet>.ts.net
 #         User isaac
 #         IdentityFile ~/.ssh/id_ed25519
-#   Then use 'voyager' instead of full hostname
+#   Then use 'nas' instead of full hostname
 
 set -e
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-SSH_HOST="${SSH_HOST:-isaac@voyager.<tailnet>.ts.net}"
+SSH_HOST="${SSH_HOST:-isaac@nas.<tailnet>.ts.net}"
 NAS_BASE="/volume1/docker/stacks"
 
 # All managed stacks
@@ -53,14 +53,14 @@ Commands:
     pull-all          Pull all .env files from NAS
 
 Environment Variables:
-    SSH_HOST          SSH host (default: isaac@voyager.<tailnet>.ts.net)
+    SSH_HOST          SSH host (default: isaac@nas.<tailnet>.ts.net)
 
 Examples:
     $(basename "$0") push portainer
     $(basename "$0") pull homeassistant
     $(basename "$0") list
     $(basename "$0") push-all
-    SSH_HOST=voyager $(basename "$0") push portainer
+    SSH_HOST=nas $(basename "$0") push portainer
 EOF
     exit 1
 }
