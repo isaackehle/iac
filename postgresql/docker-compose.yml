@@ -106,8 +106,10 @@ services:
 
     # ── Network ───────────────────────────────────────────────
     # Must join postgresql-net: `db` and `pgadmin` borrow this namespace
+    # Also join langfuse_langfuse-net so langfuse can reach postgresql by hostname
     networks:
       - postgresql-net
+      - langfuse_langfuse-net
 
     # ── Storage ───────────────────────────────────────────────
     volumes:
@@ -129,7 +131,12 @@ services:
       - NET_RAW
     devices:
       - /dev/net/tun:/dev/net/tun
+    ports:
+      - "2665:5432"     # Raw Postgres port for external (tailnet) connections
 
 networks:
   postgresql-net:
     driver: bridge
+  langfuse_langfuse-net:
+    external: true
+    name: langfuse_langfuse-net

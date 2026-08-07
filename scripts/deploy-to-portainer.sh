@@ -30,7 +30,7 @@ Required:
 Example:
   export PORTAINER_URL="https://portainer.tail303fda.ts.net"
   export PORTAINER_API_KEY="pt-abc123..."
-  scripts/deploy-to-portainer.sh langfuse voyager
+  scripts/deploy-to-portainer.sh langfuse nas
 EOF
   exit 1
 }

@@ -2,23 +2,23 @@
 
 ## Terminal Setup for Synology NAS SSH
 
-This document describes the terminal configuration used when SSH-ing into the Synology NAS (voyager).
+This document describes the terminal configuration used when SSH-ing into the Synology NAS (nas).
 
 ### Local SSH Config (Automatic)
 
 Your `~/.ssh/config` already handles terminal configuration automatically:
 
 ```ssh-config
-# Tailscale hosts (including voyager)
-Host dx1 discovery ds9 voyager enterprise
+# Tailscale hosts (including nas)
+Host dx1 discovery ds9 nas enterprise
     HostName %h.tail303fda.ts.net
     SetEnv TERM=xterm-256color
     RequestTTY yes
     StrictHostKeyChecking accept-new
 
-# Voyager specific
-Host voyager.local, voyager
-    HostName voyager.local
+# NAS specific
+Host nas.local, nas
+    HostName nas.local
     User isaac
     SetEnv TERM=xterm-256color
     SendEnv COLORTERM
@@ -60,9 +60,9 @@ export LS_COLORS="di=01;34:ow=01;34:tw=01;34:ex=01;32:ln=01;36"
 
 ```shell
 # From your Mac (uses SSH config automatically)
-ssh voyager
+ssh nas
 # or
-ssh isaac@voyager.tail303fda.ts.net
+ssh isaac@nas.tail303fda.ts.net
 ```
 
 The SSH config automatically:
@@ -100,9 +100,9 @@ ls -la /volume1/
 
 **TTY allocation issues:**
 
-1. Check SSH config: `grep -A3 "Host voyager" ~/.ssh/config`
+1. Check SSH config: `grep -A3 "Host nas" ~/.ssh/config`
 2. Ensure `RequestTTY yes` is present
-3. Try manual TTY: `ssh -t voyager`
+3. Try manual TTY: `ssh -t nas`
 
 **Ghostty-specific issues:**
 If using Ghostty terminal, you can also set these in `~/.config/ghostty/config`:

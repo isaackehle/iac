@@ -21,6 +21,12 @@
 # resolve `clickhouse`/`redis`/`minio` by name. Both conditions must hold —
 # see langfuse/DEBUG.md.
 #
+# CRITICAL: Because `langfuse` and `worker` use `network_mode: service:tailscale-sidecar`,
+# they inherit their environment from the sidecar container. All required env vars
+# (DATABASE_URL, CLICKHOUSE_URL, REDIS_CONNECTION_STRING, etc.) MUST be defined
+# on the tailscale-sidecar service, NOT on langfuse/worker directly. env_file on
+# langfuse/worker is IGNORED when using network_mode: service:...
+#
 # MinIO's S3 API is published directly on the `minio` sibling (host 9090),
 # deliberately not routed through the sidecar — see README.md's port registry.
 #
@@ -33,6 +39,7 @@
 #   docker compose up -d
 #   docker compose down
 #
+
 name: langfuse
 
 services:
@@ -57,9 +64,11 @@ services:
     network_mode: service:tailscale-sidecar  # Borrow the sidecar's namespace
 
     # ── Environment ───────────────────────────────────────────
+    # All env vars are passed via Portainer API / env vars
+    # env_file removed because Portainer API passes env vars directly
     environment:
-      # Postgres — external, from the `postgresql` stack
-      - DATABASE_URL=postgresql://langfuse:${LANGFUSE_DB_PASSWORD}@${LANGFUSE_DB_HOST}:${LANGFUSE_DB_PORT:-2665}/langfuse
+      # Postgres
+      - DATABASE_URL=postgresql://langfuse:${LANGFUSE_DB_PASSWORD}@${LANGFUSE_DB_HOST}:${LANGFUSE_DB_PORT}/langfuse
       # App secrets
       - SALT=${LANGFUSE_SALT}
       - NEXTAUTH_SECRET=${LANGFUSE_NEXTAUTH_SECRET}
@@ -73,7 +82,7 @@ services:
       - CLICKHOUSE_CLUSTER_ENABLED=false
       # Redis
       - REDIS_CONNECTION_STRING=redis://:${LANGFUSE_REDIS_AUTH}@redis:6379
-      # MinIO / S3 — event and media blob storage
+      # MinIO / S3
       - LANGFUSE_S3_EVENT_UPLOAD_BUCKET=langfuse
       - LANGFUSE_S3_EVENT_UPLOAD_REGION=auto
       - LANGFUSE_S3_EVENT_UPLOAD_ENDPOINT=http://minio:9000
@@ -81,7 +90,7 @@ services:
       - LANGFUSE_S3_EVENT_UPLOAD_SECRET_ACCESS_KEY=${LANGFUSE_MINIO_ROOT_PASSWORD}
       - LANGFUSE_S3_EVENT_UPLOAD_FORCE_PATH_STYLE=true
       - LANGFUSE_S3_EVENT_UPLOAD_PREFIX=events/
-      # Headless bootstrap — skips the first-run signup wizard
+      # Headless bootstrap
       - LANGFUSE_INIT_ORG_ID=default
       - LANGFUSE_INIT_PROJECT_ID=default
       - LANGFUSE_INIT_PROJECT_PUBLIC_KEY=${LANGFUSE_INIT_PROJECT_PUBLIC_KEY}
@@ -108,20 +117,25 @@ services:
         condition: service_healthy
 
     # ── Network ───────────────────────────────────────────────
-    networks:
-      - langfuse-net
+    network_mode: service:tailscale-sidecar  # Borrow the sidecar's namespace
 
     # ── Environment ───────────────────────────────────────────
+    # All env vars are passed via Portainer API / env vars
     environment:
-      - DATABASE_URL=postgresql://langfuse:${LANGFUSE_DB_PASSWORD}@${LANGFUSE_DB_HOST}:${LANGFUSE_DB_PORT:-2665}/langfuse
+      # Postgres
+      - DATABASE_URL=postgresql://langfuse:${LANGFUSE_DB_PASSWORD}@${LANGFUSE_DB_HOST}:${LANGFUSE_DB_PORT}/langfuse
+      # App secrets
       - SALT=${LANGFUSE_SALT}
       - ENCRYPTION_KEY=${LANGFUSE_ENCRYPTION_KEY}
+      # ClickHouse
       - CLICKHOUSE_URL=http://clickhouse:8123
       - CLICKHOUSE_MIGRATION_URL=clickhouse://clickhouse:9000
       - CLICKHOUSE_USER=default
       - CLICKHOUSE_PASSWORD=${LANGFUSE_CLICKHOUSE_PASSWORD}
       - CLICKHOUSE_CLUSTER_ENABLED=false
+      # Redis
       - REDIS_CONNECTION_STRING=redis://:${LANGFUSE_REDIS_AUTH}@redis:6379
+      # MinIO / S3
       - LANGFUSE_S3_EVENT_UPLOAD_BUCKET=langfuse
       - LANGFUSE_S3_EVENT_UPLOAD_REGION=auto
       - LANGFUSE_S3_EVENT_UPLOAD_ENDPOINT=http://minio:9000
@@ -140,10 +154,10 @@ services:
     restart: unless-stopped
 
     # ── Network ───────────────────────────────────────────────
-    # Must join langfuse-net: `langfuse` borrows this namespace, so this is
+    # Must join langfuse_langfuse-net: `langfuse` borrows this namespace, so this is
     # what lets it resolve clickhouse/redis/minio by name.
     networks:
-      - langfuse-net
+      - langfuse_langfuse-net
 
     # ── Storage ───────────────────────────────────────────────
     volumes:
@@ -151,13 +165,42 @@ services:
       - /volume1/docker/stacks/langfuse/ts-config:/config
 
     # ── Environment ───────────────────────────────────────────
+    # CRITICAL: langfuse and worker inherit this environment via network_mode: service:tailscale-sidecar
+    # env_file removed - Portainer API passes env vars directly
     environment:
+      # Tailscale config
       - TS_HOSTNAME=langfuse
       - TS_AUTHKEY=${TS_AUTHKEY}
       - TS_STATE_DIR=/var/lib/tailscale
       - TS_AUTH_ONCE=true
       - TS_SERVE_CONFIG=/config/serve.json
       - TS_CERT_DOMAIN=${TS_CERT_DOMAIN}
+      # Langfuse app config (inherited by langfuse and worker containers)
+      - DATABASE_URL=postgresql://langfuse:***@${LANGFUSE_DB_HOST}:${LANGFUSE_DB_PORT}/langfuse
+      - SALT=${LANGFUSE_SALT}
+      - NEXTAUTH_SECRET=${LANGFUSE_NEXTAUTH_SECRET}
+      - ENCRYPTION_KEY=${LANGFUSE_ENCRYPTION_KEY}
+      - NEXTAUTH_URL=https://${TS_CERT_DOMAIN}
+      - CLICKHOUSE_URL=http://clickhouse:8123
+      - CLICKHOUSE_MIGRATION_URL=clickhouse://clickhouse:9000
+      - CLICKHOUSE_USER=default
+      - CLICKHOUSE_PASSWORD=${LANGFUSE_CLICKHOUSE_PASSWORD}
+      - CLICKHOUSE_CLUSTER_ENABLED=false
+      - REDIS_CONNECTION_STRING=redis://:${LANGFUSE_REDIS_AUTH}@redis:6379
+      - LANGFUSE_S3_EVENT_UPLOAD_BUCKET=langfuse
+      - LANGFUSE_S3_EVENT_UPLOAD_REGION=auto
+      - LANGFUSE_S3_EVENT_UPLOAD_ENDPOINT=http://minio:9000
+      - LANGFUSE_S3_EVENT_UPLOAD_ACCESS_KEY_ID=minio
+      - LANGFUSE_S3_EVENT_UPLOAD_SECRET_ACCESS_KEY=${LANGFUSE_MINIO_ROOT_PASSWORD}
+      - LANGFUSE_S3_EVENT_UPLOAD_FORCE_PATH_STYLE=true
+      - LANGFUSE_S3_EVENT_UPLOAD_PREFIX=events/
+      - LANGFUSE_INIT_ORG_ID=default
+      - LANGFUSE_INIT_PROJECT_ID=default
+      - LANGFUSE_INIT_PROJECT_PUBLIC_KEY=${LANGFUSE_INIT_PROJECT_PUBLIC_KEY}
+      - LANGFUSE_INIT_PROJECT_SECRET_KEY=${LANGFUSE_INIT_PROJECT_SECRET_KEY}
+      - LANGFUSE_INIT_USER_EMAIL=${LANGFUSE_INIT_USER_EMAIL}
+      - LANGFUSE_INIT_USER_PASSWORD=${LANGFUSE_INIT_USER_PASSWORD}
+      - TELEMETRY_ENABLED=false
 
     # ── Runtime ───────────────────────────────────────────────
     cap_add:
@@ -176,14 +219,14 @@ services:
 
     # ── Network ───────────────────────────────────────────────
     networks:
-      - langfuse-net
+      - langfuse_langfuse-net
 
     # ── Storage ───────────────────────────────────────────────
     volumes:
       - /volume1/docker/stacks/langfuse/clickhouse-data:/var/lib/clickhouse
       - /volume1/docker/stacks/langfuse/clickhouse-logs:/var/log/clickhouse-server
 
-    # ── Environment ───────────────────────────────────────────
+    # ── Environment ─────────────────────────────────────────────
     environment:
       - CLICKHOUSE_DB=default
       - CLICKHOUSE_USER=default
@@ -214,13 +257,13 @@ services:
 
     # ── Network ───────────────────────────────────────────────
     networks:
-      - langfuse-net
+      - langfuse_langfuse-net
 
     # ── Storage ───────────────────────────────────────────────
     volumes:
       - /volume1/docker/stacks/langfuse/redis-data:/data
 
-    # ── Environment ───────────────────────────────────────────
+    # ── Environment ─────────────────────────────────────────────
     environment:
       - REDIS_AUTH=${LANGFUSE_REDIS_AUTH}
 
@@ -242,7 +285,7 @@ services:
 
     # ── Network ───────────────────────────────────────────────
     networks:
-      - langfuse-net
+      - langfuse_langfuse-net
     ports:
       - "9090:9000"     # S3 API — published directly, not via the sidecar
 
@@ -250,7 +293,7 @@ services:
     volumes:
       - /volume1/docker/stacks/langfuse/minio-data:/data
 
-    # ── Environment ───────────────────────────────────────────
+    # ── Environment ─────────────────────────────────────────────
     environment:
       - MINIO_ROOT_USER=minio
       - MINIO_ROOT_PASSWORD=${LANGFUSE_MINIO_ROOT_PASSWORD}
@@ -266,5 +309,6 @@ services:
       start_period: 20s
 
 networks:
-  langfuse-net:
-    driver: bridge
+  langfuse_langfuse-net:
+    external: true
+    name: langfuse_langfuse-net

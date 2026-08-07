@@ -54,6 +54,7 @@ Commands:
                                 Repository/GitOps instead of `docker compose up -d`
   serve  <stack> <ssh-host>    apply host-level tailscale serve mappings (if any)
   up     <stack> <ssh-host>    ssh in and run `docker compose up -d`
+  api    <stack>               create stack in Portainer via API with GitConfig (Total control)
   info   <stack>               print deploy instructions for this stack
   all    <stack> <ssh-host>    env + dirs + push + serve + up
 EOF
@@ -170,6 +171,63 @@ cmd_up() {
   ssh "$host" "cd '$remote' && /usr/local/bin/docker compose -f '$compose' up -d"
 }
 
+cmd_api() {
+  local stack="$1"
+  require_stack "$stack"
+
+  local git_url="https://github.com/isaackehle/iac.git"
+  local compose_path="$stack/docker-compose.yml"
+  local reference="refs/heads/main"
+
+  echo "==> $stack: creating stack in Portainer via API with GitConfig..."
+
+  if [[ -z "${PORTAINER_API_KEY:-}" ]]; then
+    echo "ERROR: PORTAINER_API_KEY not set. Add it to iac-secrets.env and re-run gen-env.sh for this stack or export it." >&2
+    exit 1
+  fi
+
+  if [[ -z "${PORTAINER_URL:-}" ]]; then
+    echo "ERROR: PORTAINER_URL not set. Add it to iac-secrets.env and re-run gen-env.sh for this stack or export it." >&2
+    exit 1
+  fi
+
+  # Build the JSON payload using jq
+  local payload
+  payload=$(jq -n \
+    --arg name "$stack" \
+    --arg url "$git_url" \
+    --arg ref "refs/heads/main" \
+    --arg compose "$compose_path" \
+    '{
+      name: $name,
+      RepositoryURL: $url,
+      RepositoryReferenceName: $ref,
+      ComposeFilePathInRepository: $compose,
+      GitConfig: {
+        Authentication: "",
+        ConfigFilePath: $compose,
+        URL: $url,
+        ReferenceName: $ref
+      }
+    }')
+
+  local response
+  response=$(curl -s -X POST "${PORTAINER_URL}/api/stacks/create/standalone/string" \
+    -H "X-API-Key: ${PORTAINER_API_KEY}" \
+    -H "Content-Type: application/json" \
+    -d "$payload")
+
+  if echo "$response" | jq -e '.Id' >/dev/null 2>&1; then
+    echo "✓ Stack '$stack' created in Portainer (ID: $(echo "$response" | jq -r '.Id'))"
+    echo "  → Total control enabled"
+    echo "  → GitOps auto-update enabled (watch: Settings → Stack → Watch repository)"
+  else
+    echo "✗ Failed to create stack:" >&2
+    echo "$response" | jq . >&2
+    exit 1
+  fi
+}
+
 cmd_all() {
   local stack="$1" host="$2"
   cmd_env "$stack"
@@ -261,6 +319,9 @@ case "$command" in
   dirs|push|extras|serve|up|all)
     [[ -n "$host" ]] || usage
     "cmd_${command}" "$stack" "$host"
+    ;;
+  api)
+    cmd_"$command" "$stack"
     ;;
   *)
     usage

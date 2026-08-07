@@ -5,7 +5,7 @@ Deploy the Synology MCP server using Synology's Container Manager UI.
 ## Prerequisites
 
 - Container Manager package installed on Synology
-- Tailscale network configured on Synology (`voyager.tail303fda.ts.net`)
+- Tailscale network configured on Synology (`nas.tail303fda.ts.net`)
 - Web API enabled on Synology (see `~/sync/plans/004_synology-web-api-enable.md`)
 - Credentials in 1Password: `dev-synology`
 
@@ -23,7 +23,7 @@ ls -la docker-compose.yml .env .env.example
 Via SSH:
 
 ```shell
-ssh isaac@voyager.tail303fda.ts.net
+ssh isaac@nas.tail303fda.ts.net
 mkdir -p /volume1/docker/stacks/synology-mcp/config
 exit
 ```
@@ -34,22 +34,22 @@ exit
 cd ~/code/isaackehle/iac/synology-mcp
 
 # Copy docker-compose.yml
-scp docker-compose.yml isaac@voyager.tail303fda.ts.net:/volume1/docker/stacks/synology-mcp/
+scp docker-compose.yml isaac@nas.tail303fda.ts.net:/volume1/docker/stacks/synology-mcp/
 
 # Copy .env (create it first if needed)
 cp .env.example .env
 # Edit .env with your credentials
 nano .env
-scp .env isaac@voyager.tail303fda.ts.net:/volume1/docker/stacks/synology-mcp/
+scp .env isaac@nas.tail303fda.ts.net:/volume1/docker/stacks/synology-mcp/
 
 # Copy config directory contents
-scp -r config/ isaac@voyager.tail303fda.ts.net:/volume1/docker/stacks/synology-mcp/config/
+scp -r config/ isaac@nas.tail303fda.ts.net:/volume1/docker/stacks/synology-mcp/config/
 ```
 
 ## Step 4: Deploy via Container Manager UI
 
 1. Open DSM web interface:
-   - `http://voyager.tail303fda.ts.net:5000` or
+   - `http://nas.tail303fda.ts.net:5000` or
    - `http://192.168.68.78:5000`
 
 2. Login with your credentials
@@ -79,7 +79,7 @@ scp -r config/ isaac@voyager.tail303fda.ts.net:/volume1/docker/stacks/synology-m
 Via SSH:
 
 ```shell
-ssh isaac@voyager.tail303fda.ts.net
+ssh isaac@nas.tail303fda.ts.net
 
 # Check container status
 cd /volume1/docker/stacks/synology-mcp
@@ -116,7 +116,7 @@ npx @modelcontextprotocol/inspector npx -y @modelcontextprotocol/servers/synolog
 Or test the Web API directly:
 
 ```shell
-curl -skL https://voyager.tail303fda.ts.net:5001/webapi/entry.cgi?api=SYNO.API.Info&method=query&version=1
+curl -skL https://nas.tail303fda.ts.net:5001/webapi/entry.cgi?api=SYNO.API.Info&method=query&version=1
 ```
 
 ## Updates
@@ -124,7 +124,7 @@ curl -skL https://voyager.tail303fda.ts.net:5001/webapi/entry.cgi?api=SYNO.API.I
 To update the MCP server:
 
 ```shell
-ssh isaac@voyager.tail303fda.ts.net
+ssh isaac@nas.tail303fda.ts.net
 cd /volume1/docker/stacks/synology-mcp
 docker compose pull
 docker compose up -d
@@ -150,9 +150,9 @@ If you see certificate errors, ensure you're using the Tailscale certificate:
 
    ```shell
    sudo /var/packages/Tailscale*/target/bin/tailscale cert \
-     --cert-file=/tmp/voyager.crt \
-     --key-file=/tmp/voyager.key \
-     voyager.tail303fda.ts.net
+     --cert-file=/tmp/nas.crt \
+     --key-file=/tmp/nas.key \
+     nas.tail303fda.ts.net
    ```
 
 2. Copy to: `/usr/syno/etc/certificate/_archive/<ID>/`

@@ -35,7 +35,7 @@ This runbook applies to:
 
 ```shell
 # SSH into the NAS
-ssh isaac@voyager.tail303fda.ts.net
+ssh isaac@nas.tail303fda.ts.net
 
 # Check what's running related to the project
 ps aux | grep -i <project-name> | grep -v grep
@@ -84,11 +84,11 @@ ls -la "$BACKUP_DIR/"
 
 # Push updated compose file
 cat ~/code/isaackehle/iac/portainer/docker-compose.yml | \
-  ssh isaac@voyager.tail303fda.ts.net \
+  ssh isaac@nas.tail303fda.ts.net \
   "cat > /volume1/docker/stacks/portainer/data/portainer/docker-compose.yml"
 
 # Option B: Edit directly on NAS
-# ssh isaac@voyager.tail303fda.ts.net
+# ssh isaac@nas.tail303fda.ts.net
 # nano /volume1/docker/stacks/portainer/data/portainer/docker-compose.yml
 ```
 
@@ -97,11 +97,11 @@ cat ~/code/isaackehle/iac/portainer/docker-compose.yml | \
 ```shell
 # Push updated .env file (it's at the root level)
 cat ~/code/isaackehle/iac/portainer/.env | \
-  ssh isaac@voyager.tail303fda.ts.net \
+  ssh isaac@nas.tail303fda.ts.net \
   "cat > /volume1/docker/stacks/portainer/.env"
 
 # Or edit directly on NAS
-# ssh isaac@voyager.tail303fda.ts.net
+# ssh isaac@nas.tail303fda.ts.net
 # nano /volume1/docker/stacks/portainer/.env
 ```
 
@@ -111,7 +111,7 @@ cat ~/code/isaackehle/iac/portainer/.env | \
 
 ```shell
 # Method 1: Via Portainer (if running)
-# 1. Navigate to http://voyager.tail303fda.ts.net:9000
+# 1. Navigate to http://nas.tail303fda.ts.net:9000
 # 2. Go to Stacks → Add stack
 # 3. Select "Web editor"
 # 4. Copy content from docker-compose.yml

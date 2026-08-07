@@ -15,7 +15,7 @@ leaves the others pointed at a dead namespace. Symptom: `netstack: could not
 connect to local backend server at 127.0.0.1:9000: connect: connection refused`,
 and mismatched uptimes in `docker ps`. Fix: `docker compose down && docker compose up -d`.
 
-**2. Don't test `.ts.net` URLs from the NAS's own shell.** Voyager resolves
+**2. Don't test `.ts.net` URLs from the NAS's own shell.** NAS resolves
 `.ts.net` via public DNS (`8.8.8.8` → `NXDOMAIN`), not Tailscale's resolver at
 `100.100.100.100`, so `curl` there returns unrelated junk — a Fastmail landing
 page, in our case — that looks like a real response. Always test from a laptop
@@ -151,8 +151,8 @@ Modern OpenSSH defaults to the SFTP protocol; DSM's sshd doesn't reliably serve
 it. Force legacy SCP with `-O`, or bypass both:
 
 ```shell
-scp -O local-file isaac@voyager:/volume1/docker/stacks/portainer/
-ssh isaac@voyager "cat > /path/on/nas" < local-file
+scp -O local-file isaac@nas:/volume1/docker/stacks/portainer/
+ssh isaac@nas "cat > /path/on/nas" < local-file
 ```
 
 ## Reference

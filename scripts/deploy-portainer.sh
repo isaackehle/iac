@@ -38,17 +38,17 @@ Environment Variables:
 
 Examples:
   # Generate .env content
-  scripts/deploy-portainer.sh env voyager
+  scripts/deploy-portainer.sh env nas
 
   # Deploy via Container Manager UI (recommended)
-  scripts/deploy-portainer.sh push voyager
+  scripts/deploy-portainer.sh push nas
   # Then manually deploy in Container Manager UI
 
   # Deploy via CLI (if docker available)
-  scripts/deploy-portainer.sh all voyager
+  scripts/deploy-portainer.sh all nas
 
   # Full deployment with custom values
-  TS_AUTHKEY=tskey-auth-xxx scripts/deploy-portainer.sh all voyager
+  TS_AUTHKEY=tskey-auth-xxx scripts/deploy-portainer.sh all nas
 EOF
 }
 

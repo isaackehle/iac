@@ -104,7 +104,7 @@ From your Mac:
 ```shell
 cd ~/code/isaackehle/iac
 scripts/gen-env.sh portainer          # renders serve.json from serve.json.tmpl
-scripts/deploy.sh portainer voyager   # pushes compose, .env, serve.json, Caddyfile
+scripts/deploy.sh portainer nas   # pushes compose, .env, serve.json, Caddyfile
 ```
 
 Or manually — note `-O`, which forces the legacy SCP protocol. Without it,
@@ -112,9 +112,9 @@ modern OpenSSH uses SFTP, which DSM's sshd doesn't reliably serve, and you get a
 misleading `No such file or directory` on a directory that plainly exists:
 
 ```shell
-scp -O portainer/docker-compose.yml isaac@voyager:/volume1/docker/stacks/portainer/
-scp -O portainer/Caddyfile          isaac@voyager:/volume1/docker/stacks/portainer/caddy-config/
-scp -O portainer/serve.json         isaac@voyager:/volume1/docker/stacks/portainer/ts-config/
+scp -O portainer/docker-compose.yml isaac@nas:/volume1/docker/stacks/portainer/
+scp -O portainer/Caddyfile          isaac@nas:/volume1/docker/stacks/portainer/caddy-config/
+scp -O portainer/serve.json         isaac@nas:/volume1/docker/stacks/portainer/ts-config/
 ```
 
 ## 4. Deploy

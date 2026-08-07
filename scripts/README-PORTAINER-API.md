@@ -37,7 +37,7 @@ export PORTAINER_API_KEY="pt-your-api-key-here"
 ### 2. Deploy a Stack
 
 ```bash
-./scripts/deploy-to-portainer.sh langfuse voyager
+./scripts/deploy-to-portainer.sh langfuse nas
 ```
 
 This will:
@@ -169,7 +169,7 @@ Sidecar stacks (like langfuse) have special requirements:
 
 Published ports must not conflict with existing stacks:
 
-- Check: `ssh voyager "docker ps --format '{{.Ports}}'"`
+- Check: `ssh nas "docker ps --format '{{.Ports}}'"`
 - Common conflicts: 9000 (Portainer), 8444 (Caddy), 443 (HTTPS)
 
 ## Alternative: SSH Deploy
@@ -179,7 +179,7 @@ If Portainer API is unavailable, use SSH:
 ```bash
 cd ~/code/isaackehle/iac
 ./scripts/gen-env.sh langfuse
-./scripts/deploy.sh all langfuse voyager
+./scripts/deploy.sh all langfuse nas
 ```
 
 This uses `scp -O` (legacy SCP) which works reliably with Synology DSM.
@@ -190,43 +190,43 @@ This uses `scp -O` (legacy SCP) which works reliably with Synology DSM.
 
 1. Check Portainer logs:
 
-   ```bash
-   curl -s -H "X-Api-Key: $PORTAINER_API_KEY" \
-     "$PORTAINER_URL/api/stacks?name=langfuse" | jq '.[0].Env'
-   ```
+```bash
+curl -s -H "X-Api-Key: $PORTA...KEY" \
+  "$PORTAINER_URL/api/stacks?name=langfuse" | jq '.[0].Env'
+```
 
 2. Check container logs on NAS:
 
-   ```bash
-   ssh voyager "docker logs ts-langfuse --tail 50"
-   ```
+```bash
+ssh nas "docker logs ts-langfuse --tail 50"
+```
 
 3. Verify secrets are set:
 
-   ```bash
-   grep -E '(LANGFUSE_DB_PASSWORD|CLICKHOUSE_PASSWORD)' langfuse/.env
-   ```
+```bash
+grep -E '(LANGFUSE_DB_PASSWORD|CLICKHOUSE_PASSWORD)' langfuse/.env
+```
 
 ### GitOps not pulling
 
 1. Check Portainer's Git config:
 
-   ```bash
-   curl -s -H "X-Api-Key: $PORTAINER_API_KEY" \
-     "$PORTAINER_URL/api/stacks?name=langfuse" | jq '.[0].GitConfig'
-   ```
+```bash
+curl -s -H "X-Api-Key: $PORTA...KEY" \
+  "$PORTAINER_URL/api/stacks?name=langfuse" | jq '.[0].GitConfig'
+```
 
 2. Test GitHub access from NAS:
 
-   ```bash
-   ssh voyager "curl -sI https://raw.githubusercontent.com/isaackehle/iac/main/langfuse/docker-compose.yml"
-   ```
+```bash
+ssh nas "curl -sI https://raw.githubusercontent.com/isaackehle/iac/main/langfuse/docker-compose.yml"
+```
 
 3. Check Portainer's polling logs:
 
-   ```bash
-   ssh voyager "docker logs portainer --tail 100 | grep -i git"
-   ```
+```bash
+ssh nas "docker logs portainer --tail 100 | grep -i git"
+```
 
 ### API key issues
 

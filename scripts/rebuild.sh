@@ -8,7 +8,7 @@
 #
 # This script assumes:
 # - You are in ~/code/isaackehle/iac/portainer/
-# - The NAS is accessible via SSH as 'voyager'
+# - The NAS is accessible via SSH as 'nas'
 # - You have the IAC repo at /volume1/docker/stacks/portainer/iac/
 
 set -euo pipefail
@@ -56,17 +56,17 @@ deploy_stack() {
   
   # Step 2: Create directories on NAS
   echo "Step 2: Creating directories on NAS..."
-  ssh voyager "sudo mkdir -p ${DATA_DIR}/${stack}"
-  ssh voyager "sudo chown -R root:root ${DATA_DIR}/${stack}"
+  ssh nas "sudo mkdir -p ${DATA_DIR}/${stack}"
+  ssh nas "sudo chown -R root:root ${DATA_DIR}/${stack}"
   echo "✅ Created directories"
   
   # Step 3: Push files to NAS
   echo "Step 3: Pushing files to NAS..."
-  ssh voyager "sudo mkdir -p ${DATA_DIR}/${stack}"
-  scp "${stack}/docker-compose.yml" voyager:"${DATA_DIR}/${stack}/"
-  scp "${stack}/env.txt" voyager:"${DATA_DIR}/${stack}/"
+  ssh nas "sudo mkdir -p ${DATA_DIR}/${stack}"
+  scp "${stack}/docker-compose.yml" nas:"${DATA_DIR}/${stack}/"
+  scp "${stack}/env.txt" nas:"${DATA_DIR}/${stack}/"
   if [[ -f "${stack}/serve.json.tmpl" ]]; then
-    bash scripts/serve-all.sh "${stack}" voyager
+    bash scripts/serve-all.sh "${stack}" nas
   fi
   echo "✅ Files pushed"
   

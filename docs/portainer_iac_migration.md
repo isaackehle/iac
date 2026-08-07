@@ -2,7 +2,7 @@
 
 ## Current State
 
-**On Disk (NAS - voyager):**
+**On Disk (NAS - nas):**
 
 - ✅ `/volume1/docker/stacks/portainer/` - IAC-style directory with `.env`, `data/`, `ts-config/`, `ts-state/`
 - ✅ `/volume1/docker/portainer-secrets/` - Secure directory (700, root:root) with:
@@ -54,7 +54,7 @@ ls -la /volume1/docker/stacks/portainer/data/compose/7/portainer/
 **Option A: Copy from Mac to NAS**
 
 ```shell
-scp ~/code/isaackehle/iac/portainer/old/compose.yaml isaac@voyager.tail303fda.ts.net:/volume1/docker/stacks/portainer/docker-compose.yml
+scp ~/code/isaackehle/iac/portainer/old/compose.yaml isaac@nas.tail303fda.ts.net:/volume1/docker/stacks/portainer/docker-compose.yml
 ```
 
 **Option B: Paste directly in Container Manager UI**
@@ -93,7 +93,7 @@ sudo /var/packages/ContainerManager/target/tool/docker ps | grep portainer
 sudo /var/packages/ContainerManager/target/tool/docker exec ts-portainer tailscale status
 
 # Access Portainer
-# http://voyager.tail303fda.ts.net:9000
+# http://nas.tail303fda.ts.net:9000
 ```
 
 ## Task 3: Deploy Synology MCP Server
@@ -101,7 +101,7 @@ sudo /var/packages/ContainerManager/target/tool/docker exec ts-portainer tailsca
 ### Option A: Via Portainer UI (Recommended)
 
 1. **Open Portainer**
-   - Navigate to `http://voyager.tail303fda.ts.net:9000`
+   - Navigate to `http://nas.tail303fda.ts.net:9000`
    - Complete initial setup if needed
 
 2. **Create Stack**
@@ -154,7 +154,7 @@ doesn't exist yet). The new `INSTALLATION.md` files reflect the actual deploymen
 - [x] PORTAINER.md files renamed to INSTALLATION.md
 - [ ] Portainer container is **running** (not exited)
 - [ ] Tailscale device `portainer` is **online**
-- [ ] Can access Portainer at `http://voyager.tail303fda.ts.net:9000`
+- [ ] Can access Portainer at `http://nas.tail303fda.ts.net:9000`
 - [ ] MCP server stack is deployed
 - [ ] MCP server container is **running**
 - [ ] MCP server can connect to Synology (no error 101)

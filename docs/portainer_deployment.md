@@ -39,7 +39,7 @@ export PORTAINER_API_KEY="pt-your-api-key-here"
 ### 2. Deploy a Stack
 
 ```bash
-./scripts/deploy-to-portainer.sh langfuse voyager
+./scripts/deploy-to-portainer.sh langfuse nas
 ```
 
 This will:
@@ -144,9 +144,9 @@ Sidecar stacks (like langfuse) must include all dependencies in one `docker-comp
 
 2. Check container logs:
 
-   ```bash
-   ssh voyager "docker logs ts-langfuse --tail 50"
-   ```
+```bash
+ssh nas "docker logs ts-langfuse --tail 50"
+```
 
 3. Verify secrets are set:
 
@@ -165,9 +165,9 @@ Sidecar stacks (like langfuse) must include all dependencies in one `docker-comp
 
 2. Test GitHub access:
 
-   ```bash
-   ssh voyager "curl -sI https://raw.githubusercontent.com/isaackehle/iac/main/langfuse/docker-compose.yml"
-   ```
+```bash
+ssh nas "curl -sI https://raw.githubusercontent.com/isaackehle/iac/main/langfuse/docker-compose.yml"
+```
 
 ### API key issues
 
@@ -185,7 +185,7 @@ If Portainer API is unavailable:
 ```bash
 cd ~/code/isaackehle/iac
 ./scripts/gen-env.sh langfuse
-./scripts/deploy.sh all langfuse voyager
+./scripts/deploy.sh all langfuse nas
 ```
 
 This uses `scp -O` (legacy SCP) which works reliably with Synology DSM.
