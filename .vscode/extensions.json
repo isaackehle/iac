@@ -7,10 +7,8 @@
         "github.vscode-github-actions",
         "github.vscode-pull-request-github",
         "eamodio.gitlens",
-        "kilocode.kilo-code",
         "yzhang.markdown-all-in-one",
         "natqe.reload",
-        "rvben.rumdl",
-        "zoocodeorganization.zoo-code"
+        "rvben.rumdl"
     ]
 }
