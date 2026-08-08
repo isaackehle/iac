@@ -22,10 +22,50 @@
 #   docker compose -f nextcloud.yaml up -d
 #   docker compose -f nextcloud.yaml down
 #
+# Networking (Pattern B — Tailscale sidecar):
+#   tailscale-sidecar owns the network namespace and joins nextcloud-net.
+#   nextcloud borrows the sidecar's netns (network_mode: service:) so the
+#   sidecar's serve.json can proxy to the app over 127.0.0.1, exactly like
+#   openwebui/n8n. db and redis are siblings on nextcloud-net; nextcloud
+#   resolves them by name through the sidecar's membership on that network.
+#
 
 name: nextcloud
 
 services:
+  # ── Identity ──────────────────────────────────────────────
+  tailscale-sidecar:
+    image: tailscale/tailscale:latest
+    container_name: ts-nextcloud
+
+    # ── Lifecycle ─────────────────────────────────────────────
+    restart: unless-stopped
+
+    # ── Network ───────────────────────────────────────────────
+    # Owns the netns; joins nextcloud-net so borrowers can resolve db/redis.
+    networks:
+      - nextcloud-net
+
+    # ── Storage ───────────────────────────────────────────────
+    volumes:
+      - /volume1/docker/stacks/nextcloud/ts-config:/config
+      - /volume1/docker/stacks/nextcloud/ts-state:/var/lib/tailscale
+
+    # ── Environment ───────────────────────────────────────────
+    environment:
+      - TS_HOSTNAME=nextcloud
+      - TS_AUTHKEY=${TS_AUTHKEY}
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_AUTH_ONCE=true
+      - TS_SERVE_CONFIG=/config/serve.json
+
+    # ── Runtime ───────────────────────────────────────────────
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    devices:
+      - /dev/net/tun:/dev/net/tun
+
   # ── Identity ──────────────────────────────────────────────
   nextcloud:
     image: nextcloud:apache
@@ -34,14 +74,13 @@ services:
     # ── Lifecycle ─────────────────────────────────────────────
     restart: unless-stopped
     depends_on:
+      - tailscale-sidecar
       - db
       - redis
 
     # ── Network ───────────────────────────────────────────────
-    networks:
-      - nextcloud-net
-    ports:
-      - "30080:80"                # Web UI port (mapped from container 80)
+    # Borrows the sidecar's netns; no ports/networks of its own.
+    network_mode: service:tailscale-sidecar
 
     # ── Storage ───────────────────────────────────────────────
     volumes:
@@ -62,42 +101,6 @@ services:
       - OVERWRITECLIURL=https://${TS_CERT_DOMAIN}
       - PHP_MEMORY_LIMIT=1G
       - PHP_UPLOAD_LIMIT=10G
-
-  # ── Identity ──────────────────────────────────────────────
-  tailscale-sidecar:
-    image: tailscale/tailscale:latest
-    container_name: ts-nextcloud
-
-    # ── Lifecycle ─────────────────────────────────────────────
-    restart: unless-stopped
-    depends_on:
-      - nextcloud
-
-    # ── Network ───────────────────────────────────────────────
-    networks:
-      - nextcloud-net
-
-    # ── Storage ───────────────────────────────────────────────
-    volumes:
-      - /volume1/docker/stacks/nextcloud/ts-config:/config
-      - /volume1/docker/stacks/nextcloud/ts-state:/var/lib/tailscale
-
-    # ── Environment ───────────────────────────────────────────
-    environment:
-      - TS_HOSTNAME=nextcloud
-      - TS_AUTHKEY=${TS_AUTHKEY}
-      - TS_STATE_DIR=/var/lib/tailscale
-      - TS_AUTH_ONCE=true
-      - TS_SERVE_CONFIG=/config/serve.json
-      - NEXTCLOUD_TRUSTED_DOMAINS=${TS_CERT_DOMAIN}
-      - OVERWRITECLIURL=https://${TS_CERT_DOMAIN}
-
-    # ── Runtime ───────────────────────────────────────────────
-    cap_add:
-      - NET_ADMIN
-      - NET_RAW
-    devices:
-      - /dev/net/tun:/dev/net/tun
 
   # ── Identity ──────────────────────────────────────────────
   db:
