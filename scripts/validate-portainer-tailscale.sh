@@ -86,7 +86,7 @@ else
     echo "   ⚠ HTTPS access may not be working"
     echo "   Response: $HTTPS_RESPONSE"
     echo "   This may be expected if Tailscale serve is not configured"
-    echo "   Check: sudo docker exec ts-portainer cat /config/serve.json"
+    echo "   Check: sudo docker exec portainer-tailscale cat /config/serve.json"
 fi
 echo ""
 

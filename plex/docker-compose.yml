@@ -5,7 +5,7 @@
 #
 # Services:
 #   - primary
-#   - tailscale-sidecar (Tailscale sidecar)
+#   - tailscale (Tailscale sidecar)
 #
 # Environment variables:
 #   - STACK_NAME=Plex
@@ -29,10 +29,10 @@ services:
     # ── Lifecycle ─────────────────────────────────────────────
     restart: unless-stopped
     depends_on:
-      - tailscale-sidecar
+      - tailscale
 
     # ── Network ───────────────────────────────────────────────
-    network_mode: service:tailscale-sidecar  # Borrow the sidecar's network namespace
+    network_mode: service:tailscale  # Borrow the sidecar's network namespace
 
     # ── Storage ───────────────────────────────────────────────
     volumes:
@@ -47,9 +47,9 @@ services:
       - PLEX_CLAIM=${PLEX_CLAIM}        # Claim token from https://plex.tv/claim
 
   # ── Identity ──────────────────────────────────────────────
-  tailscale-sidecar:
+  tailscale:
     image: tailscale/tailscale:latest
-    container_name: ts-plex
+    container_name: plex-tailscale
 
     # ── Lifecycle ─────────────────────────────────────────────
     restart: unless-stopped

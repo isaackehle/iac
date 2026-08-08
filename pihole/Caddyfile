@@ -1,9 +1,9 @@
-# Caddy sits behind ts-pihole's TCPForward+TerminateTLS serve config.
+# Caddy sits behind pihole-tailscale's TCPForward+TerminateTLS serve config.
 # Tailscale terminates TLS on the tailnet-facing side (443) using its own
 # automatic cert for pihole.${TS_TAILNET_DOMAIN}, then forwards the
 # decrypted plaintext HTTP as a raw TCP stream to Caddy on 8444 — this port
 # is never published to the host, it's only reachable via the shared
-# network namespace (network_mode: service:pihole) from ts-pihole's loopback.
+# network namespace (network_mode: service:pihole) from pihole-tailscale's loopback.
 #
 # Caddy exists here purely to do the actual HTTP-level reverse proxying,
 # since tailscaled's own built-in Web/Proxy serve mode is documented as

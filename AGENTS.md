@@ -181,7 +181,7 @@ host, not just the one you changed. This is documented inline in the
 affected compose files and in `README.md`.
 
 **`pihole` is Pattern B with one deliberate variant**, not a clean example
-to copy verbatim: its `ts-pihole` sidecar uses `TCPForward`/`TerminateTLS`
+to copy verbatim: its `pihole-tailscale` sidecar uses `TCPForward`/`TerminateTLS`
 in `serve.json` instead of the usual `HTTPS: true` + `Web` shape, and routes
 through a third sibling container, `caddy`, which does the actual HTTP
 reverse-proxying. This exists because `tailscaled`'s own built-in
@@ -190,17 +190,17 @@ make Pi-hole's admin UI hang loading its own CSS/JS —
 [tailscale/tailscale#18307](https://github.com/tailscale/tailscale/issues/18307)),
 not because pihole needs anything else unusual. It also inverts the usual
 direction like `syncthing` does: `pihole` is primary (`ports:`, `hostname:`)
-and `ts-pihole`/`caddy-sidecar` both run `network_mode: service:service.primary`. See
+and `pihole-tailscale`/`caddy` both run `network_mode: service:service.primary`. See
 `README.md`'s "pihole — Pattern B + Caddy" section for the full schema
 before reapplying this elsewhere — it's a real, reusable pattern for any
 other Pattern B stack that hits the same slow-proxy wall, just not
 something to copy blind.
 
 **`portainer` now uses that same Caddy variant** (added 2026-08-03):
-`ts-portainer` does `TCPForward`/`TerminateTLS` → `caddy-portainer` on
+`portainer-tailscale` does `TCPForward`/`TerminateTLS` → `portainer-caddy` on
 `:8444` → Portainer's plain HTTP `:9000`. Note it inverts pihole's
 direction — here the *sidecar* owns the namespace and both `portainer` and
-`caddy-sidecar` borrow it, so the `depends_on` edges point the opposite way.
+`caddy` borrow it, so the `depends_on` edges point the opposite way.
 Worth reading alongside pihole's version to see which parts of the pattern
 are essential (the serve.json shape, Caddy doing the HTTP hop) and which are
 per-stack (who owns the netns).
@@ -231,8 +231,8 @@ section before editing compose files; the short version:
    differs per stack (portainer: the sidecar; pihole/syncthing: the app) —
    check `network_mode` first.
 2. **`depends_on` takes service names, never `container_name`.** Under our
-   naming convention those deliberately differ (`tailscale-sidecar` vs
-   `ts-portainer`), so this is easy to get wrong.
+   naming convention those deliberately differ (`tailscale` vs
+   `portainer-tailscale`), so this is easy to get wrong.
 3. **`network_mode: host` is incompatible with the sidecar pattern** — the
    sidecar lands on the host network next to the NAS's own `tailscaled`.
 4. **If a stack is in `STACK_EXTRA_FILES`, its compose file must consume what

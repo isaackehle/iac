@@ -2,13 +2,13 @@
 
 Quick reference for troubleshooting the `<stack>` + Tailscale stack.
 
-Replace `<stack>`, `ts-<stack>`, and `/volume1/docker/stacks/<stack>` with real values.
+Replace `<stack>`, `<stack>-tailscale`, and `/volume1/docker/stacks/<stack>` with real values.
 
 ## Container Access
 
 ```shell
 # Enter the Tailscale sidecar container
-docker exec -it ts-<stack> sh
+docker exec -it <stack>-tailscale sh
 
 # Enter the app container
 docker exec -it <stack> sh
@@ -21,7 +21,7 @@ docker exec -it <stack> sh
 cat /config/serve.json
 
 # Check what Tailscale Serve is doing (from inside the sidecar)
-docker exec ts-<stack> tailscale serve status
+docker exec <stack>-tailscale tailscale serve status
 ```
 
 ## Container Logs
@@ -31,21 +31,21 @@ docker exec ts-<stack> tailscale serve status
 docker logs <stack>
 
 # Tailscale sidecar logs
-docker logs ts-<stack>
+docker logs <stack>-tailscale
 
 # Follow logs in real-time
-docker logs -f ts-<stack>
+docker logs -f <stack>-tailscale
 ```
 
 ## Tailscale Connectivity
 
 ```shell
 # Check Tailscale status and IP
-docker exec ts-<stack> tailscale status
+docker exec <stack>-tailscale tailscale status
 
 # Check IP addresses assigned to this node
-docker exec ts-<stack> tailscale ip
-docker exec ts-<stack> tailscale serve status
+docker exec <stack>-tailscale tailscale ip
+docker exec <stack>-tailscale tailscale serve status
 ```
 
 ## Restart Services
@@ -55,7 +55,7 @@ docker exec ts-<stack> tailscale serve status
 docker compose -f /volume1/docker/stacks/<stack>/docker-compose.yml restart
 # Restart a single service
 docker compose -f /volume1/docker/stacks/<stack>/docker-compose.yml restart <stack>
-docker compose -f /volume1/docker/stacks/<stack>/docker-compose.yml restart ts-<stack>
+docker compose -f /volume1/docker/stacks/<stack>/docker-compose.yml restart <stack>-tailscale
 ```
 
 ## Config Files

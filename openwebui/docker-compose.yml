@@ -6,7 +6,7 @@
 # Services:
 #   - primary
 #   - config
-#   - tailscale-sidecar (Tailscale sidecar)
+#   - tailscale (Tailscale sidecar)
 #
 # Environment variables:
 #   - STACK_NAME=OpenWebUI
@@ -31,10 +31,10 @@ services:
     # ── Lifecycle ─────────────────────────────────────────────
     restart: unless-stopped
     depends_on:
-      - tailscale-sidecar
+      - tailscale
 
     # ── Network ───────────────────────────────────────────────
-    network_mode: service:tailscale-sidecar
+    network_mode: service:tailscale
 
     # ── Storage ───────────────────────────────────────────────
     volumes:
@@ -69,9 +69,9 @@ services:
     command: "sh -c \"chmod +x /scripts/configure-ollama.sh && timeout 30 /bin/sh -c 'until curl -sf ${OPENWEBUI_API_URL}/api/models >/dev/null 2>&1; do sleep 2; done' && /scripts/configure-ollama.sh\""
 
   # ── Identity ──────────────────────────────────────────────
-  tailscale-sidecar:
+  tailscale:
     image: tailscale/tailscale:latest
-    container_name: ts-openwebui
+    container_name: openwebui-tailscale
 
     # ── Lifecycle ─────────────────────────────────────────────
     restart: unless-stopped

@@ -9,8 +9,8 @@ narrative of the 2026-08-03 outage that produced most of these notes, see
 Four traps that cost hours during the August 2026 outage. Check them before
 anything else — each one produces symptoms that look like a different problem.
 
-**1. Never `docker restart` the sidecar alone.** `network_mode: service:ts-portainer`
-binds the namespace at container *creation*. Restarting `ts-portainer` by itself
+**1. Never `docker restart` the sidecar alone.** `network_mode: service:portainer-tailscale`
+binds the namespace at container *creation*. Restarting `portainer-tailscale` by itself
 leaves the others pointed at a dead namespace. Symptom: `netstack: could not
 connect to local backend server at 127.0.0.1:9000: connect: connection refused`,
 and mismatched uptimes in `docker ps`. Fix: `docker compose down && docker compose up -d`.
@@ -31,20 +31,20 @@ Container Manager's internal copy of an imported project, and the repo can all
 disagree. Ground truth:
 
 ```shell
-docker inspect ts-portainer --format '{{index .Config.Labels "com.docker.compose.project.config_files"}}'
-docker inspect ts-portainer --format '{{range .Mounts}}{{.Source}} -> {{.Destination}}{{"\n"}}{{end}}'
-docker exec ts-portainer cat /config/serve.json
+docker inspect portainer-tailscale --format '{{index .Config.Labels "com.docker.compose.project.config_files"}}'
+docker inspect portainer-tailscale --format '{{range .Mounts}}{{.Source}} -> {{.Destination}}{{"\n"}}{{end}}'
+docker exec portainer-tailscale cat /config/serve.json
 ```
 
 ## Health check
 
 ```shell
 docker ps -a --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'
-docker logs --tail 30 ts-portainer
+docker logs --tail 30 portainer-tailscale
 docker logs --tail 30 portainer
-docker logs --tail 30 caddy-portainer
-docker exec ts-portainer tailscale status
-docker exec ts-portainer tailscale serve status
+docker logs --tail 30 portainer-caddy
+docker exec portainer-tailscale tailscale status
+docker exec portainer-tailscale tailscale serve status
 ```
 
 Want: three containers `Up` with matching uptimes, and
@@ -74,8 +74,8 @@ If small works and large hangs, compare against a known-good sidecar on the same
 host, same peer, same relay:
 
 ```shell
-docker exec ts-portainer tailscale ping --size 1300 <your-laptop>
-docker exec ts-pihole    tailscale ping --size 1300 <your-laptop>
+docker exec portainer-tailscale tailscale ping --size 1300 <your-laptop>
+docker exec pihole-tailscale    tailscale ping --size 1300 <your-laptop>
 ```
 
 One failing while the other succeeds proves the fault is local to that node's
@@ -89,7 +89,7 @@ docker compose up -d
 ```
 
 The node gets a **new tailnet IP**; the hostname is unchanged. Cert re-issue
-takes ~2 minutes (`docker logs ts-portainer | grep -i cert` → `got cert`);
+takes ~2 minutes (`docker logs portainer-tailscale | grep -i cert` → `got cert`);
 requests before that fail with a certificate name mismatch, which is expected
 and self-resolving.
 
@@ -137,7 +137,7 @@ based on size.
 If it hangs at Client Hello with no ServerHello, that's the payload-size problem
 above, not a certificate problem. A genuine cert issue looks like
 `no alternative certificate subject name matches target host name` — check
-`docker logs ts-portainer | grep -i cert` for the ACME exchange.
+`docker logs portainer-tailscale | grep -i cert` for the ACME exchange.
 
 ### `WARN The "TS_AUTHKEY" variable is not set`
 
@@ -159,16 +159,16 @@ ssh isaac@nas "cat > /path/on/nas" < local-file
 
 ```shell
 # shell into the sidecar
-docker exec -it ts-portainer sh
+docker exec -it portainer-tailscale sh
 
 # what tailscaled thinks it's serving
-docker exec ts-portainer cat /config/serve.json
-docker exec ts-portainer tailscale serve status
-docker exec ts-portainer tailscale ip -4
+docker exec portainer-tailscale cat /config/serve.json
+docker exec portainer-tailscale tailscale serve status
+docker exec portainer-tailscale tailscale ip -4
 
 # is the backend actually up, from inside the shared namespace?
-docker exec ts-portainer wget -qO- http://127.0.0.1:9000/api/status
-docker exec ts-portainer wget -qO- http://127.0.0.1:8444/api/status   # via Caddy
+docker exec portainer-tailscale wget -qO- http://127.0.0.1:9000/api/status
+docker exec portainer-tailscale wget -qO- http://127.0.0.1:8444/api/status   # via Caddy
 ```
 
 There is no `tailscale0` interface in these containers — they run with

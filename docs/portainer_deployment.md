@@ -129,7 +129,7 @@ The script injects `.env` variables directly into the stack API call, so they're
 
 Sidecar stacks (like langfuse) must include all dependencies in one `docker-compose.yml`:
 
-- `langfuse` + `worker` + `tailscale-sidecar` + `clickhouse` + `redis` + `minio`
+- `langfuse` + `worker` + `tailscale` + `clickhouse` + `redis` + `minio`
 
 ## Troubleshooting
 
@@ -145,7 +145,7 @@ Sidecar stacks (like langfuse) must include all dependencies in one `docker-comp
 2. Check container logs:
 
 ```bash
-ssh nas "docker logs ts-langfuse --tail 50"
+ssh nas "docker logs langfuse-tailscale --tail 50"
 ```
 
 3. Verify secrets are set:

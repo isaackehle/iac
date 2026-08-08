@@ -12,8 +12,8 @@ Three containers sharing one network namespace (Pattern B — see the root
 | Container         | Role                                                          |
 | ----------------- | ------------------------------------------------------------- |
 | `portainer`       | Portainer CE. Listens on `:9000` (HTTP) and `:9443` (HTTPS).  |
-| `ts-portainer`    | Tailscale sidecar. Owns the namespace; joins the tailnet.     |
-| `caddy-portainer` | Reverse proxy. Listens on `:8444`, forwards to `:9000`.       |
+| `portainer-tailscale`    | Tailscale sidecar. Owns the namespace; joins the tailnet.     |
+| `portainer-caddy` | Reverse proxy. Listens on `:8444`, forwards to `:9000`.       |
 
 Request path for `https://portainer.<tailnet>.ts.net`:
 
@@ -27,7 +27,7 @@ tailscaled's built-in `Web`/`Proxy` serve mode is documented as 5-10x slower
 under load ([tailscale/tailscale#18307](https://github.com/tailscale/tailscale/issues/18307))
 and has caused real outages here. Pi-hole uses the identical pattern.
 
-Because all three share `ts-portainer`'s namespace, they reach each other over
+Because all three share `portainer-tailscale`'s namespace, they reach each other over
 `127.0.0.1`. Ports `9000`, `19443` (→`9443`), and `8000` are also published to
 the NAS host for LAN access; `8444` deliberately is not.
 
@@ -139,8 +139,8 @@ paste `docker-compose.yml`, then **Use existing .env file** →
 
 ```shell
 docker ps -a --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'
-docker exec ts-portainer tailscale status
-docker exec ts-portainer tailscale serve status
+docker exec portainer-tailscale tailscale status
+docker exec portainer-tailscale tailscale serve status
 ```
 
 Expect all three containers `Up` with **matching uptimes**, and serve status
@@ -173,9 +173,9 @@ docker compose pull
 docker compose down && docker compose up -d
 ```
 
-> **Never restart the sidecar alone.** `network_mode: service:ts-portainer`
-> binds the namespace at *container creation*. `docker restart ts-portainer`
-> leaves `portainer` and `caddy-portainer` pointed at a namespace that no longer
+> **Never restart the sidecar alone.** `network_mode: service:portainer-tailscale`
+> binds the namespace at *container creation*. `docker restart portainer-tailscale`
+> leaves `portainer` and `portainer-caddy` pointed at a namespace that no longer
 > exists, which presents as `connection refused` to `127.0.0.1:9000` in the
 > sidecar log. Mismatched uptimes in `docker ps` are the tell. Always
 > `down && up -d` the whole stack.

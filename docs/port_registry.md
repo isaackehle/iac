@@ -23,12 +23,12 @@ non-HTTP port — collisions on the NAS host are otherwise easy to hit blind.
 | 8971         | frigate          | TCP       | Pattern A (host serve)                  |                                                                                         |
 | 9000         | portainer        | TCP       | DSM reverse proxy (not Tailscale)       | Portainer HTTP                                                                          |
 | 9090         | langfuse (service.storage) | TCP       | Direct (non-HTTP)                       | S3 API, published on the `storage` sibling                                         |
-| 19443 → 9443 | portainer        | TCP       | DSM reverse proxy (not Tailscale)       | Portainer HTTPS; `ts-portainer` sidecar exists but is **not enabled**                   |
+| 19443 → 9443 | portainer        | TCP       | DSM reverse proxy (not Tailscale)       | Portainer HTTPS; `portainer-tailscale` sidecar exists but is **not enabled**                   |
 | 21027        | syncthing        | UDP       | Direct (non-HTTP)                       | discovery                                                                               |
 | 22000        | syncthing        | TCP + UDP | Direct (non-HTTP)                       | sync protocol                                                                           |
 
 Not host-bound, so not in the table above but worth knowing about: pihole's
-`caddy-sidecar` listens on **8444** inside the stack's shared network
+`caddy` listens on **8444** inside the stack's shared network
 namespace only — never published to the host, not reachable outside the
 `network_mode: service:service.primary` group. Won't collide with anything.
 

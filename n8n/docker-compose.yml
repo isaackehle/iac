@@ -6,7 +6,7 @@
 # Services:
 #   - primary
 #   - browserless
-#   - tailscale-sidecar (Tailscale sidecar)
+#   - tailscale (Tailscale sidecar)
 #
 # Environment variables:
 #   - STACK_NAME=n8n
@@ -23,7 +23,7 @@
 #
 # Networking (Pattern B inverted — primary owns namespace):
 #   The primary owns the network namespace and joins n8n-net,
-#   allowing it to resolve browserless by name. The tailscale-sidecar
+#   allowing it to resolve browserless by name. The tailscale
 #   borrows the primary's namespace (network_mode: service:primary),
 #   so the sidecar's serve.json can proxy to the app over 127.0.0.1.
 #
@@ -83,9 +83,9 @@ services:
       - TZ=${TZ}
 
   # ── Identity ──────────────────────────────────────────────
-  tailscale-sidecar:
+  tailscale:
     image: tailscale/tailscale:latest
-    container_name: ts-n8n
+    container_name: n8n-tailscale
 
     # ── Lifecycle ─────────────────────────────────────────────
     restart: unless-stopped

@@ -9,10 +9,10 @@ Quick reference for troubleshooting the Pi-hole + Tailscale + Caddy stack.
 docker exec -it pihole sh
 
 # Enter the Tailscale sidecar container
-docker exec -it ts-pihole sh
+docker exec -it pihole-tailscale sh
 
 # Enter the Caddy container
-docker exec -it caddy-pihole sh
+docker exec -it pihole-caddy sh
 ```
 
 ## Pi-hole Configuration
@@ -35,10 +35,10 @@ docker exec pihole ls -la /etc/pihole/
 
 ```shell
 # View the serve config mounted in the sidecar
-docker exec ts-pihole cat /config/serve.json
+docker exec pihole-tailscale cat /config/serve.json
 
 # Check what Tailscale Serve is doing (from inside the sidecar)
-docker exec ts-pihole tailscale serve status
+docker exec pihole-tailscale tailscale serve status
 ```
 
 Expect a single `TCPForward` entry on port 443 pointing at `127.0.0.1:8444`
@@ -50,22 +50,22 @@ restart — Tailscale only re-reads `TS_SERVE_CONFIG` on container start.
 ## Verifying the Caddy Hop
 
 ```shell
-# From ts-pihole: can it reach Caddy on the internal forward port?
-docker exec ts-pihole wget -qO- --timeout=5 http://127.0.0.1:8444/admin/login && echo OK
+# From pihole-tailscale: can it reach Caddy on the internal forward port?
+docker exec pihole-tailscale wget -qO- --timeout=5 http://127.0.0.1:8444/admin/login && echo OK
 
 # From Caddy: can it reach Pi-hole?
-docker exec caddy-pihole wget -qO- --timeout=5 http://127.0.0.1:80/admin/login && echo OK
+docker exec pihole-caddy wget -qO- --timeout=5 http://127.0.0.1:80/admin/login && echo OK
 
 # Caddy's own logs (access logs + any reverse_proxy errors)
-docker logs caddy-pihole
+docker logs pihole-caddy
 ```
 
 ## Container Logs
 
 ```shell
 docker logs pihole
-docker logs ts-pihole
-docker logs caddy-pihole
+docker logs pihole-tailscale
+docker logs pihole-caddy
 
 # Follow logs in real-time
 docker logs -f pihole
@@ -75,13 +75,13 @@ docker logs -f pihole
 
 ```shell
 # Check Tailscale status and IP
-docker exec ts-pihole tailscale status
+docker exec pihole-tailscale tailscale status
 
 # Check IP addresses assigned to this node
-docker exec ts-pihole tailscale ip
+docker exec pihole-tailscale tailscale ip
 
 # Verify the sidecar is connected to the tailnet
-docker exec ts-pihole tailscale ping pihole
+docker exec pihole-tailscale tailscale ping pihole
 ```
 
 ## DNS Testing
@@ -101,11 +101,11 @@ docker exec pihole dig @127.0.0.1 doubleclick.net +short
 
 | URL                                       | Description                                                       |
 | ------------------------------------------ | --------------------------------------------------------------------- |
-| `https://pihole.${TS_TAILNET_DOMAIN}`     | Pi-hole admin — primary path: `ts-pihole` (TLS) → `caddy` → Pi-hole  |
+| `https://pihole.${TS_TAILNET_DOMAIN}`     | Pi-hole admin — primary path: `pihole-tailscale` (TLS) → `caddy` → Pi-hole  |
 | `http://pihole.${TS_TAILNET_DOMAIN}:8280` | Raw debug path straight to Pi-hole — no TLS, no Caddy, no Tailscale proxying involved beyond basic reachability |
 
 If the primary URL doesn't work but the `:8280` one does, the problem is
-specifically in the `ts-pihole`→`caddy` TCPForward hop — use the "Verifying
+specifically in the `pihole-tailscale`→`caddy` TCPForward hop — use the "Verifying
 the Caddy Hop" commands above to find which link is broken.
 
 ## Restart Services
@@ -116,7 +116,7 @@ docker compose restart
 
 # Restart a single service
 docker compose restart pihole
-docker compose restart ts-pihole
+docker compose restart pihole-tailscale
 docker compose restart caddy
 
 # Restart Pi-hole DNS only (doesn't restart container)
