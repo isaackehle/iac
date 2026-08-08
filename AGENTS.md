@@ -136,8 +136,7 @@ Stacks: `affine`, `frigate`, `postgresql`
   `https+insecure://127.0.0.1:<port>` for self-signed HTTPS backends.
 
 **Pattern B — Tailscale sidecar container (own tailnet node)**
-Stacks: `homeassistant`, `langfuse`, `nextcloud`, `n8n`, `openwebui`, `plex`,
-`portainer`, `syncthing`, `pihole` (`pihole` uses a variant, see below)
+Stacks: `homeassistant`, `langfuse`, `openwebui`, `plex`, `portainer`
 
 - A `tailscale/tailscale:latest` container joins the tailnet as its own
   node (`<name>.${TS_TAILNET_DOMAIN}`) and the app container has **no
@@ -155,18 +154,24 @@ Stacks: `homeassistant`, `langfuse`, `nextcloud`, `n8n`, `openwebui`, `plex`,
   the source file is missing).
 - If the app needs an extra LAN/host port besides the tailnet URL, that
   `ports:` entry goes on the **sidecar** service, not the app (see
-  `pihole/docker-compose.yml`, `portainer/docker-compose.yml`).
+  `portainer/docker-compose.yml`).
 - If the app has sibling containers (a db, browserless, etc.), those
   siblings join a dedicated bridge network (`<stack>-net`) and **the
   sidecar also joins that same network** — that's what lets the app (which
-  has borrowed the sidecar's netns) still resolve siblings by name. Real
-  examples: `nextcloud/docker-compose.yml` (db + redis),
-  `n8n/docker-compose.yml` (browserless).
-- `syncthing` inverts the usual direction: the *app* container is primary
-  (keeps its own `ports:`/`hostname:`) and `ts-syncthing` runs
-  `network_mode: service:syncthing`, borrowing the app's netns instead of
-  the other way around. Don't assume all sidecar stacks are wired the same
-  way — check `network_mode` before editing.
+  has borrowed the sidecar's netns) still resolve siblings by name.
+
+**Pattern B inverted — primary owns namespace**
+Stacks: `n8n`, `nextcloud`, `pihole`, `postgresql`, `syncthing`
+
+- The **primary app owns the network namespace** (has `ports:`, `hostname:`,
+  joins `<stack>-net`) and the Tailscale sidecar borrows it via
+  `network_mode: service:primary` with `depends_on: [primary]`.
+- The sidecar's `serve.json` proxies to `127.0.0.1:<port>` which reaches
+  the primary since they share the same namespace.
+- Sibling containers (db, browserless, caddy) join `<stack>-net` as usual;
+  the primary resolves them directly and the sidecar inherits that resolution.
+- `pihole` and `portainer` use a variant with Caddy doing the actual HTTP
+  reverse-proxying (see below).
 
 **⚠️ Critical gotcha — never use compose `hostname:` on a Tailscale
 sidecar.** Always set the tailnet name via `TS_HOSTNAME=<name>` env var.
@@ -185,7 +190,7 @@ make Pi-hole's admin UI hang loading its own CSS/JS —
 [tailscale/tailscale#18307](https://github.com/tailscale/tailscale/issues/18307)),
 not because pihole needs anything else unusual. It also inverts the usual
 direction like `syncthing` does: `pihole` is primary (`ports:`, `hostname:`)
-and `ts-pihole`/`caddy` both run `network_mode: service:pihole`. See
+and `ts-pihole`/`caddy-sidecar` both run `network_mode: service:service.primary`. See
 `README.md`'s "pihole — Pattern B + Caddy" section for the full schema
 before reapplying this elsewhere — it's a real, reusable pattern for any
 other Pattern B stack that hits the same slow-proxy wall, just not

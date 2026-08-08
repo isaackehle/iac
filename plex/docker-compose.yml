@@ -4,7 +4,7 @@
 # Purpose: Media server with Tailscale sidecar pattern
 #
 # Services:
-#   - plex
+#   - primary
 #   - tailscale-sidecar (Tailscale sidecar)
 #
 # Environment variables:
@@ -22,7 +22,7 @@ name: plex
 
 services:
   # ── Identity ──────────────────────────────────────────────
-  plex:
+  primary:
     image: lscr.io/linuxserver/plex:latest
     container_name: plex
 

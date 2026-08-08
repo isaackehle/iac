@@ -4,7 +4,7 @@
 # Purpose: Model Context Protocol server for Synology NAS integration
 #
 # Services:
-#   - synology-mcp
+#   - primary
 #
 # Environment variables:
 #   - STACK_NAME=SynologyMCP
@@ -25,7 +25,7 @@ name: synologymcp
 
 services:
   # ── Identity ──────────────────────────────────────────────
-  synology-mcp:
+  primary:
     image: ghcr.io/modelcontextprotocol/servers/synology:latest
     container_name: synology-mcp
 

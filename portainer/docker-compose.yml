@@ -4,7 +4,7 @@
 # Purpose: Docker management interface with Tailscale sidecar
 #
 # Services:
-#   - portainer
+#   - primary
 #   - caddy-sidecar (Caddy reverse proxy)
 #   - tailscale-sidecar (Tailscale sidecar)
 #
@@ -23,7 +23,7 @@ name: portainer
 
 services:
   # ── Identity ──────────────────────────────────────────────
-  portainer:
+  primary:
     image: portainer/portainer-ce:latest
     container_name: portainer
 
@@ -63,7 +63,7 @@ services:
     restart: unless-stopped
     depends_on:
       - tailscale-sidecar
-      - portainer
+      - primary
 
     # ── Network ───────────────────────────────────────────────
     network_mode: service:tailscale-sidecar  # Share tailscale-sidecar's network stack
