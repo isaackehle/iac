@@ -73,39 +73,40 @@ deploy_stack() {
     else
       env_json+=","
     fi
-    env_json+="{\"Name\":\"$key\",\"Value\":\"$value\"}"
+    env_json+="{\"name\":\"$key\",\"value\":\"$value\"}"
   done < "$stack/.env"
   env_json+="]"
   
   echo "   Environment variables: $(echo "$env_json" | jq -r 'length')"
   
-  # Create stack JSON
+  # Build the repository-stack payload. This uses the modern Portainer endpoint
+  # POST /api/stacks/create/standalone/repository?endpointId=<id>
+  # (plain POST /api/stacks returns 405 on current Portainer versions).
   local stack_json
   stack_json=$(cat <<EOF
 {
-  "Name": "$stack",
-  "EndpointId": $endpoint_id,
-  "GitConfig": {
-    "URL": "https://github.com/$GITHUB_REPO.git",
-    "SubFolder": "$stack",
-    "Branch": "$GITHUB_BRANCH",
-    "Autoload": true,
-    "AuthenticationType": null
-  },
-  "ComposeFiles": ["docker-compose.yml"],
-  "Env": $env_json
+  "name": "$stack",
+  "composeFile": "$stack/docker-compose.yml",
+  "repositoryURL": "https://github.com/$GITHUB_REPO.git",
+  "repositoryReferenceName": "refs/heads/$GITHUB_BRANCH",
+  "repositoryAuthentication": false,
+  "env": $env_json
 }
 EOF
 )
+  
+  echo "   Stack JSON: $(echo "$stack_json" | jq -c .)"
   
   local stack_response
   stack_response=$(curl -s -X POST \
     -H "Content-Type: application/json" \
     -H "X-Api-Key: $PORTAINER_API_KEY" \
-    "$PORTAINER_URL/api/stacks" \
+    "$PORTAINER_URL/api/stacks/create/standalone/repository?endpointId=$endpoint_id" \
     -d "$stack_json")
   
-  if echo "$stack_response" | grep -q '"Error"'; then
+  echo "   Response: $stack_response"
+  
+  if echo "$stack_response" | grep -q '"message"'; then
     echo "ERROR: Failed to create stack:"
     echo "$stack_response" | jq . 2>/dev/null || echo "$stack_response"
     exit 1
@@ -116,6 +117,7 @@ EOF
   
   if [[ -z "$stack_id" || "$stack_id" == "null" ]]; then
     echo "ERROR: Failed to extract stack ID"
+    echo "Response was: $stack_response"
     exit 1
   fi
   
