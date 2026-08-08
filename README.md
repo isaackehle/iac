@@ -133,7 +133,7 @@ not handled by `tailscale serve` (HTTP/HTTPS only):
 || Service             | Port  | Protocol  | Notes                                                                                                                                       |
 | ------------------- | ----- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------- |  |
 | Pi-hole DNS | 53 | TCP + UDP | Configure as tailnet DNS resolver in admin console |  |
-| Langfuse / MinIO | 9090 | TCP | S3 API for direct media uploads — see langfuse's Pattern note (published directly on the `minio` sibling, not routed through `ts-langfuse`) |  |
+| Langfuse / MinIO | 9090 | TCP | S3 API for direct media uploads — see langfuse's Pattern note (published directly on the `minio` sibling, not routed through `langfuse-tailscale`) |  |
 | Frigate RTSP | 8554 | TCP | Use an RTSP client pointed at the Tailscale IP |  |
 | Frigate WebRTC | 8555 | TCP + UDP | UDP not proxiable via serve |  |
 | Syncthing sync | 22000 | TCP + UDP | Syncthing handles tailnet peers natively |  |

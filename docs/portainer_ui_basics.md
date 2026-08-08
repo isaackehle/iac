@@ -142,7 +142,7 @@ If configured with a Git repository:
 2. See all Docker networks
 3. Sidecar-pattern stacks use:
    - Bridge networks (e.g., `langfuse_langfuse-net`) for sibling containers
-   - Shared namespace (`network_mode: service:ts-<stack>`) for the sidecar
+   - Shared namespace (`network_mode: service:<stack>-tailscale`) for the sidecar
 
 **Do not delete networks manually** — they're managed by Docker Compose.
 
@@ -173,7 +173,7 @@ docker logs --tail 20 portainer | grep setup_token
    docker ps --format '{{.Names}}\t{{.RunningSince}}'
    ```
 
-2. If `ts-<stack>` has been running much longer than others, restart the entire stack:
+2. If `<stack>-tailscale` has been running much longer than others, restart the entire stack:
 
    ```shell
    cd /volume1/docker/stacks/<stack>
@@ -184,7 +184,7 @@ docker logs --tail 20 portainer | grep setup_token
 3. Verify Tailscale serve config:
 
    ```shell
-   docker exec ts-<stack> tailscale serve status
+   docker exec <stack>-tailscale tailscale serve status
    ```
 
 ### Container Logs Empty
@@ -221,10 +221,10 @@ docker compose down
 docker compose up -d
 
 # Check Tailscale serve status
-docker exec ts-<stack> tailscale serve status
+docker exec <stack>-tailscale tailscale serve status
 
 # Test backend from inside sidecar namespace
-docker exec ts-<stack> wget -qO- http://127.0.0.1:9000/api/status
+docker exec <stack>-tailscale wget -qO- http://127.0.0.1:9000/api/status
 ```
 
 ---

@@ -81,7 +81,7 @@ scp ~/code/isaackehle/iac/portainer/old/compose.yaml isaac@nas.tail303fda.ts.net
 
 4. **Deploy**
    - Click **Apply**
-   - Wait for both `ts-portainer` and `portainer` containers to start
+   - Wait for both `portainer-tailscale` and `portainer` containers to start
 
 ### Step 3: Verify Deployment
 
@@ -90,7 +90,7 @@ scp ~/code/isaackehle/iac/portainer/old/compose.yaml isaac@nas.tail303fda.ts.net
 sudo /var/packages/ContainerManager/target/tool/docker ps | grep portainer
 
 # Check Tailscale status
-sudo /var/packages/ContainerManager/target/tool/docker exec ts-portainer tailscale status
+sudo /var/packages/ContainerManager/target/tool/docker exec portainer-tailscale tailscale status
 
 # Access Portainer
 # http://nas.tail303fda.ts.net:9000

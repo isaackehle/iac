@@ -190,7 +190,7 @@ Deploy or redeploy a Syncthing stack on Synology using Docker Compose, with Tail
 
   ```shell
   docker logs syncthing --tail=100
-  docker logs ts-syncthing --tail=100
+  docker logs syncthing-tailscale --tail=100
   ```
 
 - [ ] Confirm Tailscale Serve is active and the tailnet URL resolves.

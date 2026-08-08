@@ -5,8 +5,8 @@
 #
 # Services:
 #   - primary
-#   - caddy-sidecar (Caddy reverse proxy)
-#   - tailscale-sidecar (Tailscale sidecar)
+#   - caddy (Caddy reverse proxy)
+#   - tailscale (Tailscale sidecar)
 #
 # Environment variables:
 #   - STACK_NAME=Portainer
@@ -30,11 +30,11 @@ services:
     # ── Lifecycle ─────────────────────────────────────────────
     restart: always
     depends_on:
-      - tailscale-sidecar
+      - tailscale
     command: ["--trusted-origins=portainer.tail303fda.ts.net"]
 
     # ── Network ───────────────────────────────────────────────
-    network_mode: service:tailscale-sidecar
+    network_mode: service:tailscale
     security_opt:
       - no-new-privileges:true
 
@@ -48,34 +48,34 @@ services:
       - /volume1/docker/stacks/portainer/.env
 
   # ── Identity ──────────────────────────────────────────────
-  # Caddy sits behind tailscale-sidecar's TCPForward+TerminateTLS serve config.
+  # Caddy sits behind tailscale's TCPForward+TerminateTLS serve config.
   # tailscaled's own built-in Web/Proxy serve mode is documented as 5-10x
   # slower under concurrent load (tailscale/tailscale#18307) — confirmed
   # tonight as an accept-then-hang on any response above a trivial size,
   # affecting both the tailnet HTTPS URL and the "direct" published port.
   # Caddy does the actual HTTP-level reverse proxying instead; see
   # pihole/Caddyfile for the identical, already-working pattern.
-  caddy-sidecar:
+  caddy:
     image: caddy:2-alpine
-    container_name: caddy-portainer
+    container_name: portainer-caddy
 
     # ── Lifecycle ─────────────────────────────────────────────
     restart: unless-stopped
     depends_on:
-      - tailscale-sidecar
+      - tailscale
       - primary
 
     # ── Network ───────────────────────────────────────────────
-    network_mode: service:tailscale-sidecar  # Share tailscale-sidecar's network stack
+    network_mode: service:tailscale  # Share tailscale's network stack
 
     # ── Storage ───────────────────────────────────────────────
     volumes:
       - /volume1/docker/stacks/portainer/caddy-config:/etc/caddy:ro
 
   # ── Identity ──────────────────────────────────────────────
-  tailscale-sidecar:
+  tailscale:
     image: tailscale/tailscale:unstable
-    container_name: ts-portainer
+    container_name: portainer-tailscale
 
     # ── Lifecycle ─────────────────────────────────────────────
     restart: unless-stopped

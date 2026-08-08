@@ -6,7 +6,7 @@
 # Services:
 #   - primary          (web/API)
 #   - worker            (async trace ingestion)
-#   - tailscale-sidecar (Tailscale sidecar — owns the netns for `primary`)
+#   - tailscale (Tailscale sidecar — owns the netns for `primary`)
 #   - config            (trace/observation storage)
 #   - cache             (queues/caching)
 #   - storage           (S3-compatible blob storage)
@@ -16,15 +16,15 @@
 # step before first deploy; see .env.example and postgresql/DEBUG.md.
 #
 # Pattern B (Tailscale sidecar) with siblings: `primary` runs
-# `network_mode: service:tailscale-sidecar` and has no ports/networks of its
+# `network_mode: service:tailscale` and has no ports/networks of its
 # own. The sidecar also joins `langfuse_langfuse-net`, which is what lets `primary`
 # resolve `config`/`cache`/`storage` by name. Both conditions must hold —
 # see langfuse/DEBUG.md.
 #
-# CRITICAL: Because `primary` and `worker` use `network_mode: service:tailscale-sidecar`,
+# CRITICAL: Because `primary` and `worker` use `network_mode: service:tailscale`,
 # they inherit their environment from the sidecar container. All required env vars
 # (DATABASE_URL, CLICKHOUSE_URL, REDIS_CONNECTION_STRING, etc.) MUST be defined
-# on the tailscale-sidecar service, NOT on primary/worker directly. env_file on
+# on the tailscale service, NOT on primary/worker directly. env_file on
 # primary/worker is IGNORED when using network_mode: service:...
 #
 # storage's S3 API is published directly on the `storage` sibling (host 9090),
@@ -51,7 +51,7 @@ services:
     # ── Lifecycle ─────────────────────────────────────────────
     restart: unless-stopped
     depends_on:
-      tailscale-sidecar:
+      tailscale:
         condition: service_started
       config:
         condition: service_healthy
@@ -61,7 +61,7 @@ services:
         condition: service_healthy
 
     # ── Network ───────────────────────────────────────────────
-    network_mode: service:tailscale-sidecar  # Borrow the sidecar's namespace
+    network_mode: service:tailscale  # Borrow the sidecar's namespace
 
     # ── Environment ───────────────────────────────────────────
     # All env vars are passed via Portainer API / env vars
@@ -117,7 +117,7 @@ services:
         condition: service_healthy
 
     # ── Network ───────────────────────────────────────────────
-    network_mode: service:tailscale-sidecar  # Borrow the sidecar's namespace
+    network_mode: service:tailscale  # Borrow the sidecar's namespace
 
     # ── Environment ───────────────────────────────────────────
     # All env vars are passed via Portainer API / env vars
@@ -146,9 +146,9 @@ services:
       - TELEMETRY_ENABLED=false
 
     # ── Identity ──────────────────────────────────────────────
-  tailscale-sidecar:
+  tailscale:
     image: tailscale/tailscale:latest
-    container_name: ts-langfuse
+    container_name: langfuse-tailscale
 
     # ── Lifecycle ─────────────────────────────────────────────
     restart: unless-stopped
@@ -165,7 +165,7 @@ services:
       - /volume1/docker/stacks/langfuse/ts-config:/config
 
     # ── Environment ───────────────────────────────────────────
-    # CRITICAL: primary and worker inherit this environment via network_mode: service:tailscale-sidecar
+    # CRITICAL: primary and worker inherit this environment via network_mode: service:tailscale
     # env_file removed - Portainer API passes env vars directly
     environment:
       # Tailscale config

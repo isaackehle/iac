@@ -35,9 +35,9 @@ Tailscale sidecar and applied via `TS_SERVE_CONFIG` on container start.
 | Container | Image                             | Role                                                        |
 | --------- | --------------------------------- | ----------------------------------------------------------- |
 | `plex`    | `lscr.io/linuxserver/plex:latest` | Plex Media Server                                           |
-| `ts-plex` | `tailscale/tailscale:latest`      | Tailscale sidecar — Plex is only reachable via your tailnet |
+| `plex-tailscale` | `tailscale/tailscale:latest`      | Tailscale sidecar — Plex is only reachable via your tailnet |
 
-The `plex` container uses `network_mode: service:ts-plex` — it borrows the
+The `plex` container uses `network_mode: service:plex-tailscale` — it borrows the
 sidecar's network namespace entirely, so it has no `ports:` of its own. Plex
 is reachable _only_ via the tailnet hostname `plex` (or whatever `serve.json`
 exposes).

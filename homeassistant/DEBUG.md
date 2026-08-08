@@ -5,7 +5,7 @@ Quick reference for troubleshooting the Home Assistant stack.
 > This stack uses **Pattern A** (host-level `tailscale serve`), not a Tailscale
 > sidecar. Home Assistant runs `network_mode: host` for device discovery, which
 > is incompatible with the sidecar pattern — a sidecar would land in the host
-> netns alongside the NAS's own `tailscaled`. There is no `ts-homeassistant`
+> netns alongside the NAS's own `tailscaled`. There is no `homeassistant-tailscale`
 > container, no `serve.json`, and no `ts-state`/`ts-config` here; the tailnet
 > mapping lives on the NAS host. See README.md "Pattern A".
 

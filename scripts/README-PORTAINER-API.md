@@ -162,7 +162,7 @@ Portainer's GitOps mode doesn't automatically inject `.env` files. You have two 
 Sidecar stacks (like langfuse) have special requirements:
 
 - All services must be in the same stack
-- `network_mode: service:tailscale-sidecar` requires all containers in same Compose file
+- `network_mode: service:tailscale` requires all containers in same Compose file
 - Ensure `docker-compose.yml` includes all dependencies (clickhouse, redis, minio, etc.)
 
 ### 5. Port Conflicts
@@ -198,7 +198,7 @@ curl -s -H "X-Api-Key: $PORTA...KEY" \
 2. Check container logs on NAS:
 
 ```bash
-ssh nas "docker logs ts-langfuse --tail 50"
+ssh nas "docker logs langfuse-tailscale --tail 50"
 ```
 
 3. Verify secrets are set:

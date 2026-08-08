@@ -5,7 +5,7 @@ Quick reference for troubleshooting the Plex stack.
 ## Container Access
 
 ```shell
-docker exec -it ts-plex sh
+docker exec -it plex-tailscale sh
 docker exec -it plex sh
 ```
 
@@ -21,16 +21,16 @@ tailscale serve status
 
 ```shell
 docker logs plex
-docker logs ts-plex
+docker logs plex-tailscale
 docker logs -f plex
 ```
 
 ## Tailscale Connectivity
 
 ```shell
-docker exec ts-plex tailscale status
-docker exec ts-plex tailscale ip
-docker exec ts-plex tailscale serve status
+docker exec plex-tailscale tailscale status
+docker exec plex-tailscale tailscale ip
+docker exec plex-tailscale tailscale serve status
 ```
 
 ## Plex-Specific Commands
@@ -49,7 +49,7 @@ docker exec plex curl -sf http://localhost:32400/identity
 ```shell
 docker compose -f /volume1/docker/stacks/plex/docker-compose.yml restart
 docker compose -f /volume1/docker/stacks/plex/docker-compose.yml restart plex
-docker compose -f /volume1/docker/stacks/plex/docker-compose.yml restart ts-plex
+docker compose -f /volume1/docker/stacks/plex/docker-compose.yml restart plex-tailscale
 ```
 
 ## Config Files

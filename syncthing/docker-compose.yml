@@ -5,7 +5,7 @@
 #
 # Services:
 #   - primary
-#   - tailscale-sidecar (Tailscale sidecar)
+#   - tailscale (Tailscale sidecar)
 #
 # Environment variables:
 #   - STACK_NAME=Syncthing
@@ -60,9 +60,9 @@ services:
       retries: 3
 
   # ── Identity ──────────────────────────────────────────────
-  tailscale-sidecar:
+  tailscale:
     image: tailscale/tailscale:latest
-    container_name: ts-syncthing
+    container_name: syncthing-tailscale
 
     # ── Lifecycle ─────────────────────────────────────────────
     restart: unless-stopped

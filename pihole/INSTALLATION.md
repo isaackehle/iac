@@ -44,8 +44,8 @@
 | Container   | Image                        | Role                                                                                                                                       |
 | ----------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
 | `pihole`    | `pihole/pihole:latest`       | Pi-hole DNS/ad blocker — HTTP admin UI on container port 80 only, publishes DNS (53) + a plain-HTTP debug port (8280) directly to the host |
-| `ts-pihole` | `tailscale/tailscale:latest` | Joins the tailnet as the `pihole` node; terminates TLS on 443 and forwards decrypted bytes to `caddy` (see below)                          |
-| `caddy`     | `caddy:2-alpine`             | Real HTTP reverse proxy from `ts-pihole`'s TCP forward to Pi-hole's `127.0.0.1:80`                                                         |
+| `pihole-tailscale` | `tailscale/tailscale:latest` | Joins the tailnet as the `pihole` node; terminates TLS on 443 and forwards decrypted bytes to `caddy` (see below)                          |
+| `caddy`     | `caddy:2-alpine`             | Real HTTP reverse proxy from `pihole-tailscale`'s TCP forward to Pi-hole's `127.0.0.1:80`                                                         |
 
 ## Pi-hole Access Architecture
 
@@ -54,11 +54,11 @@
 sidecar-only gap; DEC-153 briefly tried routing through DSM's Reverse Proxy;
 this design replaced that after finding it wasn't actually what was wanted).
 
-`ts-pihole`, `caddy`, and `pihole` all share one network namespace
+`pihole-tailscale`, `caddy`, and `pihole` all share one network namespace
 (`network_mode: service:pihole`). The tailnet-facing path is:
 
 ```text
-client --TLS--> ts-pihole:443 (tailscaled terminates TLS,
+client --TLS--> pihole-tailscale:443 (tailscaled terminates TLS,
                                 automatic Tailscale cert)
              --plaintext TCP--> caddy:8444 (internal only, not published)
              --HTTP--> pihole:80
@@ -100,7 +100,7 @@ TLS/proxy layer in the way.
 
 | URL                                       | Description                                                       |
 | ----------------------------------------- | ----------------------------------------------------------------- |
-| `https://pihole.${TS_TAILNET_DOMAIN}`     | Pi-hole admin — primary path, via `ts-pihole` → `caddy` → Pi-hole |
+| `https://pihole.${TS_TAILNET_DOMAIN}`     | Pi-hole admin — primary path, via `pihole-tailscale` → `caddy` → Pi-hole |
 | `http://pihole.${TS_TAILNET_DOMAIN}:8280` | Raw debug path, straight to Pi-hole, no TLS/proxy involved        |
 
 ## Backups

@@ -42,15 +42,15 @@ services:
     ...
 
   # Caddy sidecar (reverse proxy with HTTPS)
-  service.caddy-sidecar:
+  service.caddy:
     image: caddy:latest
-    container_name: caddy-portainer
+    container_name: portainer-caddy
     ...
 
   # Tailscale sidecar (network tunnel)
-  service.tailscale-sidecar:
+  service.tailscale:
     image: tailscale/tailscale:latest
-    container_name: ts-portainer
+    container_name: portainer-tailscale
     ...
 ```
 
@@ -65,15 +65,15 @@ services:
     ...
 
   # Caddy sidecar (reverse proxy with HTTPS)
-  service.caddy-sidecar:
+  service.caddy:
     image: caddy:latest
-    container_name: caddy-pihole
+    container_name: pihole-caddy
     ...
 
   # Tailscale sidecar (network tunnel)
-  service.tailscale-sidecar:
+  service.tailscale:
     image: tailscale/tailscale:latest
-    container_name: ts-pihole
+    container_name: pihole-tailscale
     ...
 ```
 
@@ -89,9 +89,9 @@ services:
     ...
 
   # Tailscale sidecar (network tunnel) — borrows it
-  service.tailscale-sidecar:
+  service.tailscale:
     image: tailscale/tailscale:latest
-    container_name: ts-homeassistant
+    container_name: homeassistant-tailscale
     network_mode: service:service.primary
     depends_on:
       - service.primary
@@ -180,11 +180,11 @@ volumes:
 ```yaml
 services:
   service.primary:
-    network_mode: service:service.tailscale-sidecar
+    network_mode: service:service.tailscale
     depends_on:
-      - service.tailscale-sidecar
+      - service.tailscale
 
-  service.tailscale-sidecar:
+  service.tailscale:
     # Tailscale configuration — owns the namespace, depends on nothing
     # ...
 ```
@@ -206,12 +206,12 @@ Compose refuses to start the stack with `cycle found in dependencies`.
 # CORRECT — sidecar owns the namespace, app and caddy borrow it
 services:
   primary:
-    network_mode: service:tailscale-sidecar
-    depends_on: [tailscale-sidecar]
-  caddy-sidecar:
-    network_mode: service:tailscale-sidecar
-    depends_on: [tailscale-sidecar, primary]
-  tailscale-sidecar:
+    network_mode: service:tailscale
+    depends_on: [tailscale]
+  caddy:
+    network_mode: service:tailscale
+    depends_on: [tailscale, primary]
+  tailscale:
     # no depends_on
 ```
 
@@ -220,10 +220,10 @@ services:
 services:
   primary:
     # no depends_on
-  caddy-sidecar:
+  caddy:
     network_mode: service:primary
     depends_on: [primary]
-  tailscale-sidecar:
+  tailscale:
     network_mode: service:primary
     depends_on: [primary]
 ```
@@ -232,8 +232,8 @@ services:
 # WRONG — cycle. This was homeassistant, and the stack could not start.
 services:
   primary:
-    depends_on: [tailscale-sidecar]
-  tailscale-sidecar:
+    depends_on: [tailscale]
+  tailscale:
     network_mode: service:primary
     depends_on: [primary]
 ```
@@ -245,8 +245,8 @@ every `depends_on` toward the owner.
 ### 2. `depends_on` takes **service names**, not container names
 
 `depends_on` and `network_mode: service:` both resolve against the keys under
-`services:` — never `container_name`. `depends_on: [ts-portainer]` is an error;
-the service is `tailscale-sidecar`. This bites specifically because the two
+`services:` — never `container_name`. `depends_on: [portainer-tailscale]` is an error;
+the service is `tailscale`. This bites specifically because the two
 deliberately differ under our naming convention.
 
 ### 3. `network_mode: host` is incompatible with the sidecar pattern
@@ -344,8 +344,8 @@ Service names (the keys under `services:`) must follow the standardized pattern:
 
 - **Main application**: `primary` (the primary service)
 - **Migration/job service**: `migration` (one-shot setup tasks, if applicable)
-- **Caddy sidecar**: `caddy-sidecar` (if applicable - reverse proxy with HTTPS)
-- **Tailscale sidecar**: `tailscale-sidecar` (network tunnel)
+- **Caddy sidecar**: `caddy` (if applicable - reverse proxy with HTTPS)
+- **Tailscale sidecar**: `tailscale` (network tunnel)
 - **Auxiliary services**: `config` (database), `cache` (Redis),
   `storage` (blob store), `admin` (admin UI),
   `browserless` (browser automation), `worker` (async worker), etc.
@@ -357,8 +357,8 @@ Container names (`container_name:`) remain unchanged — they keep the descripti
 Container names (`container_name:`) should be unique and descriptive:
 
 - **Main application**: `<stack-name>` (e.g., `portainer`, `pihole`)
-- **Caddy sidecar**: `caddy-<stack-name>` (e.g., `caddy-portainer`, `caddy-pihole`)
-- **Tailscale sidecar**: `ts-<stack-name>` (e.g., `ts-portainer`, `ts-pihole`)
+- **Caddy sidecar**: `<stack-name>-caddy` (e.g., `portainer-caddy`, `pihole-caddy`)
+- **Tailscale sidecar**: `<stack-name>-tailscale` (e.g., `portainer-tailscale`, `pihole-tailscale`)
 - **Auxiliary services**: `<stack-name>-<service>` (e.g., `nextcloud-db`, `nextcloud-redis`)
 
 ### Example: Standardized Naming
@@ -371,14 +371,14 @@ services:
     container_name: portainer
 
   # Caddy sidecar
-  caddy-sidecar:
+  caddy:
     image: caddy:latest
-    container_name: caddy-portainer
+    container_name: portainer-caddy
 
   # Tailscale sidecar
-  tailscale-sidecar:
+  tailscale:
     image: tailscale/tailscale:latest
-    container_name: ts-portainer
+    container_name: portainer-tailscale
 ```
 
 ## Example: Complete Portainer Compose
@@ -394,29 +394,29 @@ services:
     restart: always
     security_opt:
       - no-new-privileges:true
-    network_mode: service:tailscale-sidecar
+    network_mode: service:tailscale
     depends_on:
-      - tailscale-sidecar
+      - tailscale
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - /volume1/docker/stacks/portainer/data:/data
 
   # Caddy sidecar (reverse proxy with HTTPS)
-  caddy-sidecar:
+  caddy:
     image: caddy:latest
-    container_name: caddy-portainer
+    container_name: portainer-caddy
     restart: unless-stopped
     depends_on:
-      - tailscale-sidecar
+      - tailscale
       - primary
-    network_mode: service:tailscale-sidecar
+    network_mode: service:tailscale
     volumes:
       - /volume1/docker/stacks/portainer/caddy-config:/etc/caddy:ro
 
   # Tailscale sidecar (network tunnel)
-  tailscale-sidecar:
+  tailscale:
     image: tailscale/tailscale:latest
-    container_name: ts-portainer
+    container_name: portainer-tailscale
     restart: unless-stopped
     environment:
       - TS_HOSTNAME=${TS_HOSTNAME_PORTAINER:-portainer}
@@ -466,11 +466,11 @@ Before committing a new or updated compose file:
 
 **Style:**
 
-- [ ] Services are ordered: main app → caddy-sidecar → tailscale-sidecar → auxiliary
-- [ ] Service names use standardized pattern (`caddy-sidecar`, `tailscale-sidecar`)
+- [ ] Services are ordered: main app → caddy → tailscale → auxiliary
+- [ ] Service names use standardized pattern (`caddy`, `tailscale`)
 - [ ] Properties are ordered by logical grouping
 - [ ] Volumes are ordered by importance (secrets, state, config)
-- [ ] Container names follow naming conventions (`caddy-<stack>`, `ts-<stack>`)
+- [ ] Container names follow naming conventions (`caddy-<stack>`, `<stack>-tailscale`)
 - [ ] Environment variables use `${VAR:-default}` pattern for optional values
 - [ ] Restart policies are appropriate for each service
 - [ ] Security options are set (no-new-privileges, etc.)
@@ -479,11 +479,11 @@ Before committing a new or updated compose file:
 
 When updating existing compose files to match these standards:
 
-1. **Reorder services**: Main app → caddy-sidecar → tailscale-sidecar → auxiliary
-2. **Rename services**: Use standardized names (`primary`, `tailscale-sidecar`, `caddy-sidecar`, etc.)
+1. **Reorder services**: Main app → caddy → tailscale → auxiliary
+2. **Rename services**: Use standardized names (`primary`, `tailscale`, `caddy`, etc.)
 3. **Reorder properties**: Follow the property ordering guide
 4. **Reorder volumes**: Move secrets first, then state, then config
-5. **Update container names**: Ensure naming convention compliance (`caddy-<stack>`, `ts-<stack>`)
+5. **Update container names**: Ensure naming convention compliance (`caddy-<stack>`, `<stack>-tailscale`)
 6. **Test**: Verify the file deploys correctly
 
 ### Example: Migration from Old to New Pattern
@@ -494,7 +494,7 @@ When updating existing compose files to match these standards:
 services:
   portainer:
     ...
-  ts-portainer:
+  portainer-tailscale:
     ...
 ```
 
@@ -504,7 +504,7 @@ services:
 services:
   primary:
     ...
-  tailscale-sidecar:
+  tailscale:
     ...
 ```
 

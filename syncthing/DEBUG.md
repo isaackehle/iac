@@ -6,7 +6,7 @@ Quick reference for troubleshooting the Syncthing + Tailscale stack.
 
 ```shell
 # Enter the Tailscale sidecar container
-docker exec -it ts-syncthing sh
+docker exec -it syncthing-tailscale sh
 
 # Enter the Syncthing container
 docker exec -it syncthing sh
@@ -29,23 +29,23 @@ tailscale serve status
 docker logs syncthing
 
 # Tailscale sidecar logs
-docker logs ts-syncthing
+docker logs syncthing-tailscale
 
 # Follow logs in real-time
-docker logs -f ts-syncthing
+docker logs -f syncthing-tailscale
 ```
 
 ## Tailscale Connectivity
 
 ```shell
 # Check Tailscale status and IP
-docker exec ts-syncthing tailscale status
+docker exec syncthing-tailscale tailscale status
 
 # Check IP addresses assigned to this node
-docker exec ts-syncthing tailscale ip
+docker exec syncthing-tailscale tailscale ip
 
 # Verify Funnel/Serve is active
-docker exec ts-syncthing tailscale serve status
+docker exec syncthing-tailscale tailscale serve status
 ```
 
 ## Syncthing Access
@@ -60,7 +60,7 @@ docker exec ts-syncthing tailscale serve status
 docker compose restart
 
 # Restart a single service
-docker compose restart ts-syncthing
+docker compose restart syncthing-tailscale
 docker compose restart syncthing
 ```
 

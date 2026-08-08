@@ -66,7 +66,7 @@ MagicDNS resolution for _every_ sidecar on the host, not just this one.
 **Correct:**
 
 ```yaml
-tailscale-sidecar:
+tailscale:
   environment:
     - TS_HOSTNAME=plex # ✓ registered via Tailscale, no Docker DNS conflict
 ```
@@ -74,18 +74,18 @@ tailscale-sidecar:
 **Wrong:**
 
 ```yaml
-tailscale-sidecar:
+tailscale:
   hostname: plex # ✗ collides with other sidecar hostnames on the host
 ```
 
 ## `pihole` — Pattern B + Caddy (TCPForward, not Web/Proxy mode)
 
-`pihole` is a Pattern B sidecar setup with one difference: the `tailscale-sidecar`'s
+`pihole` is a Pattern B sidecar setup with one difference: the `tailscale`'s
 `serve.json` does **not** use the usual `Web`/`Proxy` HTTP-reverse-proxy
 mode. Instead it uses Tailscale's `TCPForward` + `TerminateTLS` mode —
 `tailscaled` still terminates TLS on 443 with its own automatic cert, but
 instead of parsing and re-proxying the HTTP request itself, it forwards the
-decrypted bytes as a raw TCP stream to a third sibling container, `caddy-sidecar`,
+decrypted bytes as a raw TCP stream to a third sibling container, `caddy`,
 which does the actual HTTP reverse-proxying to Pi-hole on `127.0.0.1:80`.
 
 Why: `tailscaled`'s own built-in `Web`/`Proxy` mode is
@@ -118,8 +118,8 @@ substitution is only confirmed to apply to `Web` map keys, not arbitrary
 `TCP` handler string fields — untested territory not worth gambling on.
 
 Port 8444 is never published to the host — it's only reachable via the
-`network_mode: service:primary` shared namespace between `tailscale-sidecar`,
-`caddy-sidecar`,
+`network_mode: service:primary` shared namespace between `tailscale`,
+`caddy`,
 and `primary` itself. `primary` still separately publishes `8280:80/tcp`
 directly (bypassing Caddy entirely) as a raw plain-HTTP debug path.
 

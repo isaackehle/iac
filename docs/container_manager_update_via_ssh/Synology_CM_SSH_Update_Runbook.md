@@ -135,7 +135,7 @@ cat ~/code/isaackehle/iac/portainer/.env | \
 sudo /var/packages/ContainerManager/target/tool/ddsmctl ps 2>&1 | grep portainer
 
 # Check logs
-docker logs ts-portainer
+docker logs portainer-tailscale
 docker logs portainer
 
 # Verify Tailscale
@@ -172,7 +172,7 @@ cp "$BACKUP_DIR/docker-compose.yml" docker-compose.yml
 
 ```shell
 # Remove the existing container
-docker rm -f ts-portainer portainer
+docker rm -f portainer-tailscale portainer
 
 # Redeploy
 # (Via Container Manager UI)
@@ -182,10 +182,10 @@ docker rm -f ts-portainer portainer
 
 ```shell
 # Check Tailscale logs
-docker logs ts-portainer | grep tailscale
+docker logs portainer-tailscale | grep tailscale
 
 # Restart Tailscale
-docker restart ts-portainer
+docker restart portainer-tailscale
 
 # Check auth key
 cat /volume1/docker/stacks/portainer/.env | grep TS_AUTHKEY

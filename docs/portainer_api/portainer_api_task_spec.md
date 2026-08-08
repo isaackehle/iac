@@ -44,7 +44,7 @@ Build or update scripts that deploy a Syncthing stack on Synology via Docker Com
 - `docker inspect syncthing`
 - `curl -f http://127.0.0.1:8384/`
 - `docker logs syncthing`
-- `docker logs ts-syncthing`
+- `docker logs syncthing-tailscale`
 
 ## Notes
 

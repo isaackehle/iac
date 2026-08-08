@@ -136,12 +136,12 @@ curl -v https://langfuse.tail303fda.ts.net
 |-----------|-------|------|
 | `langfuse` | `langfuse/langfuse:3` | Web/API — main application |
 | `langfuse-worker` | `langfuse/langfuse-worker:3` | Async trace ingestion — if traces aren't showing in the UI, check this container's logs first |
-| `ts-langfuse` | `tailscale/tailscale:latest` | Tailscale sidecar — Langfuse is only reachable via your tailnet |
+| `langfuse-tailscale` | `tailscale/tailscale:latest` | Tailscale sidecar — Langfuse is only reachable via your tailnet |
 | `langfuse-clickhouse` | `clickhouse/clickhouse-server:24.3` | Trace/observation storage |
 | `langfuse-redis` | `redis:7-alpine` | Queues/caching |
 | `langfuse-minio` | `minio/minio:latest` | S3-compatible blob storage for event/media payloads |
 
-All containers share the `langfuse-net` bridge network. The `langfuse` container uses `network_mode: service:ts-langfuse` — it borrows the sidecar's network
+All containers share the `langfuse-net` bridge network. The `langfuse` container uses `network_mode: service:langfuse-tailscale` — it borrows the sidecar's network
 namespace entirely, so it has no `ports:` of its own. That means Langfuse is reachable **only** via the tailnet hostname.
 
 **Note:** MinIO's S3 API is published directly on the `minio` sibling (host port 9090), deliberately not routed through the sidecar — see README.md's port registry.
@@ -230,7 +230,7 @@ Include `$STACK_PATH` (all data directories and `ts-state`) in your Synology bac
    docker ps --format '{{.Names}}\t{{.RunningSince}}'
    ```
 
-2. If `ts-langfuse` has been running much longer than others, restart the entire stack:
+2. If `langfuse-tailscale` has been running much longer than others, restart the entire stack:
 
    ```shell
    cd /volume1/docker/stacks/langfuse

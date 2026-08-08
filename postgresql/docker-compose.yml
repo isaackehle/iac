@@ -4,13 +4,13 @@
 # Purpose: PostgreSQL database server with pgAdmin interface
 #
 # Pattern B (Tailscale sidecar): `primary` and `admin` both run
-# `network_mode: service:tailscale-sidecar` and have no ports of their own.
+# `network_mode: service:tailscale` and have no ports of their own.
 # The sidecar owns the netns and publishes port 2665 via Tailscale serve.
 #
 # Services:
 #   - primary (PostgreSQL database)
 #   - admin (pgAdmin web interface)
-#   - tailscale-sidecar (Tailscale sidecar — owns the netns for primary/admin)
+#   - tailscale (Tailscale sidecar — owns the netns for primary/admin)
 #
 # Environment variables:
 #   - STACK_NAME=PostgreSQL
@@ -35,11 +35,11 @@ services:
     # ── Lifecycle ─────────────────────────────────────────────
     restart: on-failure:5
     depends_on:
-      tailscale-sidecar:
+      tailscale:
         condition: service_started
 
     # ── Network ───────────────────────────────────────────────
-    network_mode: service:tailscale-sidecar  # Borrow the sidecar's namespace
+    network_mode: service:tailscale  # Borrow the sidecar's namespace
 
     # ── Storage ───────────────────────────────────────────────
     volumes:
@@ -68,13 +68,13 @@ services:
     # ── Lifecycle ─────────────────────────────────────────────
     restart: on-failure:5
     depends_on:
-      tailscale-sidecar:
+      tailscale:
         condition: service_started
       primary:
         condition: service_healthy
 
     # ── Network ───────────────────────────────────────────────
-    network_mode: service:tailscale-sidecar  # Borrow the sidecar's namespace
+    network_mode: service:tailscale  # Borrow the sidecar's namespace
 
     # ── Storage ───────────────────────────────────────────────
     volumes:
@@ -97,9 +97,9 @@ services:
     user: "0:0"
 
   # ── Identity ──────────────────────────────────────────────
-  tailscale-sidecar:
+  tailscale:
     image: tailscale/tailscale:latest
-    container_name: ts-postgresql
+    container_name: postgresql-tailscale
 
     # ── Lifecycle ─────────────────────────────────────────────
     restart: unless-stopped
