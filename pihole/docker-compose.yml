@@ -4,7 +4,7 @@
 # Purpose: DNS sinkhole for ad blocking with DHCP server
 #
 # Services:
-#   - pihole
+#   - primary
 #   - caddy-sidecar (Reverse proxy with HTTPS)
 #   - tailscale-sidecar (Tailscale sidecar)
 #
@@ -26,7 +26,7 @@ name: pihole
 
 services:
   # ── Identity ──────────────────────────────────────────────
-  pihole:
+  primary:
     image: pihole/pihole:latest
     container_name: pihole
 
@@ -61,10 +61,10 @@ services:
     # ── Lifecycle ─────────────────────────────────────────────
     restart: unless-stopped
     depends_on:
-      - pihole
+      - primary
 
     # ── Network ───────────────────────────────────────────────
-    network_mode: service:pihole  # Share Pi-hole's network stack
+    network_mode: service:primary  # Share Pi-hole's network stack
 
     # ── Storage ───────────────────────────────────────────────
     volumes:
@@ -78,10 +78,10 @@ services:
     # ── Lifecycle ─────────────────────────────────────────────
     restart: unless-stopped
     depends_on:
-      - pihole
+      - primary
 
     # ── Network ───────────────────────────────────────────────
-    network_mode: service:pihole  # Share Pi-hole's network stack
+    network_mode: service:primary  # Share Pi-hole's network stack
 
     # ── Storage ───────────────────────────────────────────────
     volumes:

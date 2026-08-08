@@ -4,10 +4,10 @@
 # Purpose: Collaborative whiteboard and note-taking platform
 #
 # Services:
-#   - affine (main application)
-#   - affine_migration (database migrations)
-#   - postgres (PostgreSQL database)
-#   - redis (Redis cache)
+#   - primary (main application)
+#   - migration (database migrations)
+#   - config (PostgreSQL database)
+#   - cache (Redis cache)
 #
 # Environment variables:
 #   - STACK_NAME=Affine
@@ -29,18 +29,18 @@ name: affine
 
 services:
   # ── Identity ──────────────────────────────────────────────
-  affine:
+  primary:
     image: ghcr.io/toeverything/affine:${AFFINE_REVISION:-stable}
     container_name: affine_server
 
     # ── Lifecycle ─────────────────────────────────────────────
     restart: unless-stopped
     depends_on:
-      redis:
+      cache:
         condition: service_healthy
-      postgres:
+      config:
         condition: service_healthy
-      affine_migration:
+      migration:
         condition: service_completed_successfully
 
     # ── Network ───────────────────────────────────────────────
@@ -54,20 +54,20 @@ services:
 
     # ── Environment ───────────────────────────────────────────
     environment:
-      - REDIS_SERVER_HOST=redis
+      - REDIS_SERVER_HOST=cache
       - DATABASE_URL=postgresql://${DB_USERNAME}:${DB_PASSWORD}@postgres:5432/${DB_DATABASE:-affine}
       - AFFINE_INDEXER_ENABLED=false
 
   # ── Identity ──────────────────────────────────────────────
-  affine_migration:
+  migration:
     image: ghcr.io/toeverything/affine:${AFFINE_REVISION:-stable}
     container_name: affine_migration_job
 
     # ── Lifecycle ─────────────────────────────────────────────
     depends_on:
-      postgres:
+      config:
         condition: service_healthy
-      redis:
+      cache:
         condition: service_healthy
 
     # ── Storage ───────────────────────────────────────────────
@@ -77,7 +77,7 @@ services:
 
     # ── Environment ───────────────────────────────────────────
     environment:
-      - REDIS_SERVER_HOST=redis
+      - REDIS_SERVER_HOST=cache
       - DATABASE_URL=postgresql://${DB_USERNAME}:${DB_PASSWORD}@postgres:5432/${DB_DATABASE:-affine}
       - AFFINE_INDEXER_ENABLED=false
 
@@ -88,7 +88,7 @@ services:
       - node ./scripts/self-host-predeploy.js
 
   # ── Identity ──────────────────────────────────────────────
-  postgres:
+  config:
     image: pgvector/pgvector:pg16
     container_name: affine_postgres
 
@@ -114,7 +114,7 @@ services:
       retries: 5
 
   # ── Identity ──────────────────────────────────────────────
-  redis:
+  cache:
     image: redis
     container_name: affine_redis
 

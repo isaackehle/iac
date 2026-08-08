@@ -4,8 +4,8 @@
 # Purpose: Web UI for LLM interaction with Ollama integration
 #
 # Services:
-#   - openwebui
-#   - openwebui-config
+#   - primary
+#   - config
 #   - tailscale-sidecar (Tailscale sidecar)
 #
 # Environment variables:
@@ -24,7 +24,7 @@ name: openwebui
 
 services:
   # ── Identity ──────────────────────────────────────────────
-  openwebui:
+  primary:
     image: ghcr.io/open-webui/open-webui:latest
     container_name: openwebui
 
@@ -45,14 +45,14 @@ services:
       - TZ=${TZ}
 
   # ── Identity ──────────────────────────────────────────────
-  openwebui-config:
+  config:
     image: alpine:3.20
     container_name: openwebui-config
 
     # ── Lifecycle ─────────────────────────────────────────────
     restart: "no"
     depends_on:
-      - openwebui
+      - primary
 
     # ── Storage ───────────────────────────────────────────────
     volumes:

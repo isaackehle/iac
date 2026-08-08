@@ -3,14 +3,14 @@
 # Stack version: 2.0
 # Purpose: PostgreSQL database server with pgAdmin interface
 #
-# Pattern B (Tailscale sidecar): `db` and `pgadmin` both run
-# `network_mode: service:ts-postgresql` and have no ports of their own.
-# The sidecar owns the netns and publishes port 2660 via Tailscale serve.
+# Pattern B (Tailscale sidecar): `primary` and `admin` both run
+# `network_mode: service:tailscale-sidecar` and have no ports of their own.
+# The sidecar owns the netns and publishes port 2665 via Tailscale serve.
 #
 # Services:
-#   - db (PostgreSQL database)
-#   - pgadmin (pgAdmin web interface)
-#   - ts-postgresql (Tailscale sidecar — owns the netns for db/pgadmin)
+#   - primary (PostgreSQL database)
+#   - admin (pgAdmin web interface)
+#   - tailscale-sidecar (Tailscale sidecar — owns the netns for primary/admin)
 #
 # Environment variables:
 #   - STACK_NAME=PostgreSQL
@@ -28,18 +28,18 @@ name: postgresql
 
 services:
   # ── Identity ──────────────────────────────────────────────
-  db:
+  primary:
     image: postgres
     container_name: postgresql
 
     # ── Lifecycle ─────────────────────────────────────────────
     restart: on-failure:5
     depends_on:
-      ts-postgresql:
+      tailscale-sidecar:
         condition: service_started
 
     # ── Network ───────────────────────────────────────────────
-    network_mode: service:ts-postgresql  # Borrow the sidecar's namespace
+    network_mode: service:tailscale-sidecar  # Borrow the sidecar's namespace
 
     # ── Storage ───────────────────────────────────────────────
     volumes:
@@ -61,20 +61,20 @@ services:
     cpu_shares: 768
 
   # ── Identity ──────────────────────────────────────────────
-  pgadmin:
+  admin:
     image: dpage/pgadmin4:latest
     container_name: pgAdmin
 
     # ── Lifecycle ─────────────────────────────────────────────
     restart: on-failure:5
     depends_on:
-      ts-postgresql:
+      tailscale-sidecar:
         condition: service_started
-      db:
+      primary:
         condition: service_healthy
 
     # ── Network ───────────────────────────────────────────────
-    network_mode: service:ts-postgresql  # Borrow the sidecar's namespace
+    network_mode: service:tailscale-sidecar  # Borrow the sidecar's namespace
 
     # ── Storage ───────────────────────────────────────────────
     volumes:
@@ -97,7 +97,7 @@ services:
     user: "0:0"
 
   # ── Identity ──────────────────────────────────────────────
-  ts-postgresql:
+  tailscale-sidecar:
     image: tailscale/tailscale:latest
     container_name: ts-postgresql
 
@@ -105,7 +105,7 @@ services:
     restart: unless-stopped
 
     # ── Network ───────────────────────────────────────────────
-    # Must join postgresql-net: `db` and `pgadmin` borrow this namespace
+    # Must join postgresql-net: `primary` and `admin` borrow this namespace
     # Also join langfuse_langfuse-net so langfuse can reach postgresql by hostname
     networks:
       - postgresql-net

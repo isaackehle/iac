@@ -4,7 +4,7 @@
 # Purpose: MQTT broker for IoT device communication
 #
 # Services:
-#   - mosquitto
+#   - primary
 #
 # Environment variables:
 #   - STACK_NAME=Mosquitto
@@ -19,7 +19,7 @@ name: mosquitto
 
 services:
   # ── Identity ──────────────────────────────────────────────
-  mosquitto:
+  primary:
     image: eclipse-mosquitto:2.0
     container_name: mosquitto
 

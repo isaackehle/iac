@@ -4,7 +4,7 @@
 # Purpose: File synchronization between devices
 #
 # Services:
-#   - syncthing
+#   - primary
 #   - tailscale-sidecar (Tailscale sidecar)
 #
 # Environment variables:
@@ -24,7 +24,7 @@ name: syncthing
 
 services:
   # ── Identity ──────────────────────────────────────────────
-  syncthing:
+  primary:
     image: ghcr.io/linuxserver/syncthing:latest
     container_name: syncthing
 
@@ -67,10 +67,10 @@ services:
     # ── Lifecycle ─────────────────────────────────────────────
     restart: unless-stopped
     depends_on:
-      - syncthing
+      - primary
 
     # ── Network ───────────────────────────────────────────────
-    network_mode: service:syncthing   # Share the syncthing network stack
+    network_mode: service:primary   # Share the syncthing network stack
 
     # ── Storage ───────────────────────────────────────────────
     volumes:

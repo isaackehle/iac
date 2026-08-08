@@ -4,14 +4,14 @@
 # Purpose: Smart home automation platform
 #
 # Services:
-#   - homeassistant
+#   - primary
 #
 # Tailnet access: Pattern A (host-level `tailscale serve`), NOT a sidecar.
 #
 #   Home Assistant requires `network_mode: host` for device discovery — mDNS,
 #   Chromecast, HomeKit, and most local-network integrations do not work from
 #   inside a bridge network. That rules out the Tailscale sidecar pattern: a
-#   sidecar using `network_mode: service:homeassistant` would land in the
+#   sidecar using `network_mode: service:primary` would land in the
 #   *host* network namespace, running a second tailscaled alongside the NAS's
 #   own daemon. Both would compete to manage tailnet state on the same netns.
 #
@@ -38,7 +38,7 @@ name: homeassistant
 
 services:
   # ── Identity ──────────────────────────────────────────────
-  homeassistant:
+  primary:
     image: ghcr.io/home-assistant/home-assistant:stable
     container_name: homeassistant
 

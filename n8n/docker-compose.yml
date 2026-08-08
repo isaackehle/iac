@@ -4,7 +4,7 @@
 # Purpose: Workflow automation platform
 #
 # Services:
-#   - n8n
+#   - primary
 #   - browserless
 #   - tailscale-sidecar (Tailscale sidecar)
 #
@@ -21,23 +21,30 @@
 #   docker compose -f n8n.yaml up -d
 #   docker compose -f n8n.yaml down
 #
+# Networking (Pattern B inverted — primary owns namespace):
+#   The primary owns the network namespace and joins n8n-net,
+#   allowing it to resolve browserless by name. The tailscale-sidecar
+#   borrows the primary's namespace (network_mode: service:primary),
+#   so the sidecar's serve.json can proxy to the app over 127.0.0.1.
+#
 
 name: n8n
 
 services:
   # ── Identity ──────────────────────────────────────────────
-  n8n:
+  primary:
     image: n8nio/n8n:latest
     container_name: n8n
 
     # ── Lifecycle ─────────────────────────────────────────────
     restart: unless-stopped
-    depends_on:
-      - tailscale-sidecar
-      - browserless
 
     # ── Network ───────────────────────────────────────────────
-    network_mode: service:tailscale-sidecar
+    ports:
+      - "5678:5678"                 # n8n web UI
+    hostname: n8n
+    networks:
+      - n8n-net
 
     # ── Storage ───────────────────────────────────────────────
     volumes:
@@ -82,10 +89,11 @@ services:
 
     # ── Lifecycle ─────────────────────────────────────────────
     restart: unless-stopped
+    depends_on:
+      - primary
 
     # ── Network ───────────────────────────────────────────────
-    networks:
-      - n8n-net
+    network_mode: service:primary   # Share the primary's network stack
 
     # ── Storage ───────────────────────────────────────────────
     volumes:

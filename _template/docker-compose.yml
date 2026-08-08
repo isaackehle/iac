@@ -4,7 +4,7 @@
 # Purpose: Containerized template service(s)
 #
 # Services:
-#   - template
+#   - primary
 #   - tailscale-sidecar (Tailscale sidecar)
 #
 # Environment variables:
@@ -20,7 +20,7 @@ name: template
 
 services:
   # ── Identity ──────────────────────────────────────────────
-  template:
+  primary:
     image: your-image:latest
     container_name: template
 

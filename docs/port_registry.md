@@ -12,7 +12,7 @@ non-HTTP port — collisions on the NAS host are otherwise easy to hit blind.
 | 53           | pihole           | TCP + UDP | Direct (non-HTTP)                       | DNS                                                                                     |
 | 443          | pihole           | TCP       | `tailscaled` (TCPForward → Caddy)       | web UI, TLS terminated by Tailscale, not published to host — reachable only via tailnet |
 | 1883         | mosquitto        | TCP       | Direct (non-HTTP)                       | MQTT — no Tailscale integration                                                         |
-| 2660         | postgresql       | TCP       | Pattern A (host serve)                  | pgAdmin                                                                                 |
+| 2660         | postgresql       | TCP       | Pattern A (host serve)                  | pgAdmin (internal `admin` port)                                       |
 | 2665         | postgresql       | TCP       | Direct (non-HTTP)                       | raw Postgres, connect via Tailscale IP                                                  |
 | 3010         | affine           | TCP       | Pattern A (host serve)                  |                                                                                         |
 | 8000         | portainer        | TCP       | DSM reverse proxy (not Tailscale)       | edge agent port                                                                         |
@@ -22,15 +22,15 @@ non-HTTP port — collisions on the NAS host are otherwise easy to hit blind.
 | 8555         | frigate          | TCP + UDP | Direct (non-HTTP)                       | WebRTC — UDP not proxiable via serve                                                    |
 | 8971         | frigate          | TCP       | Pattern A (host serve)                  |                                                                                         |
 | 9000         | portainer        | TCP       | DSM reverse proxy (not Tailscale)       | Portainer HTTP                                                                          |
-| 9090         | langfuse (minio) | TCP       | Direct (non-HTTP)                       | S3 API, published on the `minio` sibling                                                |
+| 9090         | langfuse (service.storage) | TCP       | Direct (non-HTTP)                       | S3 API, published on the `storage` sibling                                         |
 | 19443 → 9443 | portainer        | TCP       | DSM reverse proxy (not Tailscale)       | Portainer HTTPS; `ts-portainer` sidecar exists but is **not enabled**                   |
 | 21027        | syncthing        | UDP       | Direct (non-HTTP)                       | discovery                                                                               |
 | 22000        | syncthing        | TCP + UDP | Direct (non-HTTP)                       | sync protocol                                                                           |
 
 Not host-bound, so not in the table above but worth knowing about: pihole's
-`caddy` sibling listens on **8444** inside the stack's shared network
+`caddy-sidecar` listens on **8444** inside the stack's shared network
 namespace only — never published to the host, not reachable outside the
-`network_mode: service:pihole` group. Won't collide with anything.
+`network_mode: service:service.primary` group. Won't collide with anything.
 
 Not covered here: DSM's own native ports (Login Portal 5000/5001, SSH 22,
 etc.) — cross-check Control Panel → Network → Firewall/Router if a

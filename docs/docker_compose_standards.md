@@ -36,19 +36,19 @@ Services should be ordered by **dependency flow**:
 ```yaml
 services:
   # Main application
-  portainer:
+  service.primary:
     image: portainer/portainer-ce:latest
     container_name: portainer
     ...
 
   # Caddy sidecar (reverse proxy with HTTPS)
-  caddy-sidecar:
+  service.caddy-sidecar:
     image: caddy:latest
     container_name: caddy-portainer
     ...
 
   # Tailscale sidecar (network tunnel)
-  tailscale-sidecar:
+  service.tailscale-sidecar:
     image: tailscale/tailscale:latest
     container_name: ts-portainer
     ...
@@ -59,19 +59,19 @@ services:
 ```yaml
 services:
   # Main application
-  pihole:
+  service.primary:
     image: pihole/pihole:latest
     container_name: pihole
     ...
 
   # Caddy sidecar (reverse proxy with HTTPS)
-  caddy-sidecar:
+  service.caddy-sidecar:
     image: caddy:latest
     container_name: caddy-pihole
     ...
 
   # Tailscale sidecar (network tunnel)
-  tailscale-sidecar:
+  service.tailscale-sidecar:
     image: tailscale/tailscale:latest
     container_name: ts-pihole
     ...
@@ -82,19 +82,19 @@ services:
 ```yaml
 services:
   # Main application — owns the namespace
-  homeassistant:
+  service.primary:
     image: ghcr.io/home-assistant/home-assistant:stable
     container_name: homeassistant
     # no depends_on — see Correctness Rule 1
     ...
 
   # Tailscale sidecar (network tunnel) — borrows it
-  tailscale-sidecar:
+  service.tailscale-sidecar:
     image: tailscale/tailscale:latest
     container_name: ts-homeassistant
-    network_mode: service:homeassistant
+    network_mode: service:service.primary
     depends_on:
-      - homeassistant
+      - service.primary
     ...
 ```
 
@@ -179,12 +179,12 @@ volumes:
 
 ```yaml
 services:
-  main-app:
-    network_mode: service:tailscale-sidecar
+  service.primary:
+    network_mode: service:service.tailscale-sidecar
     depends_on:
-      - tailscale-sidecar
+      - service.tailscale-sidecar
 
-  tailscale-sidecar:
+  service.tailscale-sidecar:
     # Tailscale configuration — owns the namespace, depends on nothing
     # ...
 ```
@@ -205,12 +205,12 @@ Compose refuses to start the stack with `cycle found in dependencies`.
 ```yaml
 # CORRECT — sidecar owns the namespace, app and caddy borrow it
 services:
-  portainer:
+  primary:
     network_mode: service:tailscale-sidecar
     depends_on: [tailscale-sidecar]
   caddy-sidecar:
     network_mode: service:tailscale-sidecar
-    depends_on: [tailscale-sidecar, portainer]
+    depends_on: [tailscale-sidecar, primary]
   tailscale-sidecar:
     # no depends_on
 ```
@@ -218,24 +218,24 @@ services:
 ```yaml
 # CORRECT — app owns the namespace (pihole pattern), sidecars borrow it
 services:
-  pihole:
+  primary:
     # no depends_on
   caddy-sidecar:
-    network_mode: service:pihole
-    depends_on: [pihole]
+    network_mode: service:primary
+    depends_on: [primary]
   tailscale-sidecar:
-    network_mode: service:pihole
-    depends_on: [pihole]
+    network_mode: service:primary
+    depends_on: [primary]
 ```
 
 ```yaml
 # WRONG — cycle. This was homeassistant, and the stack could not start.
 services:
-  homeassistant:
+  primary:
     depends_on: [tailscale-sidecar]
   tailscale-sidecar:
-    network_mode: service:homeassistant
-    depends_on: [homeassistant]
+    network_mode: service:primary
+    depends_on: [primary]
 ```
 
 Which service owns the namespace differs per stack — portainer's sidecar owns
@@ -289,7 +289,7 @@ a `healthcheck`, then depend on it properly:
 
 ```yaml
 depends_on:
-  postgres:
+  config:
     condition: service_healthy
 ```
 
@@ -342,10 +342,15 @@ every `depends_on` / `network_mode: service:` target appears under `services:`.
 
 Service names (the keys under `services:`) must follow the standardized pattern:
 
-- **Main application**: `<app-name>` (e.g., `portainer`, `pihole`, `homeassistant`)
+- **Main application**: `primary` (the primary service)
+- **Migration/job service**: `migration` (one-shot setup tasks, if applicable)
 - **Caddy sidecar**: `caddy-sidecar` (if applicable - reverse proxy with HTTPS)
 - **Tailscale sidecar**: `tailscale-sidecar` (network tunnel)
-- **Auxiliary services**: `<service-name>` (e.g., `db`, `redis`, `browserless`)
+- **Auxiliary services**: `config` (database), `cache` (Redis),
+  `storage` (blob store), `admin` (admin UI),
+  `browserless` (browser automation), `worker` (async worker), etc.
+
+Container names (`container_name:`) remain unchanged — they keep the descriptive `<stack-name>` format.
 
 ### Container Names
 
@@ -361,7 +366,7 @@ Container names (`container_name:`) should be unique and descriptive:
 ```yaml
 services:
   # Main application
-  portainer:
+  primary:
     image: portainer/portainer-ce:latest
     container_name: portainer
 
@@ -383,7 +388,7 @@ name: portainer
 
 services:
   # Main application
-  portainer:
+  primary:
     image: portainer/portainer-ce:latest
     container_name: portainer
     restart: always
@@ -403,7 +408,7 @@ services:
     restart: unless-stopped
     depends_on:
       - tailscale-sidecar
-      - portainer
+      - primary
     network_mode: service:tailscale-sidecar
     volumes:
       - /volume1/docker/stacks/portainer/caddy-config:/etc/caddy:ro
@@ -475,7 +480,7 @@ Before committing a new or updated compose file:
 When updating existing compose files to match these standards:
 
 1. **Reorder services**: Main app → caddy-sidecar → tailscale-sidecar → auxiliary
-2. **Rename services**: Change `ts-*` to `tailscale-sidecar`, `caddy-*` to `caddy-sidecar`
+2. **Rename services**: Use standardized names (`primary`, `tailscale-sidecar`, `caddy-sidecar`, etc.)
 3. **Reorder properties**: Follow the property ordering guide
 4. **Reorder volumes**: Move secrets first, then state, then config
 5. **Update container names**: Ensure naming convention compliance (`caddy-<stack>`, `ts-<stack>`)
@@ -497,9 +502,7 @@ services:
 
 ```yaml
 services:
-  portainer:
-    ...
-  caddy-sidecar:
+  primary:
     ...
   tailscale-sidecar:
     ...

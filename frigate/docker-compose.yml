@@ -4,7 +4,7 @@
 # Purpose: NVR for IP cameras with object detection
 #
 # Services:
-#   - frigate
+#   - primary
 #
 # Environment variables:
 #   - STACK_NAME=Frigate
@@ -23,7 +23,7 @@ name: frigate
 
 services:
   # ── Identity ──────────────────────────────────────────────
-  frigate:
+  primary:
     image: ghcr.io/blakeblackshear/frigate:0.16.4
     # Pinned deliberately, not `:stable` — see CLAUDE.md re: floating tags on
     # fast-moving GitOps-deployed stacks. Check current release before you

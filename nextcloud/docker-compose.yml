@@ -4,10 +4,10 @@
 # Purpose: Personal cloud storage and collaboration platform
 #
 # Services:
-#   - nextcloud
+#   - primary
 #   - tailscale-sidecar (Tailscale sidecar)
-#   - db (PostgreSQL database)
-#   - redis (Redis cache)
+#   - config (PostgreSQL database)
+#   - cache (Redis cache)
 #
 # Environment variables:
 #   - STACK_NAME=Nextcloud
@@ -22,17 +22,51 @@
 #   docker compose -f nextcloud.yaml up -d
 #   docker compose -f nextcloud.yaml down
 #
-# Networking (Pattern B — Tailscale sidecar):
-#   tailscale-sidecar owns the network namespace and joins nextcloud-net.
-#   nextcloud borrows the sidecar's netns (network_mode: service:) so the
-#   sidecar's serve.json can proxy to the app over 127.0.0.1, exactly like
-#   openwebui/n8n. db and redis are siblings on nextcloud-net; nextcloud
-#   resolves them by name through the sidecar's membership on that network.
+# Networking (Pattern B inverted — primary owns namespace):
+#   The primary owns the network namespace and joins nextcloud-net,
+#   allowing it to resolve config/cache by name. Both sidecars borrow
+#   the primary's namespace (network_mode: service:primary), so the
+#   Tailscale sidecar can proxy to the app over 127.0.0.1.
 #
 
 name: nextcloud
 
 services:
+  # ── Identity ──────────────────────────────────────────────
+  primary:
+    image: nextcloud:apache
+    container_name: nextcloud
+
+    # ── Lifecycle ─────────────────────────────────────────────
+    restart: unless-stopped
+
+    # ── Network ───────────────────────────────────────────────
+    ports:
+      - "8280:80/tcp"               # Web interface (remapped to avoid port 80)
+    hostname: nextcloud
+    networks:
+      - nextcloud-net
+
+    # ── Storage ───────────────────────────────────────────────
+    volumes:
+      - /volume1/docker/stacks/nextcloud/app:/var/www/html
+      - /volume1/docker/stacks/nextcloud/data:/var/www/html/data
+
+    # ── Environment ───────────────────────────────────────────
+    environment:
+      - POSTGRES_HOST=config
+      - POSTGRES_DB=nextcloud
+      - POSTGRES_USER=nextcloud
+      - POSTGRES_PASSWORD=${NC_DB_PASSWORD}
+      - REDIS_HOST=cache
+      - NEXTCLOUD_ADMIN_USER=${NC_ADMIN_USER}
+      - NEXTCLOUD_ADMIN_PASSWORD=${NC_ADMIN_PASSWORD}
+      - NEXTCLOUD_TRUSTED_DOMAINS=${TS_CERT_DOMAIN}
+      - OVERWRITEPROTOCOL=https
+      - OVERWRITECLIURL=https://${TS_CERT_DOMAIN}
+      - PHP_MEMORY_LIMIT=1G
+      - PHP_UPLOAD_LIMIT=10G
+
   # ── Identity ──────────────────────────────────────────────
   tailscale-sidecar:
     image: tailscale/tailscale:latest
@@ -40,11 +74,11 @@ services:
 
     # ── Lifecycle ─────────────────────────────────────────────
     restart: unless-stopped
+    depends_on:
+      - primary
 
     # ── Network ───────────────────────────────────────────────
-    # Owns the netns; joins nextcloud-net so borrowers can resolve db/redis.
-    networks:
-      - nextcloud-net
+    network_mode: service:primary   # Share the primary's network stack
 
     # ── Storage ───────────────────────────────────────────────
     volumes:
@@ -67,43 +101,7 @@ services:
       - /dev/net/tun:/dev/net/tun
 
   # ── Identity ──────────────────────────────────────────────
-  nextcloud:
-    image: nextcloud:apache
-    container_name: nextcloud
-
-    # ── Lifecycle ─────────────────────────────────────────────
-    restart: unless-stopped
-    depends_on:
-      - tailscale-sidecar
-      - db
-      - redis
-
-    # ── Network ───────────────────────────────────────────────
-    # Borrows the sidecar's netns; no ports/networks of its own.
-    network_mode: service:tailscale-sidecar
-
-    # ── Storage ───────────────────────────────────────────────
-    volumes:
-      - /volume1/docker/stacks/nextcloud/app:/var/www/html
-      - /volume1/docker/stacks/nextcloud/data:/var/www/html/data
-
-    # ── Environment ───────────────────────────────────────────
-    environment:
-      - POSTGRES_HOST=db
-      - POSTGRES_DB=nextcloud
-      - POSTGRES_USER=nextcloud
-      - POSTGRES_PASSWORD=${NC_DB_PASSWORD}
-      - REDIS_HOST=redis
-      - NEXTCLOUD_ADMIN_USER=${NC_ADMIN_USER}
-      - NEXTCLOUD_ADMIN_PASSWORD=${NC_ADMIN_PASSWORD}
-      - NEXTCLOUD_TRUSTED_DOMAINS=${TS_CERT_DOMAIN}
-      - OVERWRITEPROTOCOL=https
-      - OVERWRITECLIURL=https://${TS_CERT_DOMAIN}
-      - PHP_MEMORY_LIMIT=1G
-      - PHP_UPLOAD_LIMIT=10G
-
-  # ── Identity ──────────────────────────────────────────────
-  db:
+  config:
     image: postgres:16
     container_name: nextcloud-db
 
@@ -125,7 +123,7 @@ services:
       - POSTGRES_PASSWORD=${NC_DB_PASSWORD}
 
   # ── Identity ──────────────────────────────────────────────
-  redis:
+  cache:
     image: redis:7-alpine
     container_name: nextcloud-redis
 
