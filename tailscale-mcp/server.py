@@ -9,6 +9,7 @@ for managing devices, users, ACLs, and network configuration.
 import os
 import json
 import aiohttp
+from mcp.types import Tool
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
 from pydantic import BaseModel
@@ -103,73 +104,15 @@ tailscale_mcp = TailscaleMCP()
 
 
 @app.list_tools()
-async def list_tools() -> list:
+async def list_tools():
     """List available Tailscale admin tools."""
     return [
-        {
-            "name": "list_devices",
-            "description": "Get all devices in the Tailscale tailnet with their status and details",
-            "inputSchema": {
-                "type": "object",
-                "properties": {},
-                "required": []
-            }
-        },
-        {
-            "name": "get_device",
-            "description": "Get details for a specific device by ID",
-            "inputSchema": {
-                "type": "object",
-                "properties": {
-                    "device_id": {
-                        "type": "string",
-                        "description": "The device ID to look up"
-                    }
-                },
-                "required": ["device_id"]
-            }
-        },
-        {
-            "name": "reboot_device",
-            "description": "Reboot a specific device in the Tailscale network",
-            "inputSchema": {
-                "type": "object",
-                "properties": {
-                    "device_id": {
-                        "type": "string",
-                        "description": "The device ID to reboot"
-                    }
-                },
-                "required": ["device_id"]
-            }
-        },
-        {
-            "name": "list_users",
-            "description": "Get all users in the Tailscale tailnet",
-            "inputSchema": {
-                "type": "object",
-                "properties": {},
-                "required": []
-            }
-        },
-        {
-            "name": "get_acl",
-            "description": "Get the current ACL (Access Control List) configuration",
-            "inputSchema": {
-                "type": "object",
-                "properties": {},
-                "required": []
-            }
-        },
-        {
-            "name": "get_network_settings",
-            "description": "Get network settings and configuration for the tailnet",
-            "inputSchema": {
-                "type": "object",
-                "properties": {},
-                "required": []
-            }
-        }
+        Tool(name="list_devices", description="Get all devices in the Tailscale tailnet with their status and details", inputSchema={"type": "object", "properties": {}, "required": []}),
+        Tool(name="get_device", description="Get details for a specific device by ID", inputSchema={"type": "object", "properties": {"device_id": {"type": "string", "description": "The device ID to look up"}}, "required": ["device_id"]}),
+        Tool(name="reboot_device", description="Reboot a specific device in the Tailscale network", inputSchema={"type": "object", "properties": {"device_id": {"type": "string", "description": "The device ID to reboot"}}, "required": ["device_id"]}),
+        Tool(name="list_users", description="Get all users in the Tailscale tailnet", inputSchema={"type": "object", "properties": {}, "required": []}),
+        Tool(name="get_acl", description="Get the current ACL (Access Control List) configuration", inputSchema={"type": "object", "properties": {}, "required": []}),
+        Tool(name="get_network_settings", description="Get network settings and configuration for the tailnet", inputSchema={"type": "object", "properties": {}, "required": []})
     ]
 
 
@@ -241,7 +184,7 @@ async def main():
         await app.run(
             read_stream,
             write_stream,
-            app.create_initialization_context()
+            app.create_initialization_options()
         )
 
 
