@@ -4,14 +4,14 @@
 
 ### Step 1: Get Your Tailscale API Key
 
-1. Go to https://login.tailscale.com/admin/api
+1. Go to <https://login.tailscale.com/admin/api>
 2. Click "Generate API key"
 3. Select `Read` and `Write` permissions
 4. Copy the key (starts with `tskey-api-...`)
 
 ### Step 2: Deploy via Portainer
 
-1. Open Portainer: https://portainer.tail303fda.ts.net
+1. Open Portainer: <https://portainer.tail303fda.ts.net>
 2. Navigate to **Stacks** → **Add stack**
 3. Choose **Web editor**
 4. Paste the contents of `docker-compose.yml` from this directory
@@ -24,6 +24,7 @@
 
 1. Check the stack is running in Portainer
 2. Test the MCP server:
+
    ```bash
    curl http://100.67.2.89:8000/health
    ```
@@ -54,16 +55,19 @@ Once configured, you can use these MCP tools:
 ## Troubleshooting
 
 ### Container Won't Start
+
 - Check logs: `docker logs tailscale-mcp`
 - Verify TAILSCALE_API_KEY is set correctly
 - Ensure the API key has Read/Write permissions
 
 ### MCP Client Can't Connect
+
 - Verify the container is running: `docker ps | grep tailscale-mcp`
 - Check port 8000 is accessible: `nc -zv 100.67.2.89 8000`
 - Restart your MCP client after adding the configuration
 
 ### API Authentication Errors
+
 - Verify your API key hasn't expired
 - Check that the tailnet name matches (tail303fda)
 - Ensure the API key has the required permissions

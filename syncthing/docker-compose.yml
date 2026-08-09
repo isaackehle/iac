@@ -41,10 +41,10 @@ services:
 
     # ── Storage ───────────────────────────────────────────────
     volumes:
-      - /volume1/docker/stacks/syncthing/config:/config:rw        # App config / DB
-      - /volume1/docker/stacks/syncthing/sync:/var/syncthing/sync:rw  # Shared folders
-      - /volume1/docker/stacks/syncthing/data:/var/syncthing/data:rw  # Internal data dir
-      - /volume1/docker/stacks/syncthing/shared:/var/syncthing/shared:rw  # Shared folder (admin + isaac users)
+      - /volume1/docker/stacks/syncthing/config:/config:rw
+      - /volume1/docker/stacks/syncthing/sync:/config/sync:rw
+      - /volume1/docker/stacks/syncthing/data:/var/syncthing/data:rw
+      - /volume1/docker/stacks/syncthing/shared:/config/shared:rw  # Shared folder (admin + isaac users)
 
     # ── Environment ───────────────────────────────────────────
     environment:
