@@ -1,0 +1,16 @@
+services:
+  tailscale-mcp:
+    image: tailscale-mcp:latest
+    container_name: tailscale-mcp
+    restart: unless-stopped
+    environment:
+      - TAILSCALE_API_KEY=${TAILSCALE_API_KEY}
+      - TAILSCALE_TAILNET=${TAILSCALE_TAILNET}
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket; socket.create_connection(('localhost', 8000), timeout=2)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
