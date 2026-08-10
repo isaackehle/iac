@@ -124,10 +124,29 @@ require_stack() {
 }
 
 # get_secret_value KEY — look up KEY in $IAC_SECRETS_FILE, empty if unset/missing.
+# Values that are op:// references (official 1Password protocol) are resolved
+# via `op read`; plain values pass through unchanged. This lets secrets move
+# from the plaintext file into the 1Password secrets vault one at a time —
+# convert a value to KEY=op://<vault>/<item>/<field> and the official CLI
+# resolves it, with the file remaining the single source of truth for the
+# key list.
 get_secret_value() {
   local key="$1"
   [[ -f "$IAC_SECRETS_FILE" ]] || return 0
-  grep -m1 -E "^${key}=" "$IAC_SECRETS_FILE" | cut -d= -f2- || true
+  local value
+  value="$(grep -m1 -E "^${key}=" "$IAC_SECRETS_FILE" | cut -d= -f2- || true)"
+
+  if [[ "$value" == op://* ]]; then
+    local resolved
+    resolved="$(op read "$value" 2>/dev/null)" || {
+      echo "WARN: op read failed for $key ($value) — treating as unset" >&2
+      return 0
+    }
+    echo "$resolved"
+    return 0
+  fi
+
+  echo "$value"
 }
 
 # render_templates STACK — render every <stack>/*.tmpl file into its
