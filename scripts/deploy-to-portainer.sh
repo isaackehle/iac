@@ -7,6 +7,10 @@
 # Requires:
 #   PORTAINER_URL=https://portainer.<tailnet>.ts.net
 #   PORTAINER_API_KEY=pt-your-api-key-here
+#
+# Limitations:
+#   - Does NOT work with stacks deployed via Synology Container Manager UI
+#   - Those stacks are marked as "Limited" in Portainer and must be deployed via SSH
 
 set -euo pipefail
 
@@ -31,6 +35,12 @@ Example:
   export PORTAINER_URL="https://portainer.tail303fda.ts.net"
   export PORTAINER_API_KEY="pt-abc123..."
   scripts/deploy-to-portainer.sh langfuse nas
+
+Limitations:
+  - Does NOT work with stacks deployed via Synology Container Manager UI
+  - Those stacks are marked as "Limited" in Portainer
+  - Use SSH deployment for Container Manager stacks:
+    ./scripts/gen-env.sh <stack> && ./scripts/deploy.sh all <stack> <host>
 EOF
   exit 1
 }

@@ -1,5 +1,19 @@
 # Deploy Synology MCP Server via Container Manager
 
+> **⚠️ Important:** Stacks deployed via Container Manager are marked as **"Limited"** in Portainer and **cannot** be deployed via the Portainer API.
+>
+> If you need to use Portainer API deployment (GitOps), you must first remove the Container Manager project and redeploy using SSH:
+>
+> ```bash
+> # Remove Container Manager project first
+> ssh isaac@nas.tail303fda.ts.net "docker compose -f /volume1/docker/stacks/synology-mcp/docker-compose.yml down"
+> 
+> # Then deploy via SSH
+> cd ~/code/isaackehle/iac
+> ./scripts/gen-env.sh synology-mcp
+> ./scripts/deploy.sh all synology-mcp nas
+> ```
+
 Deploy the Synology MCP server using Synology's Container Manager UI.
 
 ## Prerequisites

@@ -1,6 +1,7 @@
 # Affine — Portainer Stack Deployment
 
-> **Recommended:** `scripts/deploy.sh all affine <ssh-host>` from the repo root handles directory setup, `.env` generation, file placement, and bringing the stack up in one step — see root `README.md`/`QUICKSTART.md`. The manual steps below are the equivalent broken out.
+> **Recommended:** `scripts/deploy.sh all affine <ssh-host>` from the repo root handles directory setup, `.env` generation, file placement, and bringing the
+> stack up in one step — see root `README.md`/`QUICKSTART.md`. The manual steps below are the equivalent broken out.
 
 ## Directory Setup (on Synology NAS)
 
@@ -52,15 +53,15 @@ scripts/deploy.sh all affine nas
 
 This single command does:
 
-1. Generates `affine/env.txt` from `iac-secrets.env`
+1. Generates `affine/.env` from `iac-secrets.env`
 2. Creates `/volume1/docker/stacks/affine/{data/storage,data/config,data/postgres}` on the NAS
-3. Copies `docker-compose.yml` and `env.txt` via SCP
+3. Copies `docker-compose.yml` and `.env` via SCP
 4. Runs `docker compose up -d` on the NAS
 
 ### Step-by-Step (if you need more control)
 
 ```shell
-# 1. Generate env.txt locally
+# 1. Generate .env locally
 scripts/gen-env.sh affine
 
 # 2. Create directories on the NAS
@@ -68,7 +69,7 @@ ssh nas "mkdir -p /volume1/docker/stacks/affine/{data/storage,data/config,data/p
 
 # 3. Push files to the NAS
 scp -O affine/docker-compose.yml nas:/volume1/docker/stacks/affine/
-scp -O affine/env.txt nas:/volume1/docker/stacks/affine/
+scp -O affine/.env nas:/volume1/docker/stacks/affine/
 
 # 4. Start the stack
 ssh nas "cd /volume1/docker/stacks/affine && docker compose up -d"

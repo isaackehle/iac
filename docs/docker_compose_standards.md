@@ -419,7 +419,7 @@ services:
     container_name: portainer-tailscale
     restart: unless-stopped
     environment:
-      - TS_HOSTNAME=${TS_HOSTNAME_PORTAINER:-portainer}
+      - TS_HOSTNAME=${TS_HOSTNAME:-portainer}
       - TS_AUTHKEY=${TS_AUTHKEY}
       - TS_STATE_DIR=/var/lib/tailscale
       - TS_AUTH_ONCE=true

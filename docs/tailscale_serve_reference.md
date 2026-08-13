@@ -67,14 +67,14 @@ pattern, the file must remain present at the mounted path.
 `pihole` uses a different `TCP` handler shape — `TCPForward` +
 `TerminateTLS` instead of `HTTPS: true` + a `Web` entry — to route around a
 documented performance problem in `tailscaled`'s own `Web`/`Proxy` mode.
-See the `pihole` — Pattern B + Caddy section in [tailscale-patterns.md](tailscale-patterns.md) for why and the exact
+See the `pihole` — Pattern B + Caddy section in [tailscale-patterns.md](tailscale_patterns.md) for why and the exact
 schema.
 
 ## Templated files (`*.tmpl`)
 
 Every sidecar stack keeps its committed `serve.json` source as
 `serve.json.tmpl`; `scripts/gen-env.sh` renders it to `serve.json`
-(gitignored, like `env.txt`) at deploy time. For most stacks the render just
+(gitignored, like `.env`) at deploy time. For most stacks the render just
 copies the file through, since Tailscale's own `${TS_CERT_DOMAIN}`
 substitution covers the node's own domain. `{{KEY}}` tokens (filled from
 `./iac-secrets.env (repo root, gitignored)`) are only needed for values Tailscale can't

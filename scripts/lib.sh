@@ -137,11 +137,25 @@ get_secret_value() {
   value="$(grep -m1 -E "^${key}=" "$IAC_SECRETS_FILE" | cut -d= -f2- || true)"
 
   if [[ "$value" == op://* ]]; then
+    # Unset OP_SERVICE_ACCOUNT tokens before calling op read — they cause
+    # 403s on user vaults. See 1password-cli skill for details.
+    local saved_sa="${OP_SERVICE_ACCOUNT:-}"
+    local saved_sa_token="${OP_SERVICE_ACCOUNT_TOKEN:-}"
+    local saved_token="${OP_TOKEN:-}"
+    unset OP_SERVICE_ACCOUNT OP_SERVICE_ACCOUNT_TOKEN OP_TOKEN
     local resolved
     resolved="$(op read "$value" 2>/dev/null)" || {
       echo "WARN: op read failed for $key ($value) — treating as unset" >&2
+      # Restore env vars before returning
+      [[ -n "$saved_sa" ]] && export OP_SERVICE_ACCOUNT="$saved_sa"
+      [[ -n "$saved_sa_token" ]] && export OP_SERVICE_ACCOUNT_TOKEN="$saved_sa_token"
+      [[ -n "$saved_token" ]] && export OP_TOKEN="$saved_token"
       return 0
     }
+    # Restore env vars
+    [[ -n "$saved_sa" ]] && export OP_SERVICE_ACCOUNT="$saved_sa"
+    [[ -n "$saved_sa_token" ]] && export OP_SERVICE_ACCOUNT_TOKEN="$saved_sa_token"
+    [[ -n "$saved_token" ]] && export OP_TOKEN="$saved_token"
     echo "$resolved"
     return 0
   fi

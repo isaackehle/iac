@@ -55,16 +55,16 @@ scripts/deploy.sh all homeassistant nas
 
 This single command does:
 
-1. Generates `homeassistant/env.txt` from `iac-secrets.env`
+1. Generates `homeassistant/.env` from `iac-secrets.env`
 2. Creates `/volume1/docker/stacks/homeassistant/config` on the NAS
-3. Copies `docker-compose.yml` and `env.txt` via SCP
+3. Copies `docker-compose.yml` and `.env` via SCP
 4. Runs `docker compose up -d` on the NAS
 5. Applies the host-level Tailscale serve mapping for port 8123
 
 ### Step-by-Step (if you need more control)
 
 ```shell
-# 1. Generate env.txt locally
+# 1. Generate .env locally
 scripts/gen-env.sh homeassistant
 
 # 2. Create directories on the NAS
@@ -72,7 +72,7 @@ ssh nas "mkdir -p /volume1/docker/stacks/homeassistant/config"
 
 # 3. Push files to the NAS
 scp -O homeassistant/docker-compose.yml nas:/volume1/docker/stacks/homeassistant/
-scp -O homeassistant/env.txt nas:/volume1/docker/stacks/homeassistant/
+scp -O homeassistant/.env nas:/volume1/docker/stacks/homeassistant/
 
 # 4. Start the stack
 ssh nas "cd /volume1/docker/stacks/homeassistant && docker compose up -d"

@@ -11,11 +11,13 @@
 #   scripts/deploy.sh dirs   <stack> <ssh-host>       # mkdir -p + chown on the NAS
 #   scripts/deploy.sh push   <stack> <ssh-host>       # scp compose/.env/extra files
 #   scripts/deploy.sh extras <stack> <ssh-host>       # scp ONLY the bind-mounted extra
-#                                                      # config (serve.json, Caddyfile,
-#                                                      # etc.) — no compose file, no
-#                                                      # .env
+#                                                     # config (serve.json, Caddyfile,
+#                                                     # etc.) — no compose file, no
+#                                                     # .env
 #   scripts/deploy.sh serve  <stack> <ssh-host>       # apply host-level tailscale serve (Pattern A/hybrid stacks)
 #   scripts/deploy.sh up     <stack> <ssh-host>       # ssh in, docker compose up -d
+#   scripts/deploy.sh api    <stack>                  # create stack in Portainer via API with GitConfig (Total control)
+#   scripts/deploy.sh down   <stack> <ssh-host>       # ssh in, docker compose down -v
 #   scripts/deploy.sh info   <stack>                  # print step-by-step deploy instructions
 #   scripts/deploy.sh all    <stack> <ssh-host>       # env + dirs + push + serve + up
 #
@@ -46,14 +48,15 @@ usage() {
 Usage: scripts/deploy.sh <command> <stack> [ssh-host]
 
 Commands:
-  env    <stack>               generate <stack>/env.txt locally from the secrets file
+  env    <stack>               generate <stack>/.env locally from the secrets file
   dirs   <stack> <ssh-host>    mkdir -p + chown the stack's directories on the NAS
-  push   <stack> <ssh-host>    scp compose file, env.txt, and extra config into place
+  push   <stack> <ssh-host>    scp compose file, .env, and extra config into place
   extras <stack> <ssh-host>    scp ONLY the extra bind-mounted config (no compose, no
-                                env.txt) — use for stacks deployed via Portainer
+                                .env) — use for stacks deployed via Portainer
                                 Repository/GitOps instead of `docker compose up -d`
   serve  <stack> <ssh-host>    apply host-level tailscale serve mappings (if any)
   up     <stack> <ssh-host>    ssh in and run `docker compose up -d`
+  down   <stack> <ssh-host>    ssh in and run `docker compose down -v` (remove volumes)
   api    <stack>               create stack in Portainer via API with GitConfig (Total control)
   info   <stack>               print deploy instructions for this stack
   all    <stack> <ssh-host>    env + dirs + push + serve + up
@@ -171,61 +174,139 @@ cmd_up() {
   ssh "$host" "cd '$remote' && /usr/local/bin/docker compose -f '$compose' up -d"
 }
 
+cmd_down() {
+  local stack="$1" host="$2"
+  require_stack "$stack"
+  local remote="${STACK_REMOTE_DIR[$stack]}"
+  local compose
+  compose="$(compose_file_for "$stack")"
+
+  echo "==> $stack: docker compose down -v on $host"
+  # -v removes anonymous volumes (data directories)
+  # Use full path because /usr/local/bin is not in PATH on the NAS
+  ssh "$host" "cd '$remote' && /usr/local/bin/docker compose -f '$compose' down -v"
+}
+
 cmd_api() {
   local stack="$1"
   require_stack "$stack"
 
   local git_url="https://github.com/isaackehle/iac.git"
+  local git_branch="main"
   local compose_path="$stack/docker-compose.yml"
-  local reference="refs/heads/main"
+  local endpoint=3
 
-  echo "==> $stack: creating stack in Portainer via API with GitConfig..."
+  echo "==> $stack: creating GitOps stack in Portainer via API..."
+  echo "  Note: This creates a REPOSITORY-based stack (GitOps)."
+  echo "  Portainer will pull docker-compose.yml from GitHub automatically."
+  echo ""
+
+  # Source secrets file if it exists (resolves op:// references via get_secret_value)
+  if [[ -f "$IAC_SECRETS_FILE" ]]; then
+    echo "==> $stack: sourcing secrets from $IAC_SECRETS_FILE"
+    
+    # Extract PORTAINER_URL and PORTAINER_API_KEY, resolving op:// references
+    if [[ -n "${PORTAINER_URL:-}" ]]; then
+      echo "   Using PORTAINER_URL from environment"
+    elif PORTAINER_URL_VAL=$(get_secret_value "PORTAINER_URL"); then
+      export PORTAINER_URL="$PORTAINER_URL_VAL"
+      echo "   Resolved PORTAINER_URL from secrets file"
+    else
+      echo "ERROR: PORTAINER_URL not set in environment or $IAC_SECRETS_FILE" >&2
+      exit 1
+    fi
+    
+    if [[ -n "${PORTAINER_API_KEY:-}" ]]; then
+      echo "   Using PORTAINER_API_KEY from environment"
+    elif PORTAINER_API_KEY_VAL=$(get_secret_value "PORTAINER_API_KEY"); then
+      export PORTAINER_API_KEY="$PORTAINER_API_KEY_VAL"
+      echo "   Resolved PORTAINER_API_KEY from secrets file"
+    else
+      echo "ERROR: PORTAINER_API_KEY not set in environment or $IAC_SECRETS_FILE" >&2
+      exit 1
+    fi
+  else
+    echo "ERROR: secrets file not found at $IAC_SECRETS_FILE" >&2
+    exit 1
+  fi
 
   if [[ -z "${PORTAINER_API_KEY:-}" ]]; then
-    echo "ERROR: PORTAINER_API_KEY not set. Add it to iac-secrets.env and re-run gen-env.sh for this stack or export it." >&2
+    echo "ERROR: PORTAINER_API_KEY not set after sourcing secrets" >&2
     exit 1
   fi
 
   if [[ -z "${PORTAINER_URL:-}" ]]; then
-    echo "ERROR: PORTAINER_URL not set. Add it to iac-secrets.env and re-run gen-env.sh for this stack or export it." >&2
+    echo "ERROR: PORTAINER_URL not set after sourcing secrets" >&2
     exit 1
   fi
 
-  # Build the JSON payload using jq
-  local payload
-  payload=$(jq -n \
-    --arg name "$stack" \
-    --arg url "$git_url" \
-    --arg ref "refs/heads/main" \
-    --arg compose "$compose_path" \
-    '{
-      name: $name,
-      RepositoryURL: $url,
-      RepositoryReferenceName: $ref,
-      ComposeFilePathInRepository: $compose,
-      GitConfig: {
-        Authentication: "",
-        ConfigFilePath: $compose,
-        URL: $url,
-        ReferenceName: $ref
-      }
-    }')
+  # Build env JSON array from .env file
+  local env_json="["
+  local first=true
+  if [[ -f "$stack/.env" ]]; then
+    while IFS='=' read -r key value || [[ -n "$key" ]]; do
+      [[ "$key" =~ ^[[:space:]]*# ]] && continue
+      [[ -z "$key" ]] && continue
+      key=$(echo "$key" | xargs)
+      value=$(echo "$value" | xargs)
+      [[ -z "$key" ]] && continue
+      value=$(printf '%s' "$value" | sed 's/\\/\\\\/g; s/"/\\"/g')
 
-  local response
-  response=$(curl -s -X POST "${PORTAINER_URL}/api/stacks/create/standalone/string" \
-    -H "X-API-Key: ${PORTAINER_API_KEY}" \
+      if [[ "$first" == true ]]; then
+        first=false
+      else
+        env_json+=","
+      fi
+      env_json+="{\"name\":\"$key\",\"value\":\"$value\"}"
+    done < "$stack/.env"
+  fi
+  env_json+="]"
+
+  echo "   Environment variables: $(echo "$env_json" | jq -r 'length')"
+
+  # Build the repository-stack payload using the GitOps endpoint
+  local stack_json
+  stack_json=$(cat <<EOF
+{
+  "name": "$stack",
+  "composeFile": "$compose_path",
+  "repositoryURL": "$git_url",
+  "repositoryReferenceName": "refs/heads/$git_branch",
+  "repositoryAuthentication": false,
+  "env": $env_json
+}
+EOF
+  )
+
+  echo "   Stack JSON: $(echo "$stack_json" | jq -c .)"
+
+  # Portainer 2.39 API: POST /api/stacks/create/standalone/repository?endpointId=<id>
+  local stack_response
+  stack_response=$(curl -s -X POST \
     -H "Content-Type: application/json" \
-    -d "$payload")
+    -H "X-Api-Key: $PORTAINER_API_KEY" \
+    "$PORTAINER_URL/api/stacks/create/standalone/repository?endpointId=$endpoint" \
+    -d "$stack_json")
 
-  if echo "$response" | jq -e '.Id' >/dev/null 2>&1; then
-    echo "✓ Stack '$stack' created in Portainer (ID: $(echo "$response" | jq -r '.Id'))"
-    echo "  → Total control enabled"
-    echo "  → GitOps auto-update enabled (watch: Settings → Stack → Watch repository)"
-  else
-    echo "✗ Failed to create stack:" >&2
-    echo "$response" | jq . >&2
+  echo "   Response: $stack_response"
+
+  if echo "$stack_response" | grep -q '"message"'; then
+    echo "ERROR: Failed to create stack:"
+    echo "$stack_response" | jq . 2>/dev/null || echo "$stack_response"
     exit 1
   fi
+
+  local stack_id
+  stack_id=$(echo "$stack_response" | jq -r '.Id // empty')
+
+  if [[ -z "$stack_id" || "$stack_id" == "null" ]]; then
+    echo "ERROR: Failed to extract stack ID"
+    echo "Response was: $stack_response"
+    exit 1
+  fi
+
+  echo "   Stack created: ID=$stack_id"
+  echo "   → GitOps mode (will pull from GitHub automatically)"
 }
 
 cmd_all() {
@@ -252,8 +333,8 @@ cmd_info() {
   echo "=== Deploy: $stack ==="
   echo ""
 
-  # Step 1: generate env.txt
-  echo "1. Generate env.txt:"
+  # Step 1: generate .env
+  echo "1. Generate .env:"
   echo "   scripts/deploy.sh env $stack"
   echo ""
 
@@ -316,7 +397,7 @@ case "$command" in
   env|info)
     cmd_"$command" "$stack"
     ;;
-  dirs|push|extras|serve|up|all)
+  dirs|push|extras|serve|up|down)
     [[ -n "$host" ]] || usage
     "cmd_${command}" "$stack" "$host"
     ;;

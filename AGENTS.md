@@ -50,11 +50,11 @@ every key every stack needs, grouped by stack with `# --- stackname ---`
 comments.
 
 **`scripts/gen-env.sh <stack>`** cross-references a stack's `.env.example`
-against the central secrets file and writes a real `<stack>/env.txt`
-(gitignored). Named `env.txt`, not `.env` — dotfiles are hidden by default
+against the central secrets file and writes a real `<stack>/.env`
+(gitignored). Named `.env`, not `.env` — dotfiles are hidden by default
 in most OS file pickers, which makes Portainer's "Load variables from .env
 file" button annoying to use with a literal `.env`; `docker compose`
-therefore needs `--env-file env.txt` passed explicitly (it only auto-loads
+therefore needs `--env-file .env` passed explicitly (it only auto-loads
 a file literally named `.env`) — `scripts/deploy.sh up` already does this.
 Resolution order per key: secrets file → derived value (only
 for `TS_CERT_DOMAIN`, computed as `<stack>.<TS_TAILNET_DOMAIN>` if
@@ -69,7 +69,7 @@ If you're asked to add a new env var to a stack: add it to that stack's
 to either — those only ever go in the user's real `iac-secrets.env`,
 which you should never print or exfiltrate the contents of.
 
-Generated `<stack>/env.txt` files are throwaway — they are not committed
+Generated `<stack>/.env` files are throwaway — they are not committed
 and not kept around; `scripts/gen-env.sh` regenerates them on demand at
 deploy time. `scripts/deploy.sh env` is a no-network alias for this.
 
@@ -77,7 +77,7 @@ deploy time. `scripts/deploy.sh env` is a no-network alias for this.
 
 Every sidecar stack keeps its committed `serve.json` source as
 `serve.json.tmpl`; `scripts/gen-env.sh` (via `render_templates` in
-`scripts/lib.sh`) renders it to `serve.json` (gitignored, like `env.txt`) at
+`scripts/lib.sh`) renders it to `serve.json` (gitignored, like `.env`) at
 deploy time. For most stacks the render just copies the file through —
 Tailscale's own `${TS_CERT_DOMAIN}` runtime substitution covers the node's
 own domain. `{{KEY}}` tokens (filled from the secrets file) are only needed
@@ -100,7 +100,7 @@ This replaces what used to be bespoke per-stack `init.sh` / `apply-serve.sh`
   paths" below — most are `/volume1/docker/stacks/<name>`, four are not)
 - `STACK_DIRS` — subdirectories to `mkdir -p` under that path
 - `STACK_EXTRA_FILES` — `local:remote` file pairs to copy beyond the
-  compose file and `env.txt` (mostly `serve.json`)
+  compose file and `.env` (mostly `serve.json`)
 - `STACK_CHOWN_OVERRIDES` — `dir:uid:gid` for the few stacks that need a
   non-session-user owner (nextcloud's `app`/`data` need `33:33` for
   Apache's `www-data`; n8n's `config` needs `1000:1000`)
@@ -258,7 +258,7 @@ longer exists. Always `docker compose down && docker compose up -d`.
 ## Known bugs already fixed (context for git blame / history)
 
 - `postgresql/docker-compose.yml` used to have real DB/pgAdmin credentials
-  hardcoded in plaintext (now parameterized via `env.txt`). Those values were
+  hardcoded in plaintext (now parameterized via `.env`). Those values were
   already committed to git history before the fix — rotating the actual
   NAS credentials is a manual follow-up, not something fixable by editing
   files here.
@@ -292,9 +292,9 @@ longer exists. Always `docker compose down && docker compose up -d`.
 
 ## Environment variable conventions
 
-- Naming: inside a stack's compose file and generated `env.txt`, the
+- Naming: inside a stack's compose file and generated `.env`, the
   Tailscale auth key is just `TS_AUTHKEY` (each stack has its own
-  `env.txt`, so no collision). The *central* secrets file keeps them
+  `.env`, so no collision). The *central* secrets file keeps them
   distinct as
   `TS_AUTHKEY_<STACK>` since it's a single file holding every stack's key —
   `gen-env.sh` maps `TS_AUTHKEY_<STACK>` → `TS_AUTHKEY` at generation time.
@@ -313,12 +313,12 @@ longer exists. Always `docker compose down && docker compose up -d`.
 1. `cd <stack>` and read its `docker-compose.yml`, `.env.example`, and
    `PORTAINER.md`/`README.md` if present — conventions vary per stack,
    don't assume `_template/` is followed exactly everywhere.
-2. Validate compose changes with `docker compose --env-file env.txt config`
+2. Validate compose changes with `docker compose --env-file .env config`
    (catches YAML/interpolation errors without needing the real NAS or
-   secrets — it'll fail if the local `env.txt` doesn't exist or is missing
+   secrets — it'll fail if the local `.env` doesn't exist or is missing
    a referenced var, so run `scripts/gen-env.sh <stack>` first; note the
    explicit `--env-file` — compose only auto-loads a file literally named
-   `.env`, and this repo generates `env.txt` instead, see "Secrets" above).
+   `.env`, and this repo generates `.env` instead, see "Secrets" above).
 3. If adding a new env var, update both that stack's `.env.example` and
    `iac-secrets.env.example` (see "Secrets" above).
 4. If adding a new sidecar-pattern stack, start from `_template/` and
@@ -334,12 +334,12 @@ longer exists. Always `docker compose down && docker compose up -d`.
 ## Commands
 
 ```shell
-# Generate a stack's real env.txt from the central secrets file
+# Generate a stack's real .env from the central secrets file
 scripts/gen-env.sh <stack>
 scripts/gen-env.sh --all
 
-# Validate a stack's compose file without deploying (needs env.txt to exist)
-cd <stack> && docker compose --env-file env.txt config
+# Validate a stack's compose file without deploying (needs .env to exist)
+cd <stack> && docker compose --env-file .env config
 
 # Full deploy pipeline (env + dirs + push + serve + up) — requires SSH
 # access to the NAS, not runnable from this sandbox

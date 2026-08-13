@@ -29,7 +29,7 @@ Open `https://portainer.tail303fda.ts.net` in your browser. If you haven't creat
 4. Enter a name for the stack (e.g., `langfuse`)
 5. Paste the contents of your `docker-compose.yml`
 6. Click **Deploy stack**
-7. Portainer will prompt you to associate an environment file — browse to `/volume1/docker/stacks/<stack>/env.txt`
+7. Portainer will prompt you to associate an environment file — browse to `/volume1/docker/stacks/<stack>/.env`
 
 ### From Existing Stack Directory
 
@@ -39,7 +39,7 @@ If you've already pushed files to the NAS:
 2. Click **Add stack**
 3. Choose **Git repository** (if using GitOps) or **Web editor**
 4. For GitOps: point to your GitHub repo and Portainer will auto-pull updates
-5. For manual: paste the compose YAML and associate with existing `env.txt`
+5. For manual: paste the compose YAML and associate with existing `.env`
 
 ---
 
@@ -198,7 +198,7 @@ docker logs --tail 20 portainer | grep setup_token
 ## Best Practices
 
 1. **Always use `docker compose down && up -d`** for sidecar stacks — never restart the sidecar alone
-2. **Associate env.txt files** when deploying stacks — Portainer won't inject environment variables otherwise
+2. **Associate .env files** when deploying stacks — Portainer won't inject environment variables otherwise
 3. **Test from a tailnet node** — don't test `.ts.net` URLs from the NAS itself (DNS resolution differs)
 4. **Backup Portainer's data volume** — `/volume1/docker/stacks/portainer/data/` contains `portainer.db`
 5. **Use GitOps for production stacks** — auto-deploy from GitHub on push

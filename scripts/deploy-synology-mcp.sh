@@ -14,7 +14,7 @@ Usage: scripts/deploy.sh <command> <ssh-host>
 
 Commands:
   dirs   <ssh-host>    mkdir -p + chown the stack's directories on the NAS
-  push   <ssh-host>    scp compose/env.txt files to NAS
+  push   <ssh-host>    scp compose/.env files to NAS
   up     <ssh-host>    docker compose up -d on NAS
   all    <ssh-host>    dirs + push + up
 

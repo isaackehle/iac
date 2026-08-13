@@ -81,7 +81,7 @@ if it leaks, treat it as a full compromise and rotate it.
 Create `/volume1/docker/stacks/portainer/.env`:
 
 ```shell
-TS_HOSTNAME_PORTAINER=portainer
+TS_HOSTNAME=portainer
 TS_AUTHKEY=tskey-your-auth-key-here
 TS_CERT_DOMAIN=portainer.your-tailnet.ts.net
 ```

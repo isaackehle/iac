@@ -39,43 +39,43 @@ deploy_stack() {
   echo "=========================================="
   echo "Deploying $stack..."
   echo "=========================================="
-  
-  # Step 1: Generate env.txt locally
-  echo "Step 1: Generating env.txt..."
+
+  # Step 1: Generate .env locally
+  echo "Step 1: Generating .env..."
   cd "$SCRIPT_DIR"
   if [[ ! -f "scripts/gen-env.sh" ]]; then
     echo "❌ gen-env.sh not found in $SCRIPT_DIR"
     exit 1
   fi
   bash scripts/gen-env.sh "$stack"
-  if [[ ! -f "${stack}/env.txt" ]]; then
-    echo "❌ Failed to generate env.txt for $stack"
+  if [[ ! -f "${stack}/.env" ]]; then
+    echo "❌ Failed to generate .env for $stack"
     exit 1
   fi
-  echo "✅ Generated ${stack}/env.txt"
-  
+  echo "✅ Generated ${stack}/.env"
+
   # Step 2: Create directories on NAS
   echo "Step 2: Creating directories on NAS..."
   ssh nas "sudo mkdir -p ${DATA_DIR}/${stack}"
   ssh nas "sudo chown -R root:root ${DATA_DIR}/${stack}"
   echo "✅ Created directories"
-  
+
   # Step 3: Push files to NAS
   echo "Step 3: Pushing files to NAS..."
   ssh nas "sudo mkdir -p ${DATA_DIR}/${stack}"
   scp "${stack}/docker-compose.yml" nas:"${DATA_DIR}/${stack}/"
-  scp "${stack}/env.txt" nas:"${DATA_DIR}/${stack}/"
+  scp "${stack}/.env" nas:"${DATA_DIR}/${stack}/"
   if [[ -f "${stack}/serve.json.tmpl" ]]; then
     bash scripts/serve-all.sh "${stack}" nas
   fi
   echo "✅ Files pushed"
-  
+
   # Step 4: Apply via Portainer or docker compose
   echo "Step 4: Applying deployment..."
   echo "   Option A: Use Portainer UI to deploy from ${DATA_DIR}/${stack}/docker-compose.yml"
   echo "   Option B: Run 'sudo docker compose -f ${DATA_DIR}/${stack}/docker-compose.yml up -d' on NAS"
   echo "✅ Deployment ready"
-  
+
   echo "=========================================="
   echo "✅ $stack deployed successfully!"
   echo "=========================================="
