@@ -122,23 +122,41 @@ curl -s -X POST -H "X-Api-Key: $PORTAINER_API_KEY" \
   "$PORTAINER_URL/api/stacks/$stack_id/pull"
 ```
 
-## Pitfalls
+## Limitations
 
-### 1. API Key Permissions
+### 1. Container Manager Deployments
+
+If a stack was previously deployed via **Synology Container Manager UI**,
+it will be marked as **"Limited"** in Portainer. The Portainer API
+**cannot** manage these stacks because:
+
+- Container Manager creates its own project structure
+- Portainer's GitOps deployment only works with Docker API-managed stacks
+- You must use SSH-based deployment for Container Manager stacks
+
+**Solution:** Use SSH deployment instead:
+
+```bash
+cd ~/code/isaackehle/iac
+./scripts/gen-env.sh synology-mcp
+./scripts/deploy.sh all synology-mcp nas
+```
+
+### 2. API Key Permissions
 
 Ensure the API key has sufficient permissions:
 
 - **Admin** role: Full access to all stacks
 - **Stack** role: Can manage stacks only
 
-### 2. GitOps Polling Interval
+### 3. GitOps Polling Interval
 
 Portainer polls GitHub every 15 minutes by default. To change:
 
 - Portainer UI → Settings → Docker → Git polling interval
 - Or create stack with custom `PollingInterval` in GitConfig
 
-### 3. Environment Variable Injection
+### 4. Environment Variable Injection
 
 Portainer's GitOps mode doesn't automatically inject `.env` files. You have two options:
 
@@ -157,7 +175,7 @@ Portainer's GitOps mode doesn't automatically inject `.env` files. You have two 
 - Upload `.env` file to GitHub in the stack folder
 - Reference it in `docker-compose.yml`: `env_file: .env`
 
-### 4. Sidecar Stacks
+### 5. Sidecar Stacks
 
 Sidecar stacks (like langfuse) have special requirements:
 
@@ -165,7 +183,7 @@ Sidecar stacks (like langfuse) have special requirements:
 - `network_mode: service:tailscale` requires all containers in same Compose file
 - Ensure `docker-compose.yml` includes all dependencies (clickhouse, redis, minio, etc.)
 
-### 5. Port Conflicts
+### 6. Port Conflicts
 
 Published ports must not conflict with existing stacks:
 

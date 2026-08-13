@@ -48,15 +48,15 @@ scripts/deploy.sh all postgresql nas
 
 This single command does:
 
-1. Generates `postgresql/env.txt` from `iac-secrets.env`
+1. Generates `postgresql/.env` from `iac-secrets.env`
 2. Creates `/volume1/docker/stacks/postgresql/{data,pgadmin,ts-state,ts-config}` on the NAS
-3. Copies `docker-compose.yml`, `env.txt`, and any extra files via SCP
+3. Copies `docker-compose.yml`, `.env`, and any extra files via SCP
 4. Runs `docker compose up -d` on the NAS
 
 ### Step-by-Step (if you need more control)
 
 ```shell
-# 1. Generate env.txt locally
+# 1. Generate .env locally
 scripts/gen-env.sh postgresql
 
 # 2. Create directories on the NAS
@@ -64,7 +64,7 @@ ssh nas "mkdir -p /volume1/docker/stacks/postgresql/{data,pgadmin,ts-state,ts-co
 
 # 3. Push files to the NAS
 scp -O postgresql/docker-compose.yml nas:/volume1/docker/stacks/postgresql/
-scp -O postgresql/env.txt nas:/volume1/docker/stacks/postgresql/
+scp -O postgresql/.env nas:/volume1/docker/stacks/postgresql/
 
 # 4. Start the stack
 ssh nas "cd /volume1/docker/stacks/postgresql && docker compose up -d"

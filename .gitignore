@@ -1,4 +1,3 @@
-*/env.txt
 .env
 iac-secrets.env
 .kilo
@@ -9,3 +8,4 @@ iac-secrets.env
 # rendered serve.json is generated at deploy time.
 */serve.json
 */ts-config/serve.json
+iac-secrets.env.backup

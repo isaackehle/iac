@@ -85,9 +85,9 @@ scripts/deploy.sh all langfuse nas
 
 This single command does:
 
-1. Generates `langfuse/env.txt` from `iac-secrets.env`
+1. Generates `langfuse/.env` from `iac-secrets.env`
 2. Creates `/volume1/docker/stacks/langfuse/{clickhouse-data,clickhouse-logs,redis-data,minio-data,ts-state,ts-config}` on the NAS
-3. Copies `docker-compose.yml`, `env.txt`, and `serve.json` via SCP
+3. Copies `docker-compose.yml`, `.env`, and `serve.json` via SCP
 4. Runs `docker compose up -d` on the NAS
 
 ### Step-by-Step (if you need more control)
@@ -100,7 +100,7 @@ CREATE USER langfuse WITH PASSWORD 'your-strong-password';
 GRANT ALL PRIVILEGES ON DATABASE langfuse TO langfuse;
 EOF
 
-# 2. Generate env.txt locally
+# 2. Generate .env locally
 scripts/gen-env.sh langfuse
 
 # 3. Create directories on the NAS
@@ -108,7 +108,7 @@ ssh nas "mkdir -p /volume1/docker/stacks/langfuse/{clickhouse-data,clickhouse-lo
 
 # 4. Push files to the NAS
 scp -O langfuse/docker-compose.yml nas:/volume1/docker/stacks/langfuse/
-scp -O langfuse/env.txt nas:/volume1/docker/stacks/langfuse/
+scp -O langfuse/.env nas:/volume1/docker/stacks/langfuse/
 scp -O langfuse/serve.json nas:/volume1/docker/stacks/langfuse/ts-config/
 
 # 5. Start the stack

@@ -52,15 +52,15 @@ and is safe to commit — it has no real values. Copy it to `iac-secrets.env`
 once and fill in real values there.
 
 Each stack still has a `.env.example` describing what _that stack_ needs;
-`scripts/gen-env.sh` cross-references the two to produce a real `env.txt`
-per stack (gitignored, never committed). It's named `env.txt` rather than
+`scripts/gen-env.sh` cross-references the two to produce a real `.env`
+per stack (gitignored, never committed). It's named `.env` rather than
 `.env` on purpose — Portainer's "Load variables from .env file" button opens
 a normal OS file picker, and dotfiles are hidden by default in most of
 those, making a literal `.env` annoying to select manually:
 
 ```shell
-scripts/gen-env.sh <stack>     # generate ./<stack>/env.txt
-scripts/gen-env.sh --all       # generate env.txt for every stack
+scripts/gen-env.sh <stack>     # generate ./<stack>/.env
+scripts/gen-env.sh --all       # generate .env for every stack
 ```
 
 Any key still blank or left as a placeholder (`changeme`, `tskey-auth-xxxx`,
@@ -80,9 +80,9 @@ it, unless you override it explicitly.
 no manual copy/paste into Portainer required, though that still works too.
 
 ```shell
-scripts/deploy.sh env   <stack>                # generate <stack>/env.txt locally
+scripts/deploy.sh env   <stack>                # generate <stack>/.env locally
 scripts/deploy.sh dirs  <stack> <ssh-host>      # mkdir -p + chown on the NAS
-scripts/deploy.sh push  <stack> <ssh-host>      # scp compose file, env.txt, serve.json, etc.
+scripts/deploy.sh push  <stack> <ssh-host>      # scp compose file, .env, serve.json, etc.
 scripts/deploy.sh serve <stack> <ssh-host>      # apply host-level tailscale serve (if applicable)
 scripts/deploy.sh up    <stack> <ssh-host>      # ssh in, docker compose up -d
 scripts/deploy.sh all   <stack> <ssh-host>      # all of the above, in order
@@ -104,6 +104,50 @@ scripts/serve-all.sh <ssh-host>              # apply all mappings
 scripts/serve-all.sh <ssh-host> --reset      # reset first, then apply all
 ```
 
+### Portainer API Deployment (GitOps)
+
+Instead of SSH, you can deploy stacks via the Portainer API. This creates a
+**GitOps stack** that automatically pulls `docker-compose.yml` from GitHub:
+
+```shell
+# Prerequisites:
+# 1. Generate .env from iac-secrets.env
+scripts/gen-env.sh <stack>
+
+# 2. Deploy via Portainer API (secrets auto-resolved)
+scripts/deploy.sh api <stack>
+```
+
+**Requirements:**
+
+- `PORTAINER_URL` and `PORTAINER_API_KEY` should be set in `iac-secrets.env`
+- 1Password CLI (`op`) must be installed and authenticated for `op://` references
+
+**What it does:**
+
+- Creates a GitOps stack in Portainer
+- Points to `https://github.com/isaackehle/iac.git`
+- Uses `main` branch and `<stack>/docker-compose.yml`
+- Injects environment variables from `<stack>/.env`
+- Automatically updates when you push to GitHub
+
+**Example:**
+
+```shell
+cd ~/code/isaackehle/iac
+scripts/gen-env.sh pihole
+scripts/deploy.sh api pihole
+```
+
+After deployment, Portainer will automatically pull changes from GitHub
+(typically within 15 minutes). To force an immediate update, use Portainer's
+UI: **Stacks → [stack name] → Pull latest**.
+
+**Note:** This method requires no SSH access to the NAS and works entirely
+through Portainer's API. It's ideal for GitOps workflows where you want
+automatic updates from your repository. The script automatically handles
+1Password secret resolution, so you don't need to manually source the secrets file.
+
 ### Adding a new stack
 
 1. Copy `_template/` to `<new-stack>/` and follow its `README.md`.
@@ -119,7 +163,7 @@ scripts/serve-all.sh <ssh-host> --reset      # reset first, then apply all
 ## Directory layout
 
 All stacks live under `/volume1/docker/stacks/<name>`. Each stack's directory
-contains its compose file, generated `env.txt`, and any extra config
+contains its compose file, generated `.env`, and any extra config
 (serve.json, etc.). The `scripts/lib.sh` file is the single source of truth
 for paths.
 

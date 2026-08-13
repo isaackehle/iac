@@ -90,15 +90,15 @@ scripts/deploy.sh all mosquitto nas
 
 This single command does:
 
-1. Generates `mosquitto/env.txt` from `iac-secrets.env`
+1. Generates `mosquitto/.env` from `iac-secrets.env`
 2. Creates `/volume1/docker/stacks/mosquitto/{config/mosquitto,config/certs,data}` on the NAS
-3. Copies `docker-compose.yml`, `env.txt`, and any extra files via SCP
+3. Copies `docker-compose.yml`, `.env`, and any extra files via SCP
 4. Runs `docker compose up -d` on the NAS
 
 ### Step-by-Step (if you need more control)
 
 ```shell
-# 1. Generate env.txt locally
+# 1. Generate .env locally
 scripts/gen-env.sh mosquitto
 
 # 2. Create directories on the NAS
@@ -106,7 +106,7 @@ ssh nas "mkdir -p /volume1/docker/stacks/mosquitto/{config/mosquitto,config/cert
 
 # 3. Push files to the NAS
 scp -O mosquitto/docker-compose.yml nas:/volume1/docker/stacks/mosquitto/
-scp -O mosquitto/env.txt nas:/volume1/docker/stacks/mosquitto/
+scp -O mosquitto/.env nas:/volume1/docker/stacks/mosquitto/
 
 # 4. Start the stack
 ssh nas "cd /volume1/docker/stacks/mosquitto && docker compose up -d"

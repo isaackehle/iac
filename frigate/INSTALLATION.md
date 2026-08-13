@@ -1,10 +1,12 @@
 # Frigate — Portainer Stack Deployment
 
-> **Recommended:** `scripts/deploy.sh all frigate <ssh-host>` from the repo root handles directory setup, `.env` generation, file placement, and bringing the stack up in one step — see root `README.md`/`QUICKSTART.md`. The manual steps below are the equivalent broken out.
+> **Recommended:** `scripts/deploy.sh all frigate <ssh-host>` from the repo root handles directory setup, `.env` generation, file placement, and bringing the
+> stack up in one step — see root `README.md`/`QUICKSTART.md`. The manual steps below are the equivalent broken out.
 
 ## Overview
 
-Frigate is a Network Video Recorder (NVR) for IP cameras with real-time object detection. It uses TensorFlow and YOLO to provide intelligent surveillance with notifications, clips, and live view.
+Frigate is a Network Video Recorder (NVR) for IP cameras with real-time object detection. It uses TensorFlow and YOLO to provide intelligent surveillance with
+notifications, clips, and live view.
 
 ## Directory Setup (on Synology NAS)
 
@@ -40,7 +42,7 @@ mkdir -p $STACK_PATH/{config,storage}
 
 - SSH access to the NAS (e.g., `nas` alias in `~/.ssh/config`)
 - The `scripts/deploy.sh` and `scripts/gen-env.sh` tools available on your laptop
-- The central secrets file `iac-secrets.env` with `FRIGATE_MQTT_HOST`, `FRIGATE_MQTT_USER`, `FRIGATE_MQTT_PASSWORD`, `FRIGATE_RTSP_USER`, and `FRIGATE_RTSP_PASSWORD` set
+- The central secrets file `iac-secrets.env` with `FRIGATE_MQTT_HOST`, `FRIGATE_MQTT_USER`, `FRIGATE_MQTT_PASSWORD`, `FRIGATE_RTSP_USER`, and `FRIGATE_RTSP_PASSWORD`
 
 ### One-Line Deployment
 
@@ -51,15 +53,15 @@ scripts/deploy.sh all frigate nas
 
 This single command does:
 
-1. Generates `frigate/env.txt` from `iac-secrets.env`
+1. Generates `frigate/.env` from `iac-secrets.env`
 2. Creates `/volume1/docker/stacks/frigate/{config,storage}` on the NAS
-3. Copies `docker-compose.yml` and `env.txt` via SCP
+3. Copies `docker-compose.yml` and `.env` via SCP
 4. Runs `docker compose up -d` on the NAS
 
 ### Step-by-Step (if you need more control)
 
 ```shell
-# 1. Generate env.txt locally
+# 1. Generate .env locally
 scripts/gen-env.sh frigate
 
 # 2. Create directories on the NAS
@@ -67,7 +69,7 @@ ssh nas "mkdir -p /volume1/docker/stacks/frigate/{config,storage}"
 
 # 3. Push files to the NAS
 scp -O frigate/docker-compose.yml nas:/volume1/docker/stacks/frigate/
-scp -O frigate/env.txt nas:/volume1/docker/stacks/frigate/
+scp -O frigate/.env“ nas:/volume1/docker/stacks/frigate/
 
 # 4. Start the stack
 ssh nas "cd /volume1/docker/stacks/frigate && docker compose up -d"
@@ -144,7 +146,8 @@ cameras:
 |-----------|-------|------|
 | `frigate` | `ghcr.io/blakeblackshear/frigate:0.16.4` | Frigate NVR — pinned version for stability |
 
-The container is pinned to a specific version (`0.16.4`) rather than using `:stable` — this is deliberate for GitOps-deployed stacks to ensure predictable behavior. Check the [Frigate releases](https://github.com/blakeblackshear/frigate/releases) before updating.
+The container is pinned to a specific version (`0.16.4`) rather than using `:stable` — this is deliberate for GitOps-deployed stacks to ensure predictable
+behavior. Check the [Frigate releases](https://github.com/blakeblackshear/frigate/releases) before updating.
 
 ## First-Run Frigate Setup
 

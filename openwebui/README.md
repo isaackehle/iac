@@ -132,11 +132,11 @@ docker run --rm \
 
    ```shell
    export TS_AUTHKEY=${TS_AUTHKEY}  # From https://login.tailscale.com/admin/key/new
-   cp .env.example env.txt
-   nano env.txt  # Add your auth key
+   cp .env.example .env
+   nano .env  # Add your auth key
    ```
 
-   Named `env.txt`, not `.env` — matches the rest of this repo's
+   Named `.env`, not `.env` — matches the rest of this repo's
    convention (dotfiles are hidden by default in most OS file pickers,
    which makes Portainer's "Load variables from .env file" button harder
    to use with a literal `.env`).
@@ -144,7 +144,7 @@ docker run --rm \
 4. **Deploy the stack:**
 
    ```shell
-   docker compose --env-file env.txt up -d
+   docker compose --env-file .env up -d
    ```
 
 5. **Create admin account and get API key:**

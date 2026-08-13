@@ -41,7 +41,7 @@ mkdir -p $STACK_PATH
 
 - SSH access to the NAS (e.g., `nas` alias in `~/.ssh/config`)
 - The `scripts/deploy.sh` and `scripts/gen-env.sh` tools available on your laptop
-- The central secrets file `iac-secrets.env` with `SYNOLOGY_HOST`, `SYNOLOGY_PORT`, `SYNOLOGY_SSL`, `SYNOLOGY_USERNAME`, `SYNOLOGY_PASSWORD`, and `SYNOLOGY_OTP_CODE` set
+- The central secrets file `iac-secrets.env` with `SYNOLOGY_HOST`, `SYNOLOGY_PORT`, `SYNOLOGY_SSL`, `SYNOLOGY_USERNAME`, `SYNOLOGY_PASSWORD`, and `SYNOLOGY_OTP_CODE`
 
 ### One-Line Deployment
 
@@ -52,15 +52,15 @@ scripts/deploy.sh all synology-mcp nas
 
 This single command does:
 
-1. Generates `synology-mcp/env.txt` from `iac-secrets.env`
+1. Generates `synology-mcp/.env` from `iac-secrets.env`
 2. Creates `/volume1/docker/stacks/synology-mcp` on the NAS
-3. Copies `docker-compose.yml` and `env.txt` via SCP
+3. Copies `docker-compose.yml` and `.env` via SCP
 4. Runs `docker compose up -d` on the NAS
 
 ### Step-by-Step (if you need more control)
 
 ```shell
-# 1. Generate env.txt locally
+# 1. Generate .env locally
 scripts/gen-env.sh synology-mcp
 
 # 2. Create directories on the NAS
@@ -68,7 +68,7 @@ ssh nas "mkdir -p /volume1/docker/stacks/synology-mcp"
 
 # 3. Push files to the NAS
 scp -O synology-mcp/docker-compose.yml nas:/volume1/docker/stacks/synology-mcp/
-scp -O synology-mcp/env.txt nas:/volume1/docker/stacks/synology-mcp/
+scp -O synology-mcp/.env nas:/volume1/docker/stacks/synology-mcp/
 
 # 4. Start the stack
 ssh nas "cd /volume1/docker/stacks/synology-mcp && docker compose up -d"
