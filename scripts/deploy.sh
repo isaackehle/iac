@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/opt/homebrew/bin/bash
 # scripts/deploy.sh — push a stack's compose/env/config files to the NAS and
 # (optionally) bring it up, all driven from the laptop over SSH.
 #
@@ -201,6 +201,10 @@ cmd_api() {
   echo "  Portainer will pull docker-compose.yml from GitHub automatically."
   echo ""
 
+  # Extract port mappings from compose file for pre-check
+  local port_mappings
+  port_mappings=$(grep -E '^\s+-\s+"?[0-9]+' "$compose_path" 2>/dev/null | head -20 || true)
+  
   # Source secrets file if it exists (resolves op:// references via get_secret_value)
   if [[ -f "$IAC_SECRETS_FILE" ]]; then
     echo "==> $stack: sourcing secrets from $IAC_SECRETS_FILE"
@@ -240,10 +244,89 @@ cmd_api() {
     exit 1
   fi
 
+  # Pre-deployment port check (limited - Portainer API doesn't expose all container ports)
+  if [[ -n "$port_mappings" ]]; then
+    echo "==> $stack: checking for port conflicts..."
+    
+    # Extract host ports from mappings (format: "8280:80/tcp" or "53:53/udp")
+    local port_conflicts=()
+    
+    while IFS= read -r mapping; do
+      [[ -z "$mapping" ]] && continue
+      # Extract the host port (before the colon, remove quotes and protocol)
+      local host_port
+      host_port=$(echo "$mapping" | sed 's/^[[:space:]]*-[[:space:]]*//' | sed 's/"//g' | cut -d: -f1 | sed 's/[^0-9]//g')
+      [[ -z "$host_port" ]] && continue
+      
+      # Try to detect port conflicts via Portainer Docker API
+      # Note: This only works for containers managed through Portainer
+      local containers_with_port
+      containers_with_port=$(curl -s -H "X-Api-Key: $PORTAINER_API_KEY" \
+        "$PORTAINER_URL/api/docker/endpoints/$endpoint/container?all=1" 2>/dev/null)
+      
+      if echo "$containers_with_port" | grep -q "\"HostPort\":\"$host_port\""; then
+        # Extract container names using the port
+        local affected_containers
+        affected_containers=$(echo "$containers_with_port" | grep -B 30 "\"HostPort\":\"$host_port\"" | grep '"Name":' | \
+          sed 's/.*"Name":\s*"\([^"]*\)".*/\1/' | sort -u | tr '\n' ' ')
+        
+        if [[ -n "$affected_containers" ]]; then
+          port_conflicts+=("$host_port (used by: $affected_containers)")
+        fi
+      fi
+    done <<< "$port_mappings"
+    
+    if [[ ${#port_conflicts[@]} -gt 0 ]]; then
+      echo ""
+      echo "ERROR: Port conflict detected!"
+      echo ""
+      echo "   The following ports are already in use:"
+      for conflict in "${port_conflicts[@]}"; do
+        echo "   - $conflict"
+      done
+      echo ""
+      echo "   To fix:"
+      echo "   1. Stop the conflicting containers:"
+      echo "      - Via Portainer UI: Stacks → Remove the stack(s) using these ports"
+      echo "      - Via SSH: docker compose -f <path>/docker-compose.yml down"
+      echo ""
+      echo "   2. Or change the port mappings in $compose_path"
+      echo ""
+      exit 1
+    else
+      echo "   ✓ No port conflicts detected via Portainer API"
+      echo "   Note: Unmanaged containers (legacy deployments) may still conflict"
+      echo ""
+    fi
+  fi
+  echo "==> $stack: checking for existing containers..."
+  
+  # Check if a stack with this name already exists in Portainer
+  local stack_exists
+  stack_exists=$(curl -s -H "X-Api-Key: $PORTAINER_API_KEY" \
+    "$PORTAINER_URL/api/stacks?name=$stack" 2>/dev/null | jq -r '.[0].Id // empty' 2>/dev/null)
+  
+  if [[ -n "$stack_exists" ]]; then
+    echo "   ⚠ Found existing GitOps stack '$stack' in Portainer"
+    echo "   Removing existing stack before deployment..."
+    
+    curl -s -X DELETE \
+      -H "X-Api-Key: $PORTAINER_API_KEY" \
+      "$PORTAINER_URL/api/stacks/$stack_exists" 2>/dev/null
+    
+    echo "   ✓ Existing GitOps stack removed, proceeding with deployment"
+    echo ""
+  else
+    echo "   ✓ No existing GitOps stack found, proceeding with deployment"
+    echo ""
+  fi
+
   # Build env JSON array from .env file
   local env_json="["
   local first=true
+  local env_count=0
   if [[ -f "$stack/.env" ]]; then
+    echo "==> $stack: reading environment variables from $stack/.env"
     while IFS='=' read -r key value || [[ -n "$key" ]]; do
       [[ "$key" =~ ^[[:space:]]*# ]] && continue
       [[ -z "$key" ]] && continue
@@ -251,18 +334,23 @@ cmd_api() {
       value=$(echo "$value" | xargs)
       [[ -z "$key" ]] && continue
       value=$(printf '%s' "$value" | sed 's/\\/\\\\/g; s/"/\\"/g')
-
+      
       if [[ "$first" == true ]]; then
         first=false
       else
         env_json+=","
       fi
       env_json+="{\"name\":\"$key\",\"value\":\"$value\"}"
+      echo "   → $key"
+      env_count=$((env_count + 1))
     done < "$stack/.env"
+  else
+    echo "   ⚠ Warning: $stack/.env not found, creating stack without environment variables"
   fi
   env_json+="]"
 
-  echo "   Environment variables: $(echo "$env_json" | jq -r 'length')"
+  echo "   Total environment variables: $env_count"
+  echo ""
 
   # Build the repository-stack payload using the GitOps endpoint
   local stack_json
@@ -278,21 +366,69 @@ cmd_api() {
 EOF
   )
 
-  echo "   Stack JSON: $(echo "$stack_json" | jq -c .)"
+  echo "==> $stack: constructing API payload"
+  echo "   Stack name: $stack"
+  echo "   Compose path: $compose_path"
+  echo "   Repository: $git_url"
+  echo "   Branch: $git_branch"
+  echo "   Endpoint ID: $endpoint"
+  echo ""
 
   # Portainer 2.39 API: POST /api/stacks/create/standalone/repository?endpointId=<id>
+  local api_url="$PORTAINER_URL/api/stacks/create/standalone/repository?endpointId=$endpoint"
+  echo "==> $stack: making API request"
+  echo "   Method: POST"
+  echo "   URL: $api_url"
+  echo "   Headers:"
+  echo "     Content-Type: application/json"
+  echo "     X-Api-Key: ${PORTAINER_API_KEY:0:10}..."
+  echo ""
+
   local stack_response
   stack_response=$(curl -s -X POST \
     -H "Content-Type: application/json" \
     -H "X-Api-Key: $PORTAINER_API_KEY" \
-    "$PORTAINER_URL/api/stacks/create/standalone/repository?endpointId=$endpoint" \
+    "$api_url" \
     -d "$stack_json")
 
-  echo "   Response: $stack_response"
+
+  echo "==> $stack: received API response"
+  echo "   Response length: $(echo "$stack_response" | wc -c) bytes"
+  echo ""
 
   if echo "$stack_response" | grep -q '"message"'; then
     echo "ERROR: Failed to create stack:"
     echo "$stack_response" | jq . 2>/dev/null || echo "$stack_response"
+    echo ""
+    
+    # Check for common error patterns and provide helpful suggestions
+    if echo "$stack_response" | grep -q "port is already allocated"; then
+      echo "⚠ HINT: Port is already in use. This usually means:"
+      echo "  1. A legacy SSH deployment exists (not managed by Portainer)"
+      echo "  2. Another service is using that port"
+      echo ""
+      echo "   GitOps stacks use: /volume1/docker/stacks/<stack-name>"
+      echo "   Legacy SSH deployments use original paths:"
+      echo "   - homeassistant: /volume1/docker/homeassistant"
+      echo "   - pihole: /volume1/docker/pihole"
+      echo "   - plex: /volume1/docker/plex"
+      echo "   - postgresql: /volume1/docker/postgresql"
+      echo ""
+      echo "   To fix, SSH into your NAS and stop the legacy deployment:"
+      echo "   cd /volume1/docker/pihole"
+      echo "   docker compose down"
+      echo ""
+      echo "   Or find it in Container Manager UI and remove it."
+      echo ""
+      echo "   After stopping the legacy deployment, run this command again:"
+      echo "   ./scripts/deploy.sh api pihole"
+    elif echo "$stack_response" | grep -qi "already exists"; then
+      echo "⚠ HINT: A stack with this name already exists."
+      echo "   To fix, either:"
+      echo "   - Remove the existing stack: docker stack rm $stack"
+      echo "   - Or use a different stack name"
+    fi
+    
     exit 1
   fi
 
@@ -305,7 +441,8 @@ EOF
     exit 1
   fi
 
-  echo "   Stack created: ID=$stack_id"
+  echo "   ✓ Stack created successfully"
+  echo "   Stack ID: $stack_id"
   echo "   → GitOps mode (will pull from GitHub automatically)"
 }
 

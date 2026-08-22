@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/opt/homebrew/bin/bash
 # scripts/lib.sh — shared config for the deploy tooling in this repo.
 # Sourced by gen-env.sh / deploy.sh, not executed directly.
 #
@@ -118,7 +118,9 @@ compose_file_for() {
 require_stack() {
   local stack="$1"
   if [[ -z "$stack" || ! -d "$stack" ]]; then
-    echo "ERROR: unknown stack '$stack' — expected one of: ${ALL_STACKS[*]}" >&2
+    # Use a simple list instead of array expansion to avoid bash 3.2 issues
+    local known_stacks="affine frigate homeassistant langfuse mosquitto n8n nextcloud openwebui pihole plex portainer postgresql syncthing synology-mcp"
+    echo "ERROR: unknown stack '$stack' — expected one of: $known_stacks" >&2
     exit 1
   fi
 }
