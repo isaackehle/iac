@@ -26,7 +26,7 @@ name: synologymcp
 services:
   # ── Identity ──────────────────────────────────────────────
   primary:
-    image: ghcr.io/modelcontextprotocol/servers/synology:latest
+    image: ghcr.io/lefty3382/synology-mcp:latest
     container_name: synology-mcp
 
     # ── Lifecycle ─────────────────────────────────────────────
@@ -38,12 +38,12 @@ services:
 
     # ── Environment ───────────────────────────────────────────
     environment:
-      - SYNOLOGY_HOST=${SYNOLOGY_HOST}
-      - SYNOLOGY_PORT=${SYNOLOGY_PORT}
-      - SYNOLOGY_SSL=${SYNOLOGY_SSL}
-      - SYNOLOGY_USERNAME=${SYNOLOGY_USERNAME}
-      - SYNOLOGY_PASSWORD=${SYNOLOGY_PASSWORD}
-      - SYNOLOGY_OTP_CODE=${SYNOLOGY_OTP_CODE}
+      - SYNOLOGY_TANK_HOST=${SYNOLOGY_HOST}
+      - SYNOLOGY_TANK_PORT=${SYNOLOGY_PORT}
+      - SYNOLOGY_TANK_USERNAME=${SYNOLOGY_USERNAME}
+      - SYNOLOGY_TANK_PASSWORD=${SYNOLOGY_PASSWORD}
+      - MCP_PORT=8485
+      - MCP_PERMISSION_TIER=health
 
 networks:
   synology_mcp_net:
