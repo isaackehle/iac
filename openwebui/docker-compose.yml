@@ -1,23 +1,29 @@
 # OpenWebUI — Docker Compose Stack
 #
-# Stack version: 1.0
-# Purpose: Web UI for LLM interaction with Ollama integration
+# Stack version: 2.0 (2026-09-25) -- LiteLLM backends, no Ollama (homelab DEC-180/185)
+# Purpose: Web UI for LLM interaction. Backends are each fleet host's LiteLLM
+#   gateway, registered as OpenAI-compatible connections by configure-litellm.sh
+#   (never Ollama -- see that repo's DEC-180/185).
 #
 # Services:
 #   - primary
-#   - config
+#   - config (runs configure-litellm.sh once; safe/idempotent to re-run;
+#     no-ops with instructions if OPENWEBUI_API_KEY isn't set yet)
 #   - tailscale (Tailscale sidecar)
 #
 # Environment variables:
 #   - STACK_NAME=OpenWebUI
 #   - TZ=${TZ}
-#   - OPENWEBUI_API_KEY=${OPENWEBUI_API_KEY}
+#   - OPENWEBUI_API_KEY=${OPENWEBUI_API_KEY}  (optional at first deploy -- see
+#     configure-litellm.sh; required only to actually register connections)
+#   - LITELLM_ENGINES=${LITELLM_ENGINES}  (JSON array of fleet hosts' LiteLLM
+#     URLs -- see homelab repo fleet/registry/hosts.yaml for the current list)
 #   - TS_AUTHKEY=${TS_AUTHKEY}
 #   See .env.example for all required variables
 #
 # Deployment:
-#   docker compose -f openwebui.yaml up -d
-#   docker compose -f openwebui.yaml down
+#   docker compose -f docker-compose.yml up -d
+#   docker compose -f docker-compose.yml down
 #
 
 name: openwebui
@@ -56,17 +62,23 @@ services:
 
     # ── Storage ───────────────────────────────────────────────
     volumes:
-      - ./configure-ollama.sh:/scripts/configure-ollama.sh:ro
-      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./configure-litellm.sh:/scripts/configure-litellm.sh:ro
 
     # ── Environment ───────────────────────────────────────────
+    # OPENWEBUI_API_KEY intentionally has no ${VAR:?...} guard: it doesn't
+    # exist until an admin account is created once via the web UI (see
+    # configure-litellm.sh), so it must not block `primary`/`tailscale` from
+    # coming up on a fresh deploy.
     environment:
-      - OPENWEBUI_API_URL=${OPENWEBUI_API_URL:-http://localhost:8080}
-      - OPENWEBUI_API_KEY=${OPENWEBUI_API_KEY:?Set this to your admin API key}
-      - OLLAMA_ENGINES=${OLLAMA_ENGINES:-'[]'}
+      # primary uses network_mode: service:tailscale (shares that container's
+      # network namespace, has no IP/DNS entry of its own on openwebui_default),
+      # so it's reached from "config" via the tailscale service's own DNS name.
+      - OPENWEBUI_API_URL=http://tailscale:8080
+      - OPENWEBUI_API_KEY=${OPENWEBUI_API_KEY:-}
+      - LITELLM_ENGINES=${LITELLM_ENGINES:-'[]'}
 
     # ── Runtime ───────────────────────────────────────────────
-    command: "sh -c \"chmod +x /scripts/configure-ollama.sh && timeout 30 /bin/sh -c 'until curl -sf ${OPENWEBUI_API_URL}/api/models >/dev/null 2>&1; do sleep 2; done' && /scripts/configure-ollama.sh\""
+    command: "sh -c \"apk add --no-cache bash python3 curl >/dev/null && timeout 180 /bin/sh -c 'until curl -sf $$OPENWEBUI_API_URL/health >/dev/null 2>&1; do sleep 2; done' && bash /scripts/configure-litellm.sh\""
 
   # ── Identity ──────────────────────────────────────────────
   tailscale:

@@ -534,7 +534,7 @@ case "$command" in
   env|info)
     cmd_"$command" "$stack"
     ;;
-  dirs|push|extras|serve|up|down)
+  dirs|push|extras|serve|up|down|all)
     [[ -n "$host" ]] || usage
     "cmd_${command}" "$stack" "$host"
     ;;
