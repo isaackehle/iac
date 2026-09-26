@@ -1,41 +1,58 @@
-# Port Registry — master list
+# Port registry
 
-Every host-bound port across every stack, one table, sorted by port number.
-Covers Pattern A `tailscale serve` targets, non-HTTP direct ports, and the
-handful of ports published straight to the host outside either Tailscale
-pattern (syncthing's GUI, portainer's DSM-fronted ports). Check here before
-adding a new `STACK_SERVE_PORTS` entry, a new sidecar host port, or a new
-non-HTTP port — collisions on the NAS host are otherwise easy to hit blind.
+Every port the stacks use, from the compose files and `serve.json.tmpl` files
+(checked 2026-09-26). Check here before adding a published port or a serve
+listener: collisions on the NAS are easy to hit blind.
 
-| Port         | Stack            | Protocol  | Access path                             | Notes                                                                                   |
-| ------------ | ---------------- | --------- | --------------------------------------- | --------------------------------------------------------------------------------------- |
-| 53           | pihole           | TCP + UDP | Direct (non-HTTP)                       | DNS                                                                                     |
-| 443          | pihole           | TCP       | `tailscaled` (TCPForward → Caddy)       | web UI, TLS terminated by Tailscale, not published to host — reachable only via tailnet |
-| 1883         | mosquitto        | TCP       | Direct (non-HTTP)                       | MQTT — no Tailscale integration                                                         |
-| 2660         | postgresql       | TCP       | Pattern A (host serve)                  | pgAdmin (internal `admin` port)                                       |
-| 2665         | postgresql       | TCP       | Direct (non-HTTP)                       | raw Postgres, connect via Tailscale IP                                                  |
-| 3010         | affine           | TCP       | Pattern A (host serve)                  |                                                                                         |
-| 8000         | portainer        | TCP       | DSM reverse proxy (not Tailscale)       | edge agent port                                                                         |
-| 8280         | pihole           | TCP       | Direct host publish (bypasses Caddy)    | raw plain-HTTP debug path straight to Pi-hole                                           |
-| 8384         | syncthing        | TCP       | Pattern B sidecar + direct host publish | web GUI                                                                                 |
-| 8554         | frigate          | TCP       | Direct (non-HTTP)                       | RTSP                                                                                    |
-| 8555         | frigate          | TCP + UDP | Direct (non-HTTP)                       | WebRTC — UDP not proxiable via serve                                                    |
-| 8971         | frigate          | TCP       | Pattern A (host serve)                  |                                                                                         |
-| 9000         | portainer        | TCP       | DSM reverse proxy (not Tailscale)       | Portainer HTTP                                                                          |
-| 9090         | langfuse (service.storage) | TCP       | Direct (non-HTTP)                       | S3 API, published on the `storage` sibling                                         |
-| 19443 → 9443 | portainer        | TCP       | DSM reverse proxy (not Tailscale)       | Portainer HTTPS; `portainer-tailscale` sidecar exists but is **not enabled**                   |
-| 21027        | syncthing        | UDP       | Direct (non-HTTP)                       | discovery                                                                               |
-| 22000        | syncthing        | TCP + UDP | Direct (non-HTTP)                       | sync protocol                                                                           |
+## Published on the NAS (LAN, and the NAS's tailnet address)
 
-Not host-bound, so not in the table above but worth knowing about: pihole's
-`caddy` listens on **8444** inside the stack's shared network
-namespace only — never published to the host, not reachable outside the
-`network_mode: service:service.primary` group. Won't collide with anything.
+Sorted by port. "Published by" is the container that owns the `ports:` entry: the
+Tailscale sidecar in normal stacks, the app itself in the inverted ones (see
+[tailscale_patterns.md](tailscale_patterns.md)).
 
-Not covered here: DSM's own native ports (Login Portal 5000/5001, SSH 22,
-etc.) — cross-check Control Panel → Network → Firewall/Router if a
-collision is suspected outside this table.
+| Port | Stack | Published by | Protocol | What |
+| --- | --- | --- | --- | --- |
+| 53 | pihole | primary | TCP + UDP | DNS |
+| 1883 | mosquitto | tailscale | TCP | MQTT, for LAN devices |
+| 2665 → 5432 | postgresql | tailscale | TCP | Postgres |
+| 3010 | affine | tailscale | TCP | Web UI (LAN) |
+| 5678 | n8n | primary | TCP | Web UI (LAN) |
+| 8000 | portainer | tailscale | TCP | Portainer edge-agent tunnel |
+| 8000 | tailscale-mcp | tailscale-mcp | TCP | **Clashes with portainer.** Nothing listens on it: the server is stdio-only. |
+| 8280 → 80 | pihole | primary | TCP | Plain-HTTP admin (debugging) |
+| 8281 → 80 | nextcloud | primary | TCP | Plain-HTTP web (debugging). Moved off 8280 on 2026-09-26 (it clashed with pihole). |
+| 8384 | syncthing | primary | TCP | Web GUI (LAN) |
+| 8485 | mcp | tailscale | TCP | Synology MCP at `http://nas.<tailnet>:8485/mcp`, for older clients |
+| 8554 | frigate | tailscale | TCP | RTSP restream |
+| 8555 | frigate | tailscale | TCP + UDP | WebRTC |
+| 8971 | frigate | tailscale | TCP | Web UI (LAN, plain HTTP; Frigate's own TLS is off) |
+| 9000 | portainer | tailscale | TCP | Portainer HTTP (LAN) |
+| 9001 | mosquitto | tailscale | TCP | MQTT over WebSocket, for LAN clients |
+| 9090 → 9000 | langfuse | storage | TCP | MinIO S3 API |
+| 19443 → 9443 | portainer | tailscale | TCP | Portainer HTTPS, self-signed (LAN) |
+| 21027 | syncthing | primary | UDP | Local discovery |
+| 22000 | syncthing | primary | TCP + UDP | Sync protocol |
 
-Currently actually deployed on the NAS: **syncthing** and (mid-rebuild)
-**pihole**. Everything else in this table is either not yet deployed or
-(portainer) deployed but fronted by DSM's reverse proxy instead of Tailscale.
+## Tailnet-only (each stack's own Tailscale node)
+
+These listen on `<node>.<tailnet>.ts.net`, not on the NAS. Every node serves 443;
+the exceptions are listed.
+
+| Node | Ports | What |
+| --- | --- | --- |
+| every sidecar stack | 443 | HTTPS with Tailscale's certificate, forwarded to the app |
+| `mosquitto` | 443, 1883, 8883 | WebSocket over TLS (→ 9001), plain MQTT, MQTT over TLS (→ 1883) |
+| `ha` | 443, 9584 | Home Assistant UI, its MCP server (proxied to the HA machine) |
+| `mcp` | 443 | MCP servers by path: `/synology` (→ 8485) |
+
+## Local ports inside shared namespaces
+
+Containers sharing a sidecar's namespace share `127.0.0.1`, so ports must be
+unique within a stack. The one stack where this matters is `mcp`: its port table
+is in `mcp/docker-compose.yml` (next free: 8486).
+
+## Not covered
+
+DSM's own ports (5000/5001 login portal, 22 SSH, and 5080/5443 used by DSM's
+Tailscale package). If you suspect a clash outside this table, check Control
+Panel → Network.

@@ -1,6 +1,6 @@
 # Mosquitto — Docker Compose Stack
 #
-# Stack version: 1.0
+# Stack version: 2.0 (2026-09-26) -- Tailscale sidecar (was no Tailscale integration)
 # Purpose: MQTT broker for IoT device communication
 #
 # Services:
@@ -25,6 +25,50 @@ services:
 
     # ── Lifecycle ─────────────────────────────────────────────
     restart: unless-stopped
+    network_mode: service:tailscale   # borrow the sidecar's namespace
+    depends_on:
+      - tailscale
+
+    # ── Network ───────────────────────────────────────────────
+
+    # ── Storage ───────────────────────────────────────────────
+    volumes:
+      - /volume1/docker/stacks/mosquitto/certs:/mosquitto/certs:ro     # TLS certificates (read-only)
+      - /volume1/docker/stacks/mosquitto/data:/mosquitto/data          # Persistent data: retained messages, sessions
+      - /volume1/docker/stacks/mosquitto/config/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro  # Broker config
+
+    # ── Environment ───────────────────────────────────────────
+    environment:
+      - TZ=${TZ}                        # Timezone for log timestamps
+
+  # ── Identity ──────────────────────────────────────────────
+  # Tailscale sidecar: joins the tailnet as "mosquitto" and owns the network
+  # namespace. primary borrows it (network_mode: service:tailscale), so any
+  # LAN ports are published here, not on primary. serve.json (rendered from
+  # serve.json.tmpl by scripts/gen-env.sh) terminates TLS with Tailscale's
+  # cert and forwards raw TCP (the openwebui pattern, docs/tailscale_patterns.md).
+  # MQTT isn't HTTP: serve.json forwards 1883 (plain MQTT, already WireGuard-encrypted on the tailnet), 8883 (MQTT over TLS with Tailscale's cert) and 443 (WebSocket over TLS, to 9001). 1883/9001 stay published for LAN devices.
+  tailscale:
+    image: tailscale/tailscale:latest
+    container_name: mosquitto-tailscale
+
+    # ── Lifecycle ─────────────────────────────────────────────
+    restart: unless-stopped
+
+    # ── Runtime ───────────────────────────────────────────────
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    devices:
+      - /dev/net/tun:/dev/net/tun
+
+    # ── Environment ───────────────────────────────────────────
+    environment:
+      - TS_HOSTNAME=mosquitto
+      - TS_AUTHKEY=${TS_AUTHKEY}
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_AUTH_ONCE=true
+      - TS_SERVE_CONFIG=/config/serve.json
 
     # ── Network ───────────────────────────────────────────────
     ports:
@@ -33,10 +77,14 @@ services:
 
     # ── Storage ───────────────────────────────────────────────
     volumes:
-      - ./certs:/mosquitto/certs:ro     # TLS certificates (read-only)
-      - ./data:/mosquitto/data          # Persistent data: retained messages, sessions
-      - ./config/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro  # Broker config
+      - /volume1/docker/stacks/mosquitto/ts-state:/var/lib/tailscale
+      - /volume1/docker/stacks/mosquitto/ts-config:/config
 
-    # ── Environment ───────────────────────────────────────────
-    environment:
-      - TZ=${TZ}                        # Timezone for log timestamps
+# Pinned: DSM's firewall drops forwarded traffic from Docker's default
+# 192.168.x.0/20 pool, which silently kills outbound access (image pulls,
+# Tailscale DERP, certificates). See README "Rules that have caused outages".
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: 172.20.26.0/24

@@ -1,11 +1,10 @@
 # Pi-hole — Docker Compose Stack
 #
-# Stack version: 1.0
+# Stack version: 2.0 (2026-09-26) -- openwebui pattern: TCPForward straight to :80, no Caddy
 # Purpose: DNS sinkhole for ad blocking with DHCP server
 #
 # Services:
 #   - primary
-#   - caddy (Reverse proxy with HTTPS)
 #   - tailscale (Tailscale sidecar)
 #
 # Environment variables:
@@ -52,23 +51,6 @@ services:
       - FTLCONF_dns_upstreams=${PIHOLE_UPSTREAMS}   # Upstream DNS resolvers
       - FTLCONF_webserver_port=80                   # Internal web UI port
       - FTLCONF_webserver_domain=${TS_CERT_DOMAIN}  # Domain for HTTPS
-
-  # ── Identity ──────────────────────────────────────────────
-  caddy:
-    image: caddy:2-alpine
-    container_name: pihole-caddy
-
-    # ── Lifecycle ─────────────────────────────────────────────
-    restart: unless-stopped
-    depends_on:
-      - primary
-
-    # ── Network ───────────────────────────────────────────────
-    network_mode: service:primary  # Share Pi-hole's network stack
-
-    # ── Storage ───────────────────────────────────────────────
-    volumes:
-      - /volume1/docker/stacks/pihole/caddy-config:/etc/caddy:ro
 
   # ── Identity ──────────────────────────────────────────────
   tailscale:

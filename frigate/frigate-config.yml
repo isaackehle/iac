@@ -3,6 +3,13 @@
 # compose file's environment: section (sourced from .env). Never hardcode
 # real credentials in this file.
 
+# Tailscale's sidecar terminates TLS (serve.json TerminateTLS) and forwards
+# plain TCP to 8971, so Frigate must serve plain HTTP there. Frigate enables its
+# own self-signed TLS on 8971 by default (0.14+); leaving it on would make the
+# sidecar hand plaintext to a TLS port.
+tls:
+  enabled: false
+
 mqtt:
   enabled: true
   host: "{FRIGATE_MQTT_HOST}"       # your existing broker's host/IP

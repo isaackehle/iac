@@ -42,33 +42,24 @@ reboots automatically as long as `tailscaled` starts at boot
 
 ## `serve.json` format (sidecar pattern)
 
-Sidecar stacks mount a `serve.json` via `TS_SERVE_CONFIG`. The format uses
-`TCP` and `Web` top-level keys. `${TS_CERT_DOMAIN}` is substituted at
-runtime with the node's full MagicDNS name.
+Sidecar stacks mount a `serve.json` via `TS_SERVE_CONFIG`. Every stack uses
+`TCPForward` + `TerminateTLS`, rendered from `<stack>/serve.json.tmpl`:
 
 ```json
 {
   "TCP": {
-    "443": { "HTTPS": true }
-  },
-  "Web": {
-    "${TS_CERT_DOMAIN}:443": {
-      "Handlers": {
-        "/": { "Proxy": "http://127.0.0.1:<port>" }
-      }
+    "443": {
+      "TCPForward": "127.0.0.1:<port>",
+      "TerminateTLS": "<name>.{{TS_TAILNET_DOMAIN}}"
     }
   }
 }
 ```
 
 The sidecar re-reads this file on container start — unlike the host
-pattern, the file must remain present at the mounted path.
-
-`pihole` uses a different `TCP` handler shape — `TCPForward` +
-`TerminateTLS` instead of `HTTPS: true` + a `Web` entry — to route around a
-documented performance problem in `tailscaled`'s own `Web`/`Proxy` mode.
-See the `pihole` — Pattern B + Caddy section in [tailscale-patterns.md](tailscale_patterns.md) for why and the exact
-schema.
+pattern, the file must remain present at the mounted path. See
+[tailscale_patterns.md](tailscale_patterns.md) for why the `Web`/`Proxy`
+shape and the old Caddy hop are no longer used.
 
 ## Templated files (`*.tmpl`)
 

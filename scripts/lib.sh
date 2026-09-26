@@ -7,8 +7,8 @@
 # replaces the old per-stack init.sh / apply-serve.sh scripts.
 
 ALL_STACKS=(
-  affine frigate homeassistant langfuse mosquitto n8n nextcloud
-  openwebui pihole plex portainer postgresql syncthing synology-mcp
+  affine frigate ha homeassistant langfuse mosquitto n8n nextcloud
+  openwebui pihole plex portainer postgresql syncthing mcp
 )
 
 # Remote directory each stack is deployed into on the NAS. Standard is
@@ -18,6 +18,7 @@ ALL_STACKS=(
 declare -A STACK_REMOTE_DIR=(
   [affine]="/volume1/docker/stacks/affine"
   [frigate]="/volume1/docker/stacks/frigate"
+  [ha]="/volume1/docker/stacks/ha"
   [homeassistant]="/volume1/docker/stacks/homeassistant"
   [langfuse]="/volume1/docker/stacks/langfuse"
   [mosquitto]="/volume1/docker/stacks/mosquitto"
@@ -29,23 +30,25 @@ declare -A STACK_REMOTE_DIR=(
   [portainer]="/volume1/docker/stacks/portainer"
   [postgresql]="/volume1/docker/stacks/postgresql"
   [syncthing]="/volume1/docker/stacks/syncthing"
-  [synology-mcp]="/volume1/docker/stacks/synology-mcp"
+  [mcp]="/volume1/docker/stacks/mcp"   # was synology-mcp (2026-09-26)
 )
 
 # Directories to `mkdir -p` (relative to STACK_REMOTE_DIR[$stack]) before
 # pushing files. Space-separated, supports brace-free plain paths only.
 declare -A STACK_DIRS=(
-  [affine]="data/storage data/config data/postgres"
-  [frigate]="config storage"
+  [affine]="data/storage data/config data/postgres ts-state ts-config"
+  [frigate]="config storage ts-state ts-config"
+  [ha]="ts-state ts-config"   # Tailscale front door for HA (192.168.10.108), no app container
   [homeassistant]="config"   # Pattern A (host-level serve) — no ts-state/ts-config
   [langfuse]="ts-state ts-config clickhouse-data clickhouse-logs minio-data redis-data"
-  [mosquitto]="config data certs"
+  [mosquitto]="config data certs ts-state ts-config"
+  [mcp]="ts-state ts-config"
   [n8n]="config files ts-state ts-config"
   [nextcloud]="app data postgres ts-state ts-config"
   [openwebui]="config ts-state ts-config data"
-  [pihole]="etc-pihole ts-state ts-config caddy-config"
+  [pihole]="etc-pihole ts-state ts-config"
   [plex]="config ts-state ts-config"
-  [portainer]="config data ts-state ts-config caddy-config"
+  [portainer]="data ts-state ts-config"
   [postgresql]="ts-state ts-config"   # converted to Pattern B (sidecar) on 2026-08-04
   [syncthing]="config sync data ts-state ts-config"
 )
@@ -56,15 +59,18 @@ declare -A STACK_DIRS=(
 # directory — no single-file mounts (which break if the file is missing
 # and are cwd-sensitive when relative).
 declare -A STACK_EXTRA_FILES=(
-  [frigate]="frigate-config.yml:config/config.yml"
+  [affine]="serve.json:ts-config/serve.json"
+  [frigate]="frigate-config.yml:config/config.yml serve.json:ts-config/serve.json"
+  [ha]="serve.json:ts-config/serve.json"
   [langfuse]="serve.json:ts-config/serve.json"
-  [mosquitto]="config/mosquitto.conf:config/mosquitto.conf"
+  [mosquitto]="config/mosquitto.conf:config/mosquitto.conf serve.json:ts-config/serve.json"
+  [mcp]="serve.json:ts-config/serve.json"
   [n8n]="serve.json:ts-config/serve.json"
   [nextcloud]="serve.json:ts-config/serve.json"
   [openwebui]="serve.json:ts-config/serve.json configure-litellm.sh:configure-litellm.sh"
-  [pihole]="serve.json:ts-config/serve.json Caddyfile:caddy-config/Caddyfile"
+  [pihole]="serve.json:ts-config/serve.json"
   [plex]="serve.json:ts-config/serve.json"
-  [portainer]="serve.json:ts-config/serve.json Caddyfile:caddy-config/Caddyfile"
+  [portainer]="serve.json:ts-config/serve.json"
   [postgresql]="serve.json:ts-config/serve.json"
   [syncthing]="serve.json:ts-config/serve.json"
 )
@@ -84,16 +90,17 @@ declare -A STACK_CHOWN_OVERRIDES=(
 # Pattern A / hybrid stacks: host-level `tailscale serve` mappings, as
 # "host_port:backend_url" pairs (space-separated). These run against the
 # NAS host's own tailscaled, not a sidecar container.
+# affine and frigate moved to Tailscale sidecars on 2026-09-26 (consistency with
+# every other stack); their host-level mappings are gone. Remove the old mappings
+# on the NAS once: `tailscale serve --https=3010 off` and `--https=8971 off`.
 declare -A STACK_SERVE_PORTS=(
-  [affine]="3010:http://127.0.0.1:3010"
-  [frigate]="8971:http://127.0.0.1:8971"
   [homeassistant]="8123:http://127.0.0.1:8123"
 )
 # homeassistant moved from Pattern B to Pattern A on 2026-08-03: it needs
 # `network_mode: host` for device discovery, which is incompatible with a
 # Tailscale sidecar (the sidecar would land in the host netns alongside the
 # NAS's own tailscaled). Its serve.json.tmpl, ts-state and ts-config are gone.
-# pihole was removed from this list 2026-08-01: it's now a Caddy+TCPForward
+# pihole was removed from this list 2026-08-01: it's now a TCPForward
 # sidecar setup (see pihole/serve.json.tmpl), not host-level tailscale serve.
 # This entry pointed at a NAS host port nothing has ever actually listened
 # on — see homelab/docs/DECISIONS.md for the full history.
@@ -119,7 +126,7 @@ require_stack() {
   local stack="$1"
   if [[ -z "$stack" || ! -d "$stack" ]]; then
     # Use a simple list instead of array expansion to avoid bash 3.2 issues
-    local known_stacks="affine frigate homeassistant langfuse mosquitto n8n nextcloud openwebui pihole plex portainer postgresql syncthing synology-mcp"
+    local known_stacks="affine frigate ha homeassistant langfuse mosquitto n8n nextcloud openwebui pihole plex portainer postgresql syncthing mcp"
     echo "ERROR: unknown stack '$stack' — expected one of: $known_stacks" >&2
     exit 1
   fi

@@ -1,0 +1,106 @@
+# mcp — MCP servers behind one tailnet name
+#
+# Stack version: 3.0 (2026-09-26) -- was synology-mcp; now one Tailscale node
+#   ("mcp") in front of any number of small MCP server containers, routed by path.
+# Purpose: https://mcp.<tailnet>.ts.net/<name>/... reaches the MCP server <name>.
+#
+# How it works:
+#   - `tailscale` joins the tailnet as "mcp" and owns the network namespace.
+#   - Every MCP server borrows it (network_mode: service:tailscale), so they all
+#     share 127.0.0.1 and each needs its own port (table below).
+#   - serve.json (rendered from serve.json.tmpl) terminates TLS with Tailscale's
+#     cert and routes by path prefix: /synology -> 127.0.0.1:8485. Tailscale strips
+#     the prefix, so https://mcp.<tailnet>.ts.net/synology/mcp reaches the
+#     server's own /mcp.
+#   - Path routing needs HTTP, so this stack uses Tailscale's Web/Proxy serve mode,
+#     not the TCPForward pattern the other stacks use (like `ha`, see
+#     docs/tailscale_patterns.md). The slower proxy path doesn't matter for MCP.
+#
+# Servers (one service each; add a row, a service and a serve.json handler):
+#   | Path       | Service  | Port | Image                                  |
+#   | /synology  | synology | 8485 | ghcr.io/lefty3382/synology-mcp:latest  |
+#   next free port: 8486
+#
+# Adding a server: catalog and per-server recipes in ~/code/isaackehle/mcp-servers/README.md
+#   (docs/plugin-recipe.md there). In short:
+#   - HTTP MCP server (streamable HTTP or SSE): run it on the next free port.
+#   - stdio-only MCP server: wrap it with mcp-proxy in server mode, e.g.
+#     `mcp-proxy --host 127.0.0.1 --port 8486 -- <server command>` (pin
+#     `mcp<1.20` next to mcp-proxy: newer mcp breaks its import, 2026-09-26).
+#   - Not everything called "tools" is an MCP server: LM Studio plugins (e.g.
+#     Beledarians_LM_Studio_Toolbox) run inside LM Studio, not here.
+#
+# Environment variables: see .env.example (SYNOLOGY_*, TS_AUTHKEY).
+#
+# Deployment: scripts/deploy.sh api mcp (Portainer-managed), or
+#   scripts/deploy.sh all mcp nas. See INSTALLATION.md.
+#
+
+name: mcp
+
+services:
+  # ── Identity ──────────────────────────────────────────────
+  # Synology DSM tools (health tier). Also still published on the NAS at
+  # :8485 (see tailscale.ports) for clients using http://nas.<tailnet>:8485/mcp.
+  synology:
+    image: ghcr.io/lefty3382/synology-mcp:latest
+    container_name: mcp-synology
+
+    # ── Lifecycle ─────────────────────────────────────────────
+    restart: unless-stopped
+    depends_on:
+      - tailscale
+
+    # ── Network ───────────────────────────────────────────────
+    network_mode: service:tailscale   # borrow the sidecar's namespace
+
+    # ── Environment ───────────────────────────────────────────
+    environment:
+      - SYNOLOGY_TANK_HOST=${SYNOLOGY_HOST}
+      - SYNOLOGY_TANK_PORT=${SYNOLOGY_PORT}
+      - SYNOLOGY_TANK_USERNAME=${SYNOLOGY_USERNAME}
+      - SYNOLOGY_TANK_PASSWORD=${SYNOLOGY_PASSWORD}
+      - MCP_PORT=8485
+      - MCP_PERMISSION_TIER=health
+
+  # ── Identity ──────────────────────────────────────────────
+  # Tailscale node "mcp": owns the namespace every MCP server shares.
+  tailscale:
+    image: tailscale/tailscale:latest
+    container_name: mcp-tailscale
+
+    # ── Lifecycle ─────────────────────────────────────────────
+    restart: unless-stopped
+
+    # ── Runtime ───────────────────────────────────────────────
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    devices:
+      - /dev/net/tun:/dev/net/tun
+
+    # ── Environment ───────────────────────────────────────────
+    environment:
+      - TS_HOSTNAME=mcp
+      - TS_AUTHKEY=${TS_AUTHKEY}
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_AUTH_ONCE=true
+      - TS_SERVE_CONFIG=/config/serve.json
+
+    # ── Network ───────────────────────────────────────────────
+    ports:
+      - "8485:8485"   # synology, for existing clients (http://nas.<tailnet>:8485/mcp)
+
+    # ── Storage ───────────────────────────────────────────────
+    volumes:
+      - /volume1/docker/stacks/mcp/ts-state:/var/lib/tailscale
+      - /volume1/docker/stacks/mcp/ts-config:/config
+
+# Pinned: DSM's firewall drops forwarded traffic from Docker's default
+# 192.168.x.0/20 pool, which silently kills outbound access (image pulls,
+# Tailscale DERP, certificates). See README "Rules that have caused outages".
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: 172.20.27.0/24

@@ -1,0 +1,15 @@
+{
+  "TCP": {
+    "1883": {
+      "TCPForward": "127.0.0.1:1883"
+    },
+    "8883": {
+      "TCPForward": "127.0.0.1:1883",
+      "TerminateTLS": "mosquitto.{{TS_TAILNET_DOMAIN}}"
+    },
+    "443": {
+      "TCPForward": "127.0.0.1:9001",
+      "TerminateTLS": "mosquitto.{{TS_TAILNET_DOMAIN}}"
+    }
+  }
+}

@@ -1,6 +1,6 @@
 # Debug Commands
 
-Quick reference for troubleshooting the Pi-hole + Tailscale + Caddy stack.
+Quick reference for troubleshooting the Pi-hole + Tailscale stack (Caddy removed 2026-09-26).
 
 ## Container Access
 
@@ -10,9 +10,6 @@ docker exec -it pihole sh
 
 # Enter the Tailscale sidecar container
 docker exec -it pihole-tailscale sh
-
-# Enter the Caddy container
-docker exec -it pihole-caddy sh
 ```
 
 ## Pi-hole Configuration
@@ -41,23 +38,17 @@ docker exec pihole-tailscale cat /config/serve.json
 docker exec pihole-tailscale tailscale serve status
 ```
 
-Expect a single `TCPForward` entry on port 443 pointing at `127.0.0.1:8444`
-(Caddy) with `TerminateTLS` set — **not** a `Web`/`Proxy` entry. If you see
+Expect a single `TCPForward` entry on port 443 pointing at `127.0.0.1:80`
+(Pi-hole) with `TerminateTLS` set — **not** a `Web`/`Proxy` entry. If you see
 `Web` handlers instead, the stack is running an older `serve.json` and
 needs a real recreate (`docker compose up -d --force-recreate`), not just a
 restart — Tailscale only re-reads `TS_SERVE_CONFIG` on container start.
 
-## Verifying the Caddy Hop
+## Verifying the Forward Target
 
 ```shell
-# From pihole-tailscale: can it reach Caddy on the internal forward port?
-docker exec pihole-tailscale wget -qO- --timeout=5 http://127.0.0.1:8444/admin/login && echo OK
-
-# From Caddy: can it reach Pi-hole?
-docker exec pihole-caddy wget -qO- --timeout=5 http://127.0.0.1:80/admin/login && echo OK
-
-# Caddy's own logs (access logs + any reverse_proxy errors)
-docker logs pihole-caddy
+# From pihole-tailscale: can it reach Pi-hole on the forward port?
+docker exec pihole-tailscale wget -qO- --timeout=5 http://127.0.0.1:80/admin/login && echo OK
 ```
 
 ## Container Logs
@@ -65,7 +56,6 @@ docker logs pihole-caddy
 ```shell
 docker logs pihole
 docker logs pihole-tailscale
-docker logs pihole-caddy
 
 # Follow logs in real-time
 docker logs -f pihole
@@ -101,23 +91,22 @@ docker exec pihole dig @127.0.0.1 doubleclick.net +short
 
 | URL                                       | Description                                                       |
 | ------------------------------------------ | --------------------------------------------------------------------- |
-| `https://pihole.${TS_TAILNET_DOMAIN}`     | Pi-hole admin — primary path: `pihole-tailscale` (TLS) → `caddy` → Pi-hole  |
-| `http://pihole.${TS_TAILNET_DOMAIN}:8280` | Raw debug path straight to Pi-hole — no TLS, no Caddy, no Tailscale proxying involved beyond basic reachability |
+| `https://pihole.${TS_TAILNET_DOMAIN}`     | Pi-hole admin — primary path: `pihole-tailscale` (TLS) → Pi-hole :80 |
+| `http://pihole.${TS_TAILNET_DOMAIN}:8280` | Raw debug path straight to Pi-hole — no TLS, no Tailscale proxying involved beyond basic reachability |
 
 If the primary URL doesn't work but the `:8280` one does, the problem is
-specifically in the `pihole-tailscale`→`caddy` TCPForward hop — use the "Verifying
-the Caddy Hop" commands above to find which link is broken.
+specifically in the `pihole-tailscale` TCPForward hop — use the "Verifying
+the Forward Target" commands above to find which link is broken.
 
 ## Restart Services
 
 ```shell
-# Restart all three containers
+# Restart both containers
 docker compose restart
 
 # Restart a single service
 docker compose restart pihole
 docker compose restart pihole-tailscale
-docker compose restart caddy
 
 # Restart Pi-hole DNS only (doesn't restart container)
 docker exec pihole pihole restartdns
@@ -130,4 +119,3 @@ docker exec pihole pihole restartdns
 | Pi-hole config           | `/volume1/docker/stacks/pihole/etc-pihole`           |
 | Tailscale serve config   | `/volume1/docker/stacks/pihole/ts-config/serve.json` |
 | Tailscale state          | `/volume1/docker/stacks/pihole/ts-state`             |
-| Caddyfile                | `/volume1/docker/stacks/pihole/caddy-config`         |

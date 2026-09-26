@@ -6,30 +6,29 @@ this repo gets deployed *from* Portainer once this is running.
 
 ## Architecture
 
-Three containers sharing one network namespace (Pattern B — see the root
-`README.md`):
+Two containers sharing one network namespace (Pattern B, same shape as
+`openwebui` — see the root `README.md`):
 
 | Container         | Role                                                          |
 | ----------------- | ------------------------------------------------------------- |
 | `portainer`       | Portainer CE. Listens on `:9000` (HTTP) and `:9443` (HTTPS).  |
 | `portainer-tailscale`    | Tailscale sidecar. Owns the namespace; joins the tailnet.     |
-| `portainer-caddy` | Reverse proxy. Listens on `:8444`, forwards to `:9000`.       |
 
 Request path for `https://portainer.<tailnet>.ts.net`:
 
 ```text
-client → tailscaled (:443, TerminateTLS) → Caddy (:8444) → Portainer (:9000)
+client → tailscaled (:443, TerminateTLS, TCPForward) → Portainer (:9000)
 ```
 
-Tailscale terminates TLS with its own auto-issued Let's Encrypt cert, then hands
-Caddy raw decrypted TCP. **Caddy does the HTTP-level proxying, not tailscaled** —
-tailscaled's built-in `Web`/`Proxy` serve mode is documented as 5-10x slower
-under load ([tailscale/tailscale#18307](https://github.com/tailscale/tailscale/issues/18307))
-and has caused real outages here. Pi-hole uses the identical pattern.
+Tailscale terminates TLS with its own auto-issued Let's Encrypt cert, then
+relays raw decrypted TCP to Portainer's plain-HTTP port. `TCPForward` never
+goes through tailscaled's slow `Web`/`Proxy` mode
+([tailscale/tailscale#18307](https://github.com/tailscale/tailscale/issues/18307)),
+so no Caddy hop is needed (removed 2026-09-26).
 
-Because all three share `portainer-tailscale`'s namespace, they reach each other over
-`127.0.0.1`. Ports `9000`, `19443` (→`9443`), and `8000` are also published to
-the NAS host for LAN access; `8444` deliberately is not.
+Ports `9000`, `19443` (→`9443`), and `8000` (Edge tunnel) are published on the
+**sidecar** for LAN access. The stack network is pinned to `172.20.21.0/24`
+so DSM's firewall doesn't drop its outbound traffic.
 
 ## Prerequisites
 
@@ -45,7 +44,7 @@ world-writable on DSM.
 ```shell
 STACK=/volume1/docker/stacks/portainer
 
-mkdir -p $STACK/{data,ts-config,ts-state,caddy-config}
+mkdir -p $STACK/{data,ts-config,ts-state}
 
 # Secrets: 700, root-owned, separate tree
 sudo mkdir -p /volume1/docker/portainer-secrets/{certs,chisel}
@@ -67,7 +66,6 @@ Resulting layout:
 /volume1/docker/stacks/portainer/
 ├── .env                               ← 600, TS_AUTHKEY lives here
 ├── docker-compose.yml
-├── caddy-config/Caddyfile
 ├── ts-config/serve.json               ← rendered from serve.json.tmpl
 ├── ts-state/                          ← tailscaled state (see DEBUG.md)
 └── data/                              ← portainer.db and Portainer's data
@@ -104,7 +102,7 @@ From your Mac:
 ```shell
 cd ~/code/isaackehle/iac
 scripts/gen-env.sh portainer          # renders serve.json from serve.json.tmpl
-scripts/deploy.sh portainer nas   # pushes compose, .env, serve.json, Caddyfile
+scripts/deploy.sh portainer nas   # pushes compose, .env, serve.json
 ```
 
 Or manually — note `-O`, which forces the legacy SCP protocol. Without it,
@@ -113,7 +111,6 @@ misleading `No such file or directory` on a directory that plainly exists:
 
 ```shell
 scp -O portainer/docker-compose.yml isaac@nas:/volume1/docker/stacks/portainer/
-scp -O portainer/Caddyfile          isaac@nas:/volume1/docker/stacks/portainer/caddy-config/
 scp -O portainer/serve.json         isaac@nas:/volume1/docker/stacks/portainer/ts-config/
 ```
 
@@ -143,8 +140,8 @@ docker exec portainer-tailscale tailscale status
 docker exec portainer-tailscale tailscale serve status
 ```
 
-Expect all three containers `Up` with **matching uptimes**, and serve status
-showing `tcp://portainer.<tailnet>.ts.net:443 → tcp://127.0.0.1:8444`.
+Expect both containers `Up` with **matching uptimes**, and serve status
+showing `tcp://portainer.<tailnet>.ts.net:443 → tcp://127.0.0.1:9000`.
 
 Then, from a machine on the tailnet (not the NAS itself — see DEBUG.md):
 
@@ -175,7 +172,7 @@ docker compose down && docker compose up -d
 
 > **Never restart the sidecar alone.** `network_mode: service:portainer-tailscale`
 > binds the namespace at *container creation*. `docker restart portainer-tailscale`
-> leaves `portainer` and `portainer-caddy` pointed at a namespace that no longer
+> leaves `portainer` pointed at a namespace that no longer
 > exists, which presents as `connection refused` to `127.0.0.1:9000` in the
 > sidecar log. Mismatched uptimes in `docker ps` are the tell. Always
 > `down && up -d` the whole stack.

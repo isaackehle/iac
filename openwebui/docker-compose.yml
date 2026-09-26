@@ -62,7 +62,10 @@ services:
 
     # ── Storage ───────────────────────────────────────────────
     volumes:
-      - ./configure-litellm.sh:/scripts/configure-litellm.sh:ro
+      # Absolute, not ./: Portainer CE runs compose inside its own container, so a
+      # relative bind source resolves to a path that doesn't exist on the NAS
+      # and Docker mounts an empty directory. deploy.sh copies the script here.
+      - /volume1/docker/stacks/openwebui/configure-litellm.sh:/scripts/configure-litellm.sh:ro
 
     # ── Environment ───────────────────────────────────────────
     # OPENWEBUI_API_KEY intentionally has no ${VAR:?...} guard: it doesn't
@@ -107,3 +110,13 @@ services:
       - NET_RAW
     devices:
       - /dev/net/tun:/dev/net/tun
+
+# Pinned, same reason as pihole/portainer: DSM's firewall drops forwarded
+# traffic from Docker's default 192.168.x.0/20 pool, which kills outbound
+# (image pulls, DERP, ACME). A Portainer redeploy recreates this network, so
+# it must not be left to chance.
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: 172.20.22.0/24

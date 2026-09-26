@@ -1,6 +1,6 @@
 # Frigate — Docker Compose Stack
 #
-# Stack version: 1.0
+# Stack version: 2.0 (2026-09-26) -- Tailscale sidecar (was host-level serve)
 # Purpose: NVR for IP cameras with object detection
 #
 # Services:
@@ -33,20 +33,18 @@ services:
     # ── Lifecycle ─────────────────────────────────────────────
     restart: unless-stopped
     stop_grace_period: 30s
+    network_mode: service:tailscale   # borrow the sidecar's namespace
+    depends_on:
+      - tailscale
 
     # ── Network ───────────────────────────────────────────────
-    ports:
-      - "8971:8971"         # Web UI (HTTP API + dashboard)
-      - "8554:8554"         # RTSP restream (re-stream camera feeds)
-      - "8555:8555/tcp"     # WebRTC over TCP (low-latency live view)
-      - "8555:8555/udp"     # WebRTC over UDP (preferred for live view)
 
     # ── Storage ───────────────────────────────────────────────
     volumes:
       # Persistent data (recordings, snapshots, clips)
-      - ./storage:/media/frigate
+      - /volume1/docker/stacks/frigate/storage:/media/frigate
       # Application config (frigate.yml, database)
-      - ./config:/config
+      - /volume1/docker/stacks/frigate/config:/config
       # Ephemeral cache (tmpfs for performance)
       - type: tmpfs
         target: /tmp/cache
@@ -63,3 +61,53 @@ services:
 
     # ── Runtime ───────────────────────────────────────────────
     shm_size: "1gb"         # Shared memory for camera streams
+
+  # ── Identity ──────────────────────────────────────────────
+  # Tailscale sidecar: joins the tailnet as "frigate" and owns the network
+  # namespace. primary borrows it (network_mode: service:tailscale), so any
+  # LAN ports are published here, not on primary. serve.json (rendered from
+  # serve.json.tmpl by scripts/gen-env.sh) terminates TLS with Tailscale's
+  # cert and forwards raw TCP (the openwebui pattern, docs/tailscale_patterns.md).
+  # Frigate's own TLS on 8971 is off (frigate-config.yml `tls:`), so Tailscale is the only TLS layer. RTSP 8554 and WebRTC 8555 stay published for LAN clients.
+  tailscale:
+    image: tailscale/tailscale:latest
+    container_name: frigate-tailscale
+
+    # ── Lifecycle ─────────────────────────────────────────────
+    restart: unless-stopped
+
+    # ── Runtime ───────────────────────────────────────────────
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    devices:
+      - /dev/net/tun:/dev/net/tun
+
+    # ── Environment ───────────────────────────────────────────
+    environment:
+      - TS_HOSTNAME=frigate
+      - TS_AUTHKEY=${TS_AUTHKEY}
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_AUTH_ONCE=true
+      - TS_SERVE_CONFIG=/config/serve.json
+
+    # ── Network ───────────────────────────────────────────────
+    ports:
+      - "8971:8971"         # Web UI (HTTP API + dashboard)
+      - "8554:8554"         # RTSP restream (re-stream camera feeds)
+      - "8555:8555/tcp"     # WebRTC over TCP (low-latency live view)
+      - "8555:8555/udp"     # WebRTC over UDP (preferred for live view)
+
+    # ── Storage ───────────────────────────────────────────────
+    volumes:
+      - /volume1/docker/stacks/frigate/ts-state:/var/lib/tailscale
+      - /volume1/docker/stacks/frigate/ts-config:/config
+
+# Pinned: DSM's firewall drops forwarded traffic from Docker's default
+# 192.168.x.0/20 pool, which silently kills outbound access (image pulls,
+# Tailscale DERP, certificates). See README "Rules that have caused outages".
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: 172.20.25.0/24

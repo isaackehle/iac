@@ -42,7 +42,7 @@ services:
 
     # ── Network ───────────────────────────────────────────────
     ports:
-      - "8280:80/tcp"               # Web interface (remapped to avoid port 80)
+      - "8281:80/tcp"               # Web interface (8280 is pihole's)
     hostname: nextcloud
     networks:
       - nextcloud-net

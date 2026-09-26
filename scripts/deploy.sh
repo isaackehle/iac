@@ -11,7 +11,7 @@
 #   scripts/deploy.sh dirs   <stack> <ssh-host>       # mkdir -p + chown on the NAS
 #   scripts/deploy.sh push   <stack> <ssh-host>       # scp compose/.env/extra files
 #   scripts/deploy.sh extras <stack> <ssh-host>       # scp ONLY the bind-mounted extra
-#                                                     # config (serve.json, Caddyfile,
+#                                                     # config (serve.json,
 #                                                     # etc.) — no compose file, no
 #                                                     # .env
 #   scripts/deploy.sh serve  <stack> <ssh-host>       # apply host-level tailscale serve (Pattern A/hybrid stacks)
@@ -35,7 +35,7 @@
 # NAS at all. Pushing either there just leaves a stale, unused duplicate
 # sitting next to the real bind-mounted config. Use `extras` instead for
 # those stacks: it pushes only the files containers actually read via
-# host bind-mounts (serve.json, Caddyfile, ...).
+# host bind-mounts (serve.json, ...).
 
 set -euo pipefail
 

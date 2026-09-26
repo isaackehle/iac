@@ -1,12 +1,8 @@
 {
   "TCP": {
-    "443": { "HTTPS": true }
-  },
-  "Web": {
-    "${TS_CERT_DOMAIN}:443": {
-      "Handlers": {
-        "/": { "Proxy": "http://127.0.0.1:CHANGE_ME_PORT" }
-      }
+    "443": {
+      "TCPForward": "127.0.0.1:CHANGE_ME_PORT",
+      "TerminateTLS": "template.{{TS_TAILNET_DOMAIN}}"
     }
   }
 }

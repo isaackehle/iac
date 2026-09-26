@@ -1,0 +1,14 @@
+{
+  "TCP": {
+    "443": { "HTTPS": true },
+    "9584": { "HTTPS": true }
+  },
+  "Web": {
+    "ha.{{TS_TAILNET_DOMAIN}}:443": {
+      "Handlers": { "/": { "Proxy": "https+insecure://{{HA_LAN_IP}}:8123" } }
+    },
+    "ha.{{TS_TAILNET_DOMAIN}}:9584": {
+      "Handlers": { "/": { "Proxy": "http://{{HA_LAN_IP}}:9584" } }
+    }
+  }
+}

@@ -144,7 +144,13 @@ Stacks: `homeassistant`, `langfuse`, `openwebui`, `plex`, `portainer`
   `network_mode: service:<sidecar>` and borrows the sidecar's entire
   network namespace.
 - The sidecar reads its `serve.json` (via `TS_SERVE_CONFIG=/config/serve.json`)
-  using `${TS_CERT_DOMAIN}` templating; it's re-read on sidecar container
+  — **one shape for every sidecar stack** (the openwebui pattern, 2026-09-26):
+  `{"TCP":{"443":{"TCPForward":"127.0.0.1:<port>","TerminateTLS":"<name>.{{TS_TAILNET_DOMAIN}}"}}}`,
+  rendered by `render_templates`. Do not use the `HTTPS: true` + `Web` map
+  shape with a literal `${TS_CERT_DOMAIN}` key: nothing expands it, and the
+  node falls back to dialing `127.0.0.1:443` ("connection refused"). No Caddy
+  hop either — `TCPForward` is a raw TCP relay, not tailscaled's slow
+  `Web`/`Proxy` path (tailscale/tailscale#18307). The file is re-read on sidecar container
   start, so the file must stay present at the mounted path (not a one-shot
   apply like Pattern A). Every sidecar stack mounts the **whole `ts-config`
   directory** at `/config` and `deploy.sh` pushes `serve.json` into
@@ -168,10 +174,8 @@ Stacks: `n8n`, `nextcloud`, `pihole`, `postgresql`, `syncthing`
   `network_mode: service:primary` with `depends_on: [primary]`.
 - The sidecar's `serve.json` proxies to `127.0.0.1:<port>` which reaches
   the primary since they share the same namespace.
-- Sibling containers (db, browserless, caddy) join `<stack>-net` as usual;
+- Sibling containers (db, browserless) join `<stack>-net` as usual;
   the primary resolves them directly and the sidecar inherits that resolution.
-- `pihole` and `portainer` use a variant with Caddy doing the actual HTTP
-  reverse-proxying (see below).
 
 **⚠️ Critical gotcha — never use compose `hostname:` on a Tailscale
 sidecar.** Always set the tailnet name via `TS_HOSTNAME=<name>` env var.
@@ -180,30 +184,13 @@ internal DNS and breaks MagicDNS resolution for *every* sidecar on the
 host, not just the one you changed. This is documented inline in the
 affected compose files and in `README.md`.
 
-**`pihole` is Pattern B with one deliberate variant**, not a clean example
-to copy verbatim: its `pihole-tailscale` sidecar uses `TCPForward`/`TerminateTLS`
-in `serve.json` instead of the usual `HTTPS: true` + `Web` shape, and routes
-through a third sibling container, `caddy`, which does the actual HTTP
-reverse-proxying. This exists because `tailscaled`'s own built-in
-`Web`/`Proxy` mode is measurably slower under concurrent load (enough to
-make Pi-hole's admin UI hang loading its own CSS/JS —
-[tailscale/tailscale#18307](https://github.com/tailscale/tailscale/issues/18307)),
-not because pihole needs anything else unusual. It also inverts the usual
-direction like `syncthing` does: `pihole` is primary (`ports:`, `hostname:`)
-and `pihole-tailscale`/`caddy` both run `network_mode: service:service.primary`. See
-`README.md`'s "pihole — Pattern B + Caddy" section for the full schema
-before reapplying this elsewhere — it's a real, reusable pattern for any
-other Pattern B stack that hits the same slow-proxy wall, just not
-something to copy blind.
-
-**`portainer` now uses that same Caddy variant** (added 2026-08-03):
-`portainer-tailscale` does `TCPForward`/`TerminateTLS` → `portainer-caddy` on
-`:8444` → Portainer's plain HTTP `:9000`. Note it inverts pihole's
-direction — here the *sidecar* owns the namespace and both `portainer` and
-`caddy` borrow it, so the `depends_on` edges point the opposite way.
-Worth reading alongside pihole's version to see which parts of the pattern
-are essential (the serve.json shape, Caddy doing the HTTP hop) and which are
-per-stack (who owns the netns).
+**Caddy was removed from `pihole` and `portainer` on 2026-09-26.** Both
+used `TCPForward`/`TerminateTLS` → Caddy `:8444` → app, on the theory that
+Caddy avoided tailscaled's slow `Web`/`Proxy` mode. But `TCPForward` never
+touches that code path, so the hop was redundant; the "hangs on large
+responses" it was blamed for were the NAT-hairpin path issue fixed by
+`TS_DEBUG_ALWAYS_USE_DERP=1`. Both now forward straight to the app port like
+`openwebui`. Keep the DERP pin and the pinned `172.20.x.0/24` networks.
 
 ## Legacy directory paths — do not silently "fix"
 

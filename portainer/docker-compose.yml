@@ -1,22 +1,26 @@
 # Portainer — Docker Compose Stack
 #
-# Stack version: 1.0
+# Stack version: 2.0 (2026-09-26) -- openwebui pattern: sidecar + TCPForward, no Caddy
 # Purpose: Docker management interface with Tailscale sidecar
 #
 # Services:
-#   - primary
-#   - caddy (Caddy reverse proxy)
-#   - tailscale (Tailscale sidecar)
+#   - primary (Portainer CE; plain HTTP on :9000, HTTPS on :9443)
+#   - tailscale (Tailscale sidecar; owns the network namespace)
+#
+# Request path for https://portainer.<tailnet>.ts.net:
+#   client -> portainer-tailscale :443 (TerminateTLS) -> TCPForward 127.0.0.1:9000
+# Same shape as openwebui. TCPForward is a raw TCP relay, not tailscaled's
+# Web/Proxy HTTP code path (tailscale/tailscale#18307), so no Caddy hop needed.
 #
 # Environment variables:
-#   - STACK_NAME=Portainer
 #   - TS_HOSTNAME=${TS_HOSTNAME:-portainer}
 #   - TS_AUTHKEY=${TS_AUTHKEY}
 #   See .env.example for all required variables
 #
 # Deployment:
-#   docker compose -f portainer.yaml up -d
-#   docker compose -f portainer.yaml down
+#   docker compose -f docker-compose.yml up -d
+#   docker compose -f docker-compose.yml down
+#   Never restart the sidecar alone -- see INSTALLATION.md "Updates".
 #
 
 name: portainer
@@ -28,7 +32,7 @@ services:
     container_name: portainer
 
     # ── Lifecycle ─────────────────────────────────────────────
-    restart: always
+    restart: unless-stopped
     depends_on:
       - tailscale
     command: ["--trusted-origins=portainer.<tailnet>.ts.net"]
@@ -43,48 +47,18 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - /volume1/docker/stacks/portainer/data:/data
 
-    # ── Environment ───────────────────────────────────────────
-    env_file:
-      - /volume1/docker/stacks/portainer/.env
-
-  # ── Identity ──────────────────────────────────────────────
-  # Caddy sits behind tailscale's TCPForward+TerminateTLS serve config.
-  # tailscaled's own built-in Web/Proxy serve mode is documented as 5-10x
-  # slower under concurrent load (tailscale/tailscale#18307) — confirmed
-  # tonight as an accept-then-hang on any response above a trivial size,
-  # affecting both the tailnet HTTPS URL and the "direct" published port.
-  # Caddy does the actual HTTP-level reverse proxying instead; see
-  # pihole/Caddyfile for the identical, already-working pattern.
-  caddy:
-    image: caddy:2-alpine
-    container_name: portainer-caddy
-
-    # ── Lifecycle ─────────────────────────────────────────────
-    restart: unless-stopped
-    depends_on:
-      - tailscale
-      - primary
-
-    # ── Network ───────────────────────────────────────────────
-    network_mode: service:tailscale  # Share tailscale's network stack
-
-    # ── Storage ───────────────────────────────────────────────
-    volumes:
-      - /volume1/docker/stacks/portainer/caddy-config:/etc/caddy:ro
-
   # ── Identity ──────────────────────────────────────────────
   tailscale:
-    image: tailscale/tailscale:unstable
+    image: tailscale/tailscale:latest
     container_name: portainer-tailscale
 
     # ── Lifecycle ─────────────────────────────────────────────
     restart: unless-stopped
 
-    # ── Runtime ───────────────────────────────────────────────
-    cap_add:
-      - NET_ADMIN
-      - SYS_MODULE
-      - NET_RAW
+    # ── Storage ───────────────────────────────────────────────
+    volumes:
+      - /volume1/docker/stacks/portainer/ts-state:/var/lib/tailscale
+      - /volume1/docker/stacks/portainer/ts-config:/config
 
     # ── Environment ───────────────────────────────────────────
     environment:
@@ -97,37 +71,31 @@ services:
       # This node can negotiate a bogus "direct" path via NAT hairpin off its
       # public STUN endpoint, which passes disco pings but blackholes the
       # multi-segment TLS ServerHello, hanging :443 at the handshake. Portainer
-      # hit this twice (2026-08-02 and 08-04); each apparent fix (state wipe,
-      # image bump) really just changed the container's UDP port and reshuffled
-      # path selection. Pin the relay so it is deterministic, not luck.
+      # hit this twice (2026-08-02 and 08-04).
       - TS_DEBUG_ALWAYS_USE_DERP=1
 
-    # ── Storage ───────────────────────────────────────────────
-    volumes:
-      - /volume1/docker/portainer-secrets/certs:/certs:ro
-      - /volume1/docker/portainer-secrets/chisel:/chisel:ro
-      - /volume1/docker/stacks/portainer/ts-state:/var/lib/tailscale
-      - /volume1/docker/stacks/portainer/ts-config:/config
-
     # ── Network ───────────────────────────────────────────────
+    # Published here, not on primary: primary has no network of its own.
     networks:
       - portainer_net
+    ports:
+      - "9000:9000"     # Portainer HTTP (LAN)
+      - "19443:9443"    # Portainer HTTPS, self-signed (LAN)
+      - "8000:8000"     # Portainer Edge agent tunnel
 
     # ── Runtime ───────────────────────────────────────────────
-    ports:
-      - "19443:9443"
-      - "9000:9000"
-      - "8000:8000"
-
-    # ── Storage ───────────────────────────────────────────────
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
     devices:
       - /dev/net/tun:/dev/net/tun
 
-# Pinned for the same reason as pihole: DSM's firewall only allow-lists
-# 172.16.0.0/12 and the real LAN for forwarded traffic, while Docker's dynamic
-# pool hands out 192.168.0.0/16 /20 blocks that fall through to default-deny.
-# An unpinned network here silently loses all outbound access, which breaks
-# GitOps polling and image pulls.
+# Pinned: DSM's firewall only allow-lists 172.16.0.0/12 and the real LAN for
+# forwarded traffic, while Docker's dynamic pool hands out 192.168.0.0/16 /20
+# blocks that fall through to default-deny. An unpinned network silently loses
+# all outbound access (seen 2026-09-26: portainer_default got 192.168.112.0/20
+# and the sidecar logged "UDP is blocked" + ACME timeouts). Name kept as
+# portainer_net so the existing portainer_portainer_net network is reused.
 networks:
   portainer_net:
     driver: bridge

@@ -1,0 +1,77 @@
+# ha — Tailscale front door for Home Assistant
+#
+# Stack version: 1.0 (2026-09-26)
+# Purpose: give Home Assistant a tailnet name, https://ha.<tailnet>.ts.net, and
+#   its MCP server at https://ha.<tailnet>.ts.net:9584, without touching the HA box.
+#
+# Home Assistant doesn't run on the NAS: it's its own machine on the LAN
+# (HA_LAN_IP in iac-secrets.env; homeassistant.local). Its own Tailscale add-on node
+# ("homeassistant") has been unreliable (offline since 2026-09-24), and HA needs
+# host networking, so it can't take a sidecar. This stack is one Tailscale
+# container that joins the tailnet as "ha" and proxies to HA over the LAN.
+#
+# Why Web/Proxy serve mode here, not TCPForward like openwebui/portainer: HA
+# only serves HTTPS on 8123, with a Let's Encrypt cert for kehle.duckdns.org.
+# TCPForward after TerminateTLS would hand HA plaintext on a TLS port, and TCP
+# passthrough would show browsers the duckdns cert on the ts.net name. The
+# proxy terminates Tailscale's cert and re-connects with https+insecure (the
+# duckdns cert doesn't match the LAN IP). It's the slower serve path
+# (tailscale/tailscale#18307), acceptable for one HA UI.
+#
+# HA must trust this proxy, or it answers 400 to forwarded requests. In HA's
+# configuration.yaml (see INSTALLATION.md):
+#   http:
+#     use_x_forwarded_for: true
+#     trusted_proxies: [<NAS_LAN_IP>]   # the NAS
+#
+# Services:
+#   - tailscale (the ha node; no app container)
+#
+# Environment variables:
+#   - TS_AUTHKEY=${TS_AUTHKEY}
+#   See .env.example
+#
+# Deployment:
+#   scripts/deploy.sh all ha nas     (or scripts/deploy.sh api ha for a Portainer-managed stack)
+#
+
+name: ha
+
+services:
+  # ── Identity ──────────────────────────────────────────────
+  tailscale:
+    image: tailscale/tailscale:latest
+    container_name: ha-tailscale
+
+    # ── Lifecycle ─────────────────────────────────────────────
+    restart: unless-stopped
+
+    # ── Runtime ───────────────────────────────────────────────
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+
+    # ── Environment ───────────────────────────────────────────
+    environment:
+      - TS_HOSTNAME=ha
+      - TS_AUTHKEY=${TS_AUTHKEY}
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_AUTH_ONCE=true
+      - TS_SERVE_CONFIG=/config/serve.json
+
+    # ── Storage ───────────────────────────────────────────────
+    volumes:
+      - /volume1/docker/stacks/ha/ts-state:/var/lib/tailscale
+      - /volume1/docker/stacks/ha/ts-config:/config
+
+    devices:
+      - /dev/net/tun:/dev/net/tun
+
+# Pinned, same reason as pihole/portainer/openwebui: DSM's firewall drops
+# forwarded traffic from Docker's default 192.168.x.0/20 pool, and this
+# container must reach both the internet (DERP, ACME) and HA on the LAN.
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: 172.20.23.0/24

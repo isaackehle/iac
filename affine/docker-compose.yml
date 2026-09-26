@@ -1,6 +1,6 @@
 # Affine — Docker Compose Stack
 #
-# Stack version: 1.0
+# Stack version: 2.0 (2026-09-26) -- Tailscale sidecar (was host-level serve)
 # Purpose: Collaborative whiteboard and note-taking platform
 #
 # Services:
@@ -8,6 +8,7 @@
 #   - migration (database migrations)
 #   - config (PostgreSQL database)
 #   - cache (Redis cache)
+#   - tailscale (sidecar; https://affine.<tailnet>.ts.net)
 #
 # Environment variables:
 #   - STACK_NAME=Affine
@@ -35,7 +36,10 @@ services:
 
     # ── Lifecycle ─────────────────────────────────────────────
     restart: unless-stopped
+    network_mode: service:tailscale   # borrow the sidecar's namespace (reaches cache/config through it)
     depends_on:
+      tailscale:
+        condition: service_started
       cache:
         condition: service_healthy
       config:
@@ -44,8 +48,6 @@ services:
         condition: service_completed_successfully
 
     # ── Network ───────────────────────────────────────────────
-    ports:
-      - "${PORT:-3010}:3010"      # Web UI port (default 3010)
 
     # ── Storage ───────────────────────────────────────────────
     volumes:
@@ -127,3 +129,50 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  # ── Identity ──────────────────────────────────────────────
+  # Tailscale sidecar: joins the tailnet as "affine" and owns the network
+  # namespace. primary borrows it (network_mode: service:tailscale), so any
+  # LAN ports are published here, not on primary. serve.json (rendered from
+  # serve.json.tmpl by scripts/gen-env.sh) terminates TLS with Tailscale's
+  # cert and forwards raw TCP (the openwebui pattern, docs/tailscale_patterns.md).
+  # primary still reaches cache/config by service name: the sidecar joins the default network.
+  tailscale:
+    image: tailscale/tailscale:latest
+    container_name: affine-tailscale
+
+    # ── Lifecycle ─────────────────────────────────────────────
+    restart: unless-stopped
+
+    # ── Runtime ───────────────────────────────────────────────
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    devices:
+      - /dev/net/tun:/dev/net/tun
+
+    # ── Environment ───────────────────────────────────────────
+    environment:
+      - TS_HOSTNAME=affine
+      - TS_AUTHKEY=${TS_AUTHKEY}
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_AUTH_ONCE=true
+      - TS_SERVE_CONFIG=/config/serve.json
+
+    # ── Network ───────────────────────────────────────────────
+    ports:
+      - "${PORT:-3010}:3010"      # Web UI port (default 3010)
+
+    # ── Storage ───────────────────────────────────────────────
+    volumes:
+      - /volume1/docker/stacks/affine/ts-state:/var/lib/tailscale
+      - /volume1/docker/stacks/affine/ts-config:/config
+
+# Pinned: DSM's firewall drops forwarded traffic from Docker's default
+# 192.168.x.0/20 pool, which silently kills outbound access (image pulls,
+# Tailscale DERP, certificates). See README "Rules that have caused outages".
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: 172.20.24.0/24

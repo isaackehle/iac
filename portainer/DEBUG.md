@@ -1,6 +1,6 @@
 # Portainer Debug Reference
 
-Troubleshooting for the Portainer + Tailscale + Caddy stack. For the full
+Troubleshooting for the Portainer + Tailscale stack (Caddy removed 2026-09-26). For the full
 narrative of the 2026-08-03 outage that produced most of these notes, see
 `OUTAGE-2026-08-03.md`.
 
@@ -42,16 +42,15 @@ docker exec portainer-tailscale cat /config/serve.json
 docker ps -a --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'
 docker logs --tail 30 portainer-tailscale
 docker logs --tail 30 portainer
-docker logs --tail 30 portainer-caddy
 docker exec portainer-tailscale tailscale status
 docker exec portainer-tailscale tailscale serve status
 ```
 
-Want: three containers `Up` with matching uptimes, and
+Want: both containers `Up` with matching uptimes, and
 
 ```text
 |-- tcp://portainer.<tailnet>.ts.net:443 (TLS terminated, tailnet only)
-|--> tcp://127.0.0.1:8444
+|--> tcp://127.0.0.1:9000
 ```
 
 ## Diagnosing by symptom
@@ -168,7 +167,6 @@ docker exec portainer-tailscale tailscale ip -4
 
 # is the backend actually up, from inside the shared namespace?
 docker exec portainer-tailscale wget -qO- http://127.0.0.1:9000/api/status
-docker exec portainer-tailscale wget -qO- http://127.0.0.1:8444/api/status   # via Caddy
 ```
 
 There is no `tailscale0` interface in these containers — they run with
@@ -180,7 +178,6 @@ tells you nothing.
 | Compose file    | `/volume1/docker/stacks/portainer/docker-compose.yml`     |
 | Env file        | `/volume1/docker/stacks/portainer/.env`                   |
 | Serve config    | `/volume1/docker/stacks/portainer/ts-config/serve.json`   |
-| Caddy config    | `/volume1/docker/stacks/portainer/caddy-config/Caddyfile` |
 | Tailscale state | `/volume1/docker/stacks/portainer/ts-state/`              |
 | Portainer data  | `/volume1/docker/stacks/portainer/data/`                  |
 | Secrets         | `/volume1/docker/portainer-secrets/` (700, root:root)     |

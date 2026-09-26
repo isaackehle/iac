@@ -1,5 +1,11 @@
 # Docker Compose File Standards
 
+> **2026-09-26: Caddy sidecars are gone.** The Caddy examples below are
+> historical. Every sidecar stack now uses the openwebui shape — app +
+> `tailscale` sidecar, `serve.json` doing `TCPForward` + `TerminateTLS`
+> straight to the app port. See `docs/tailscale_patterns.md`. Don't add Caddy
+> back when copying an example from this file.
+
 This document defines the expected organization and ordering of docker-compose.yml files across the IAC repo.
 
 > Most of this document is about **style** — ordering, naming, grouping. The
