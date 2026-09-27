@@ -8,6 +8,8 @@
 #   - tailscale (Tailscale sidecar)
 #   - config (PostgreSQL database)
 #   - cache (Redis cache)
+#   - db-init (one-shot: lets Nextcloud's own DB user create tables)
+#   - cron (runs Nextcloud background jobs every 5 minutes)
 #
 # Environment variables:
 #   - STACK_NAME=Nextcloud
@@ -46,6 +48,13 @@ services:
     hostname: nextcloud
     networks:
       - nextcloud-net
+    depends_on:
+      config:
+        condition: service_healthy
+      cache:
+        condition: service_started
+      db-init:
+        condition: service_completed_successfully
 
     # ── Storage ───────────────────────────────────────────────
     volumes:
@@ -53,7 +62,9 @@ services:
       - /volume1/docker/stacks/nextcloud/data:/var/www/html/data
 
     # ── Environment ───────────────────────────────────────────
-    environment:
+    # Anchored: cron needs the same values (the image's redis and
+    # reverse-proxy config files read them at runtime).
+    environment: &nextcloud-env
       - POSTGRES_HOST=config
       - POSTGRES_DB=nextcloud
       - POSTGRES_USER=nextcloud
@@ -121,6 +132,70 @@ services:
       - POSTGRES_DB=nextcloud
       - POSTGRES_USER=nextcloud
       - POSTGRES_PASSWORD=${NC_DB_PASSWORD}
+
+    # ── Health ────────────────────────────────────────────────
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nextcloud -d nextcloud"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # ── Identity ──────────────────────────────────────────────
+  # One-shot, runs on every start (idempotent). Nextcloud's installer creates
+  # its own DB user (oc_<admin>), and since PostgreSQL 15 only the schema
+  # owner may create tables in `public`. Without this grant the install fails
+  # with "no schema has been selected to create in" or "permission denied for
+  # table oc_migrations" (2026-09-27).
+  db-init:
+    image: postgres:16
+    container_name: nextcloud-db-init
+
+    # ── Lifecycle ─────────────────────────────────────────────
+    restart: "no"
+    depends_on:
+      config:
+        condition: service_healthy
+
+    # ── Network ───────────────────────────────────────────────
+    networks:
+      - nextcloud-net
+
+    # ── Environment ───────────────────────────────────────────
+    environment:
+      - PGHOST=config
+      - PGUSER=nextcloud
+      - PGDATABASE=nextcloud
+      - PGPASSWORD=${NC_DB_PASSWORD}
+
+    # ── Runtime ───────────────────────────────────────────────
+    command: ["psql", "-v", "ON_ERROR_STOP=1", "-c", "GRANT USAGE, CREATE ON SCHEMA public TO PUBLIC"]
+
+  # ── Identity ──────────────────────────────────────────────
+  # Background jobs. The image's /cron.sh runs cron.php as www-data every
+  # 5 minutes; Nextcloud must be switched to cron mode once (INSTALLATION.md).
+  cron:
+    image: nextcloud:apache
+    container_name: nextcloud-cron
+
+    # ── Lifecycle ─────────────────────────────────────────────
+    restart: unless-stopped
+    depends_on:
+      - primary
+
+    # ── Network ───────────────────────────────────────────────
+    networks:
+      - nextcloud-net
+
+    # ── Storage ───────────────────────────────────────────────
+    volumes:
+      - /volume1/docker/stacks/nextcloud/app:/var/www/html
+      - /volume1/docker/stacks/nextcloud/data:/var/www/html/data
+
+    # ── Environment ───────────────────────────────────────────
+    environment: *nextcloud-env
+
+    # ── Runtime ───────────────────────────────────────────────
+    entrypoint: /cron.sh
 
   # ── Identity ──────────────────────────────────────────────
   cache:

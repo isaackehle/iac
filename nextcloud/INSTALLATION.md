@@ -36,16 +36,33 @@ whole `ts-config` directory at `/config`, so the file lands at
 
 ## What the Stack Contains
 
-| Container         | Image                        | Role                                                                          |
-| ----------------- | ---------------------------- | ----------------------------------------------------------------------------- |
-| `nextcloud-db`    | `postgres:16`                | PostgreSQL database — persistent at `$STACK_PATH/postgres`                    |
-| `nextcloud-redis` | `redis:7-alpine`             | Redis cache — improves performance for file locking and caching               |
-| `nextcloud`       | `nextcloud:apache`           | Nextcloud application — listens on port `30080` (mapped to container port 80) |
-| `nextcloud-ts`    | `tailscale/tailscale:latest` | Tailscale sidecar — proxies HTTPS via `serve.json` to `127.0.0.1:30080`       |
+| Container           | Image                        | Role                                                                              |
+| ------------------- | ---------------------------- | --------------------------------------------------------------------------------- |
+| `nextcloud`         | `nextcloud:apache`           | The app. Owns the network namespace; LAN port `8281` → `80`                        |
+| `nextcloud-tailscale` | `tailscale/tailscale:latest` | Sidecar in the app's namespace; serves HTTPS on 443 → `127.0.0.1:80`            |
+| `nextcloud-db`      | `postgres:16`                | PostgreSQL, persistent at `$STACK_PATH/postgres`; has a `pg_isready` healthcheck  |
+| `nextcloud-db-init` | `postgres:16`                | One-shot: grants `CREATE` on schema `public`, then exits (see below)              |
+| `nextcloud-cron`    | `nextcloud:apache`           | Runs background jobs (`cron.php`) every 5 minutes                                 |
+| `nextcloud-redis`   | `redis:7-alpine`             | Cache and file locking                                                            |
 
-All four containers share the `nextcloud-net` bridge network. The Nextcloud
-container exposes port `30080` on the Docker host, which the Tailscale sidecar
-proxies to via its `serve.json` configuration (port 443 → `http://127.0.0.1:30080`).
+The app, database, init, cron and Redis containers are on `nextcloud-net`
+(`172.20.30.0/24`). Nextcloud starts only after the database is healthy and
+`db-init` has finished.
+
+### Why `db-init`
+
+Nextcloud's installer creates its own database user (`oc_<admin>`). Since
+PostgreSQL 15, only the owner of schema `public` may create tables in it, so
+that user can't, and the install fails with "no schema has been selected to
+create in" or "permission denied for table oc_migrations". `db-init` runs
+`GRANT USAGE, CREATE ON SCHEMA public TO PUBLIC` on every start; it's
+harmless once granted, and the database holds nothing but Nextcloud.
+
+On a database created before this service existed, run it once by hand:
+
+```shell
+docker exec nextcloud-db psql -U nextcloud -d nextcloud -c "GRANT USAGE, CREATE ON SCHEMA public TO PUBLIC"
+```
 
 ## First-Run Nextcloud Setup
 
@@ -54,18 +71,20 @@ proxies to via its `serve.json` configuration (port 443 → `http://127.0.0.1:30
 3. Go to **Administration settings → Overview** and verify:
    - Database is PostgreSQL (connected to `nextcloud-db`)
    - Redis is configured for caching
-   - Cron is enabled for background jobs (next step)
+   - Background jobs use Cron (next step)
 
 ## Background Jobs (Cron)
 
-Nextcloud requires a cron job for background processing. In Portainer, set up a
-scheduled job:
+`nextcloud-cron` runs `cron.php` every 5 minutes. Nextcloud still defaults to
+AJAX mode (jobs run only while someone has it open), so switch it once after
+the first install:
 
 ```shell
-docker exec nextcloud php -f /var/www/html/cron.php
+docker exec -u www-data nextcloud php occ background:cron
 ```
 
-Run this every 5 minutes (`*/5 * * * *`). Alternatively, containerize the cron runner.
+Check: **Administration settings → Basic settings** shows "Cron" with a recent
+last run.
 
 ## Persistent Data
 
