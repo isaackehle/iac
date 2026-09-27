@@ -272,3 +272,7 @@ General Docker commands: [docs/debug_docker_commands.md](docs/debug_docker_comma
 ## Known issues
 
 - **`tailscale-mcp`:** not deployable as written (see "Not deployable yet").
+
+## License
+
+[MIT](LICENSE).
