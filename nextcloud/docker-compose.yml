@@ -134,6 +134,12 @@ services:
     networks:
       - nextcloud-net
 
+# Pinned: DSM's firewall drops forwarded traffic from Docker's default
+# 192.168.x.0/20 pool, which silently kills outbound access (image pulls,
+# Tailscale DERP, certificates). See README "Rules that have caused outages".
 networks:
   nextcloud-net:
     driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.30.0/24

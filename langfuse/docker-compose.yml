@@ -308,7 +308,15 @@ services:
       retries: 10
       start_period: 20s
 
+# Pinned: DSM's firewall drops forwarded traffic from Docker's default
+# 192.168.x.0/20 pool, which silently kills outbound access (image pulls,
+# Tailscale DERP, certificates). See README "Rules that have caused outages".
+# langfuse creates this network (it used to be created by hand as "external").
+# postgresql joins it as external, so deploy langfuse before postgresql.
 networks:
   langfuse_langfuse-net:
-    external: true
     name: langfuse_langfuse-net
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.28.0/24

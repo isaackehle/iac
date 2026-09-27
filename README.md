@@ -33,9 +33,8 @@ file, `.env`, Tailscale state (`ts-state/`), serve config (`ts-config/`) and dat
 
 ## Stacks
 
-Every stack pins its Docker network to a `172.20.x.0/24` subnet, except those
-marked "not pinned" (see the rules below for why that matters). The next free
-subnet is `172.20.28.0/24`.
+Every stack pins its Docker network to a `172.20.x.0/24` subnet (see the rules
+below for why that matters). The next free subnet is `172.20.34.0/24`.
 
 ### Infrastructure
 
@@ -54,7 +53,7 @@ it always shows as "Limited" there.
 | Stack | What it is | URL | Network | Docs |
 | --- | --- | --- | --- | --- |
 | `openwebui` | Chat UI in front of every fleet host's LiteLLM gateway | `https://openwebui.${TS_TAILNET_DOMAIN}` | 172.20.22.0/24 | [install](openwebui/INSTALLATION.md), [debug](openwebui/DEBUG.md), [readme](openwebui/README.md) |
-| `langfuse` | LLM tracing and observability (MinIO S3 on 9090) | `https://langfuse.${TS_TAILNET_DOMAIN}` | not pinned | [install](langfuse/INSTALLATION.md), [debug](langfuse/DEBUG.md) |
+| `langfuse` | LLM tracing and observability (MinIO S3 on 9090) | `https://langfuse.${TS_TAILNET_DOMAIN}` | 172.20.28.0/24 | [install](langfuse/INSTALLATION.md), [debug](langfuse/DEBUG.md) |
 
 `openwebui` is the reference stack for the sidecar pattern.
 
@@ -64,17 +63,17 @@ it always shows as "Limited" there.
 | --- | --- | --- | --- | --- |
 | `mosquitto` | MQTT broker for IoT devices | `mosquitto.${TS_TAILNET_DOMAIN}`: MQTT 1883, MQTT/TLS 8883, WebSocket/TLS 443 | 172.20.26.0/24 | [install](mosquitto/INSTALLATION.md), [debug](mosquitto/DEBUG.md) |
 | `frigate` | Camera NVR with object detection (RTSP 8554, WebRTC 8555) | `https://frigate.${TS_TAILNET_DOMAIN}` | 172.20.25.0/24 | [install](frigate/INSTALLATION.md), [debug](frigate/DEBUG.md) |
-| `plex` | Media server | `https://plex.${TS_TAILNET_DOMAIN}` | not pinned | [install](plex/INSTALLATION.md), [debug](plex/DEBUG.md) |
+| `plex` | Media server | `https://plex.${TS_TAILNET_DOMAIN}` | 172.20.31.0/24 | [install](plex/INSTALLATION.md), [debug](plex/DEBUG.md) |
 
 ### Files, notes and automation
 
 | Stack | What it is | URL | Network | Docs |
 | --- | --- | --- | --- | --- |
-| `nextcloud` | File storage and collaboration | `https://nextcloud.${TS_TAILNET_DOMAIN}` | not pinned | [install](nextcloud/INSTALLATION.md), [debug](nextcloud/DEBUG.md) |
-| `syncthing` | File sync between devices | `https://syncthing.${TS_TAILNET_DOMAIN}` | not pinned | [install](syncthing/INSTALLATION.md), [debug](syncthing/DEBUG.md) |
+| `nextcloud` | File storage and collaboration | `https://nextcloud.${TS_TAILNET_DOMAIN}` | 172.20.30.0/24 | [install](nextcloud/INSTALLATION.md), [debug](nextcloud/DEBUG.md) |
+| `syncthing` | File sync between devices | `https://syncthing.${TS_TAILNET_DOMAIN}` | 172.20.33.0/24 | [install](syncthing/INSTALLATION.md), [debug](syncthing/DEBUG.md) |
 | `affine` | Whiteboard and notes | `https://affine.${TS_TAILNET_DOMAIN}` | 172.20.24.0/24 | [install](affine/INSTALLATION.md), [debug](affine/DEBUG.md) |
-| `n8n` | Workflow automation | `https://n8n.${TS_TAILNET_DOMAIN}` | not pinned | [install](n8n/INSTALLATION.md), [debug](n8n/DEBUG.md) |
-| `postgresql` | Shared Postgres (on 2665) with pgAdmin | `https://postgresql.${TS_TAILNET_DOMAIN}` (pgAdmin) | not pinned | [install](postgresql/INSTALLATION.md), [debug](postgresql/DEBUG.md) |
+| `n8n` | Workflow automation | `https://n8n.${TS_TAILNET_DOMAIN}` | 172.20.29.0/24 | [install](n8n/INSTALLATION.md), [debug](n8n/DEBUG.md) |
+| `postgresql` | Shared Postgres (on 2665) with pgAdmin | `https://postgresql.${TS_TAILNET_DOMAIN}` (pgAdmin) | 172.20.32.0/24 | [install](postgresql/INSTALLATION.md), [debug](postgresql/DEBUG.md) |
 
 ### Not deployable yet
 
@@ -232,7 +231,7 @@ General Docker commands: [docs/debug_docker_commands.md](docs/debug_docker_comma
 ## Adding a stack
 
 1. **Copy `_template/`** to `<stack>/` and follow its [README](_template/README.md).
-   Keep the sidecar pattern, and pin the next free subnet (`172.20.28.0/24`).
+   Keep the sidecar pattern, and pin the next free subnet (`172.20.34.0/24`).
 2. **Use absolute paths** for bind mounts.
 3. **Add its keys** to `iac-secrets.env.example` (placeholders) and
    `iac-secrets.env` (real values).
@@ -272,11 +271,4 @@ General Docker commands: [docs/debug_docker_commands.md](docs/debug_docker_comma
 
 ## Known issues
 
-- **`affine`:** `DATABASE_URL` points at host `postgres`, but its database service is
-  named `config` (container `affine_postgres`). Nothing answers to `postgres`, so
-  affine can't reach its database as written.
-- **Unpinned stacks:** `langfuse`, `n8n`, `nextcloud`, `plex`, `postgresql` and
-  `syncthing` still use Docker's default pool. Pin each the next time it's touched.
-- **`homeassistant` leftovers:** the `homeassistant/` stack is gone, but
-  `scripts/lib.sh` and `scripts/sync-env.sh` still list it.
 - **`tailscale-mcp`:** not deployable as written (see "Not deployable yet").

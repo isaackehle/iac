@@ -92,3 +92,12 @@ services:
       - NET_RAW                           # Required for raw sockets
     devices:
       - /dev/net/tun:/dev/net/tun         # TUN device for tailscale
+
+# Pinned: DSM's firewall drops forwarded traffic from Docker's default
+# 192.168.x.0/20 pool, which silently kills outbound access (image pulls,
+# Tailscale DERP, certificates). See README "Rules that have caused outages".
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: 172.20.33.0/24

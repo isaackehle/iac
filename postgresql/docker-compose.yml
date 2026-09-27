@@ -134,9 +134,15 @@ services:
     ports:
       - "2665:5432"     # Raw Postgres port for external (tailnet) connections
 
+# Pinned: DSM's firewall drops forwarded traffic from Docker's default
+# 192.168.x.0/20 pool, which silently kills outbound access (image pulls,
+# Tailscale DERP, certificates). See README "Rules that have caused outages".
 networks:
   postgresql-net:
     driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.32.0/24
   langfuse_langfuse-net:
     external: true
     name: langfuse_langfuse-net
