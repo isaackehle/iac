@@ -1,5 +1,7 @@
 # AGENTS.md
 
+Plans directory: docs/plans/ (small plans, `YYYY-MM-DD-<slug>.md`; large ones go in `PLANS_DIR` or a GitHub issue, see `~/.agents.md`)
+
 ## What this repo is
 
 Infrastructure-as-code for a single self-hosted Synology NAS ("NAS") on a
