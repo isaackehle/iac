@@ -73,7 +73,8 @@ scp serve.json your-user@nas-ip:/volume1/docker/stacks/n8n/ts-config/
 
 - Replace `your-user` with your Synology SSH account and `nas-ip` with the NAS's local IP or Tailscale hostname.
 - You'll be prompted for that account's password (or use `-i ~/.ssh/your_key` if you've set up key-based auth).
-- If SSH is on a non-default port (check Control Panel → Terminal & SNMP), add `-P <port>`, e.g. `scp -P 2222
+- If SSH is on a non-default port (DSM's default is 22; change it in Control Panel → Terminal & SNMP),
+  keep the number in `~/.env` as `DSM_SSH_PORT` and add `-P "$DSM_SSH_PORT"`, e.g. `scp -P "$DSM_SSH_PORT"
 docker-compose.yml your-user@nas-ip:/volume1/docker/stacks/n8n/`.
 - On Windows, either use WSL/Git Bash for the same `scp` command, or use WinSCP/FileZilla (SFTP mode) pointed at the
   same path if you'd rather drag-and-drop.
