@@ -35,7 +35,7 @@ services:
     restart: unless-stopped
     depends_on:
       - tailscale
-    command: ["--trusted-origins=portainer.<tailnet>.ts.net"]
+    command: ["--trusted-origins=${TS_CERT_DOMAIN}"]
 
     # ── Network ───────────────────────────────────────────────
     network_mode: service:tailscale

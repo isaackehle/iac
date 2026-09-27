@@ -29,7 +29,7 @@ Commands:
   all     <ssh-host>    env + dirs + push + up
 
 Environment Variables:
-  TS_TAILNET_DOMAIN    Tailscale domain (default: <tailnet>.ts.net)
+  TS_TAILNET_DOMAIN    Tailscale domain, e.g. tailXXXX.ts.net (from iac-secrets.env)
   TS_HOSTNAME          Portainer hostname (default: portainer)
   ADMIN_EMAIL          Admin email for Portainer (default: isaac@kehle.org)
   TZ                   Timezone (default: America/New_York)

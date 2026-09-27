@@ -9,7 +9,7 @@ set -euo pipefail
 
 # Default values (can be overridden by environment variables)
 NAS_USER="${NAS_USER:-your-username}"
-NAS_HOST="${NAS_HOST:-your-host.<tailnet>.ts.net}"
+NAS_HOST="${NAS_HOST:?set NAS_HOST, e.g. nas.<tailnet>.ts.net}"
 PORTAINER_HTTP="http://${NAS_HOST}:9000"
 PORTAINER_HTTPS="https://portainer.${NAS_HOST}"
 

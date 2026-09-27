@@ -11,7 +11,7 @@ set -euo pipefail
 
 # Detect tailnet domain from iac-secrets.env
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-TAILNET_DOMAIN=$(grep "^TS_TAILNET_DOMAIN=" "$ROOT_DIR/iac-secrets.env" 2>/dev/null | cut -d= -f2 || echo "<tailnet>.ts.net")
+TAILNET_DOMAIN=$(grep "^TS_TAILNET_DOMAIN=" "$ROOT_DIR/iac-secrets.env" 2>/dev/null | cut -d= -f2 || true)
 
 PORTAINER_URL="https://portainer.$TAILNET_DOMAIN"
 

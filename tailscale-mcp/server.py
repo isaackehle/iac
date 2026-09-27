@@ -20,7 +20,7 @@ class TailscaleMCP:
     
     def __init__(self):
         self.api_key = os.environ.get('TAILSCALE_API_KEY')
-        self.tailnet = os.environ.get('TAILSCALE_TAILNET', '<tailnet>')
+        self.tailnet = os.environ.get('TAILSCALE_TAILNET', '-')  # '-' = the API key's own tailnet
         self.base_url = f"https://api.tailscale.com/api/v2/tailnet/{self.tailnet}"
         
         if not self.api_key:

@@ -20,7 +20,7 @@
 set -e
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-SSH_HOST="${SSH_HOST:-isaac@nas.<tailnet>.ts.net}"
+SSH_HOST="${SSH_HOST:-nas}"
 NAS_BASE="/volume1/docker/stacks"
 
 # All managed stacks
@@ -53,7 +53,7 @@ Commands:
     pull-all          Pull all .env files from NAS
 
 Environment Variables:
-    SSH_HOST          SSH host (default: isaac@nas.<tailnet>.ts.net)
+    SSH_HOST          SSH host (default: nas, an ~/.ssh/config alias)
 
 Examples:
     $(basename "$0") push portainer
