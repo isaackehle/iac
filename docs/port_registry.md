@@ -18,7 +18,6 @@ Tailscale sidecar in normal stacks, the app itself in the inverted ones (see
 | 3010         | affine        | tailscale     | TCP       | Web UI (LAN)                                                                       |
 | 5678         | n8n           | primary       | TCP       | Web UI (LAN)                                                                       |
 | 8000         | portainer     | tailscale     | TCP       | Portainer edge-agent tunnel                                                        |
-| 8000         | tailscale-mcp | tailscale-mcp | TCP       | **Clashes with portainer.** Nothing listens on it: the server is stdio-only.       |
 | 8280 → 80    | pihole        | primary       | TCP       | Plain-HTTP admin (debugging)                                                       |
 | 8281 → 80    | nextcloud     | primary       | TCP       | Plain-HTTP web (debugging). Moved off 8280 on 2026-09-26 (it clashed with pihole). |
 | 8384         | syncthing     | primary       | TCP       | Web GUI (LAN)                                                                      |
@@ -43,13 +42,13 @@ the exceptions are listed.
 | every sidecar stack | 443             | HTTPS with Tailscale's certificate, forwarded to the app                       |
 | `mosquitto`         | 443, 1883, 8883 | WebSocket over TLS (→ 9001), plain MQTT, MQTT over TLS (→ 1883)                |
 | `ha`                | 80, 443, 9584   | Home Assistant UI (HTTP and HTTPS), its MCP server (proxied to the HA machine) |
-| `mcp`               | 443             | MCP servers by path: `/synology` (→ 8485)                                      |
+| `mcp`               | 443             | MCP servers by path: `/synology` (→ 8485), `/tailscale` (→ 8488)               |
 
 ## Local ports inside shared namespaces
 
 Containers sharing a sidecar's namespace share `127.0.0.1`, so ports must be
 unique within a stack. The one stack where this matters is `mcp`: its port table
-is in `mcp/docker-compose.yml` (next free: 8486).
+is in `mcp/docker-compose.yml` (8485 and 8488 in use; 8486, 8487 and 8489 reserved).
 
 ## Not covered
 
