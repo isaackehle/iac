@@ -14,8 +14,14 @@ Without this, HA rejects proxied requests with HTTP 400. In HA's
 http:
   use_x_forwarded_for: true
   trusted_proxies:
-    - <NAS_LAN_IP>   # the NAS (NAS_LAN_IP in iac-secrets.env); the ha container's traffic leaves through it
+    - <NAS LAN IP 1>   # the NAS's first LAN port
+    - <NAS LAN IP 2>   # the NAS's second LAN port
 ```
+
+List **both** NAS addresses. The NAS has two LAN ports, and it can switch which one it
+uses to reach Home Assistant (it did on 2026-09-27). HA then sees requests from the
+other address and answers 400 again. To see the one in use right now, run
+`ip route get <HA_LAN_IP>` on the NAS (the `src` address).
 
 Restart Home Assistant.
 
@@ -24,7 +30,8 @@ Restart Home Assistant.
 ```shell
 scripts/gen-env.sh ha              # .env (TS_AUTHKEY) + serve.json from serve.json.tmpl
 scripts/deploy.sh all ha nas       # dirs, files, docker compose up -d
-# or, Portainer-managed: push the repo, then scripts/deploy.sh api ha
+# or, Portainer-managed: push the repo, then
+#   scripts/deploy.sh dirs ha nas && scripts/deploy.sh extras ha nas && scripts/deploy.sh api ha
 ```
 
 ## 3. Verify

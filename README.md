@@ -161,6 +161,7 @@ redeploy the stack itself, and the stack shows as "Total" control in Portainer.
 ```shell
 scripts/gen-env.sh <stack>              # .env + rendered templates
 git push                                 # Portainer reads the compose file from GitHub main
+scripts/deploy.sh dirs <stack> nas       # create the bind-mount folders (Portainer won't; the deploy fails without them)
 scripts/deploy.sh extras <stack> nas     # copy bind-mounted files (serve.json, scripts) to the NAS
 scripts/deploy.sh api <stack>            # create the stack in Portainer, with <stack>/.env as its variables
 ```

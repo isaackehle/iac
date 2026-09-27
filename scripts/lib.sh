@@ -7,7 +7,7 @@
 # replaces the old per-stack init.sh / apply-serve.sh scripts.
 
 ALL_STACKS=(
-  affine frigate ha homeassistant langfuse mosquitto n8n nextcloud
+  affine frigate ha langfuse mosquitto n8n nextcloud
   openwebui pihole plex portainer postgresql syncthing mcp
 )
 
@@ -19,7 +19,6 @@ declare -A STACK_REMOTE_DIR=(
   [affine]="/volume1/docker/stacks/affine"
   [frigate]="/volume1/docker/stacks/frigate"
   [ha]="/volume1/docker/stacks/ha"
-  [homeassistant]="/volume1/docker/stacks/homeassistant"
   [langfuse]="/volume1/docker/stacks/langfuse"
   [mosquitto]="/volume1/docker/stacks/mosquitto"
   [n8n]="/volume1/docker/stacks/n8n"
@@ -38,8 +37,7 @@ declare -A STACK_REMOTE_DIR=(
 declare -A STACK_DIRS=(
   [affine]="data/storage data/config data/postgres ts-state ts-config"
   [frigate]="config storage ts-state ts-config"
-  [ha]="ts-state ts-config"   # Tailscale front door for HA (192.168.10.108), no app container
-  [homeassistant]="config"   # Pattern A (host-level serve) — no ts-state/ts-config
+  [ha]="ts-state ts-config"   # Tailscale front door for HA (HA_LAN_IP in iac-secrets.env), no app container
   [langfuse]="ts-state ts-config clickhouse-data clickhouse-logs minio-data redis-data"
   [mosquitto]="config data certs ts-state ts-config"
   [mcp]="ts-state ts-config"
@@ -87,23 +85,18 @@ declare -A STACK_CHOWN_OVERRIDES=(
   [langfuse]="clickhouse-data:101:101 clickhouse-logs:101:101"
 )
 
-# Pattern A / hybrid stacks: host-level `tailscale serve` mappings, as
-# "host_port:backend_url" pairs (space-separated). These run against the
-# NAS host's own tailscaled, not a sidecar container.
-# affine and frigate moved to Tailscale sidecars on 2026-09-26 (consistency with
-# every other stack); their host-level mappings are gone. Remove the old mappings
-# on the NAS once: `tailscale serve --https=3010 off` and `--https=8971 off`.
+# Pattern A: host-level `tailscale serve` mappings, as "host_port:backend_url"
+# pairs (space-separated), applied to the NAS host's own tailscaled by
+# `scripts/deploy.sh serve` and `scripts/serve-all.sh`.
+#
+# No stack uses this any more: every stack serves through its own Tailscale
+# node (docs/tailscale_patterns.md). The NAS's serve config was cleared on
+# 2026-09-26 (`tailscale serve reset`) after affine/frigate moved to sidecars
+# and homeassistant left the repo (Home Assistant runs on its own machine,
+# fronted by the `ha` stack). Only add an entry for a stack that needs host
+# networking.
 declare -A STACK_SERVE_PORTS=(
-  [homeassistant]="8123:http://127.0.0.1:8123"
 )
-# homeassistant moved from Pattern B to Pattern A on 2026-08-03: it needs
-# `network_mode: host` for device discovery, which is incompatible with a
-# Tailscale sidecar (the sidecar would land in the host netns alongside the
-# NAS's own tailscaled). Its serve.json.tmpl, ts-state and ts-config are gone.
-# pihole was removed from this list 2026-08-01: it's now a TCPForward
-# sidecar setup (see pihole/serve.json.tmpl), not host-level tailscale serve.
-# This entry pointed at a NAS host port nothing has ever actually listened
-# on — see homelab/docs/DECISIONS.md for the full history.
 
 # Default location of the central secrets file. Override with
 # IAC_SECRETS_FILE=/some/other/path. Lives at the repo root, gitignored —
@@ -126,7 +119,7 @@ require_stack() {
   local stack="$1"
   if [[ -z "$stack" || ! -d "$stack" ]]; then
     # Use a simple list instead of array expansion to avoid bash 3.2 issues
-    local known_stacks="affine frigate ha homeassistant langfuse mosquitto n8n nextcloud openwebui pihole plex portainer postgresql syncthing mcp"
+    local known_stacks="affine frigate ha langfuse mosquitto n8n nextcloud openwebui pihole plex portainer postgresql syncthing mcp"
     echo "ERROR: unknown stack '$stack' — expected one of: $known_stacks" >&2
     exit 1
   fi

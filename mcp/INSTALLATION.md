@@ -28,6 +28,7 @@ keep.
 ```shell
 scripts/gen-env.sh mcp                  # .env (SYNOLOGY_*, TS_AUTHKEY) + serve.json
 git push                                 # Portainer reads the compose file from GitHub
+scripts/deploy.sh dirs mcp nas           # ts-state/ and ts-config/ on the NAS (Portainer won't create them)
 scripts/deploy.sh extras mcp nas         # serve.json to /volume1/docker/stacks/mcp/ts-config/
 scripts/deploy.sh api mcp                # Portainer-managed stack
 ```

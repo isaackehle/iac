@@ -1,7 +1,8 @@
 # ha — Tailscale front door for Home Assistant
 #
 # Stack version: 1.0 (2026-09-26)
-# Purpose: give Home Assistant a tailnet name, https://ha.<tailnet>.ts.net, and
+# Purpose: give Home Assistant a tailnet name, https://ha.<tailnet>.ts.net (plain
+#   http://ha.<tailnet>.ts.net also works: Tailscale already encrypts the hop), and
 #   its MCP server at https://ha.<tailnet>.ts.net:9584, without touching the HA box.
 #
 # Home Assistant doesn't run on the NAS: it's its own machine on the LAN
@@ -22,7 +23,7 @@
 # configuration.yaml (see INSTALLATION.md):
 #   http:
 #     use_x_forwarded_for: true
-#     trusted_proxies: [<NAS_LAN_IP>]   # the NAS
+#     trusted_proxies: [<NAS LAN IP 1>, <NAS LAN IP 2>]   # both NAS ports
 #
 # Services:
 #   - tailscale (the ha node; no app container)

@@ -42,7 +42,7 @@ the exceptions are listed.
 | --- | --- | --- |
 | every sidecar stack | 443 | HTTPS with Tailscale's certificate, forwarded to the app |
 | `mosquitto` | 443, 1883, 8883 | WebSocket over TLS (→ 9001), plain MQTT, MQTT over TLS (→ 1883) |
-| `ha` | 443, 9584 | Home Assistant UI, its MCP server (proxied to the HA machine) |
+| `ha` | 80, 443, 9584 | Home Assistant UI (HTTP and HTTPS), its MCP server (proxied to the HA machine) |
 | `mcp` | 443 | MCP servers by path: `/synology` (→ 8485) |
 
 ## Local ports inside shared namespaces

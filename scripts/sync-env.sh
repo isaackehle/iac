@@ -25,8 +25,12 @@ NAS_BASE="/volume1/docker/stacks"
 
 # All managed stacks
 ALL_STACKS=(
-    "homeassistant"
+    "affine"
+    "frigate"
+    "ha"
     "langfuse"
+    "mcp"
+    "mosquitto"
     "n8n"
     "nextcloud"
     "openwebui"
@@ -35,10 +39,6 @@ ALL_STACKS=(
     "portainer"
     "postgresql"
     "syncthing"
-    "synology-mcp"
-    "affine"
-    "frigate"
-    "mosquitto"
 )
 
 usage() {
@@ -57,7 +57,7 @@ Environment Variables:
 
 Examples:
     $(basename "$0") push portainer
-    $(basename "$0") pull homeassistant
+    $(basename "$0") pull pihole
     $(basename "$0") list
     $(basename "$0") push-all
     SSH_HOST=nas $(basename "$0") push portainer

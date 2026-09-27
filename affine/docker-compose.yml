@@ -57,7 +57,7 @@ services:
     # ── Environment ───────────────────────────────────────────
     environment:
       - REDIS_SERVER_HOST=cache
-      - DATABASE_URL=postgresql://${DB_USERNAME}:${DB_PASSWORD}@postgres:5432/${DB_DATABASE:-affine}
+      - DATABASE_URL=postgresql://${DB_USERNAME}:${DB_PASSWORD}@config:5432/${DB_DATABASE:-affine}
       - AFFINE_INDEXER_ENABLED=false
 
   # ── Identity ──────────────────────────────────────────────
@@ -80,7 +80,7 @@ services:
     # ── Environment ───────────────────────────────────────────
     environment:
       - REDIS_SERVER_HOST=cache
-      - DATABASE_URL=postgresql://${DB_USERNAME}:${DB_PASSWORD}@postgres:5432/${DB_DATABASE:-affine}
+      - DATABASE_URL=postgresql://${DB_USERNAME}:${DB_PASSWORD}@config:5432/${DB_DATABASE:-affine}
       - AFFINE_INDEXER_ENABLED=false
 
     # ── Runtime ───────────────────────────────────────────────
