@@ -42,6 +42,7 @@ From any tailnet machine:
 ```shell
 curl -s https://mcp.<tailnet>.ts.net/                          # the server list
 curl -s -o /dev/null -w '%{http_code}\n' https://mcp.<tailnet>.ts.net/synology/mcp
+curl -s -o /dev/null -w '%{http_code}\n' https://mcp.<tailnet>.ts.net/tailscale/mcp
 ```
 
 The second is an MCP endpoint, so a plain GET answering 4xx is normal; a TLS error
@@ -50,7 +51,31 @@ or timeout is not. On the NAS:
 ```shell
 docker exec mcp-tailscale tailscale serve status
 docker logs --tail 50 mcp-synology
+docker logs --tail 50 mcp-tailscale-admin
 ```
+
+## Servers in this stack
+
+| Path         | Service           | What it can do                                                                                    | Credentials                                                                                                                                                                                                                              |
+| ------------ | ----------------- | ------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/synology`  | `synology`        | DSM health, storage and system info (`MCP_PERMISSION_TIER=health`)                                | `SYNOLOGY_*`. `SYNOLOGY_HOST` must be the NAS **LAN IP** (the userspace sidecar gives this namespace no tailnet DNS or routes). `SYNOLOGY_PORT` is DSM's HTTPS port: 5001 by default, or `DSM_HTTPS_PORT` from `~/.env` if you moved it. |
+| `/tailscale` | `tailscale-admin` | Read-only Tailscale admin API: devices, users, policy file, settings. Code: `servers/tailscale/`. | `TAILSCALE_OAUTH_CLIENT_ID` / `_SECRET` (preferred) or `TAILSCALE_API_KEY`                                                                                                                                                               |
+
+### tailscale-admin credentials
+
+1. Tailscale admin console → **Settings → OAuth clients → Generate**, with read
+   scopes only: `devices:core:read`, `users:read`, `policy_file:read` (add
+   `feature_settings:read` for `get_network_settings`).
+2. Save the ID and secret in 1Password, reference them from `iac-secrets.env` as
+   `TAILSCALE_OAUTH_CLIENT_ID` / `TAILSCALE_OAUTH_CLIENT_SECRET`, and add the same
+   two values to Portainer → Stacks → `mcp` → Environment variables.
+3. Pull and redeploy. Portainer builds the image from `servers/tailscale/`.
+
+With no credentials the server still starts and every tool answers "not
+configured", so a missing secret never takes the other servers down. Even
+read-only, it shows your whole tailnet: before relying on it, restrict who can
+reach the `mcp` node in the tailnet policy file (see the catalog's
+`plugin-recipe.md`, "Access control").
 
 ## Point clients at it
 

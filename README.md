@@ -38,12 +38,12 @@ below for why that matters). The next free subnet is `172.20.34.0/24`.
 
 ### Infrastructure
 
-| Stack       | What it is                                                                                                             | URL                                               | Network        | Docs                                                              |
-| ----------- | ---------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- | -------------- | ----------------------------------------------------------------- |
-| `portainer` | Docker management UI; deploys the other stacks                                                                         | `https://portainer.${TS_TAILNET_DOMAIN}`          | 172.20.21.0/24 | [install](portainer/INSTALLATION.md), [debug](portainer/DEBUG.md) |
-| `pihole`    | DNS ad blocking for the LAN and tailnet (DNS on 53)                                                                    | `https://pihole.${TS_TAILNET_DOMAIN}`             | 172.20.20.0/24 | [install](pihole/INSTALLATION.md), [debug](pihole/DEBUG.md)       |
-| `ha`        | Tailnet front door for Home Assistant, which runs on its own machine                                                   | `https://ha.${TS_TAILNET_DOMAIN}`, MCP on `:9584` | 172.20.23.0/24 | [install](ha/INSTALLATION.md)                                     |
-| `mcp`       | MCP servers for AI agents, one path each (`/synology`, ...). Server catalog: `~/code/isaackehle/mcp-servers/README.md` | `https://mcp.${TS_TAILNET_DOMAIN}/<server>/...`   | 172.20.27.0/24 | [install](mcp/INSTALLATION.md)                                    |
+| Stack       | What it is                                                                                                                           | URL                                               | Network        | Docs                                                              |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------- | -------------- | ----------------------------------------------------------------- |
+| `portainer` | Docker management UI; deploys the other stacks                                                                                       | `https://portainer.${TS_TAILNET_DOMAIN}`          | 172.20.21.0/24 | [install](portainer/INSTALLATION.md), [debug](portainer/DEBUG.md) |
+| `pihole`    | DNS ad blocking for the LAN and tailnet (DNS on 53)                                                                                  | `https://pihole.${TS_TAILNET_DOMAIN}`             | 172.20.20.0/24 | [install](pihole/INSTALLATION.md), [debug](pihole/DEBUG.md)       |
+| `ha`        | Tailnet front door for Home Assistant, which runs on its own machine                                                                 | `https://ha.${TS_TAILNET_DOMAIN}`, MCP on `:9584` | 172.20.23.0/24 | [install](ha/INSTALLATION.md)                                     |
+| `mcp`       | MCP servers for AI agents, one path each (`/synology`, `/tailscale`, ...). Server catalog: `~/code/isaackehle/mcp-servers/README.md` | `https://mcp.${TS_TAILNET_DOMAIN}/<server>/...`   | 172.20.27.0/24 | [install](mcp/INSTALLATION.md)                                    |
 
 `portainer` is deployed over SSH: Portainer can't manage the stack it runs in, so
 it always shows as "Limited" there.
@@ -74,12 +74,6 @@ it always shows as "Limited" there.
 | `affine`     | Whiteboard and notes                   | `https://affine.${TS_TAILNET_DOMAIN}`               | 172.20.24.0/24 | [install](affine/INSTALLATION.md), [debug](affine/DEBUG.md)         |
 | `n8n`        | Workflow automation                    | `https://n8n.${TS_TAILNET_DOMAIN}`                  | 172.20.29.0/24 | [install](n8n/INSTALLATION.md), [debug](n8n/DEBUG.md)               |
 | `postgresql` | Shared Postgres (on 2665) with pgAdmin | `https://postgresql.${TS_TAILNET_DOMAIN}` (pgAdmin) | 172.20.32.0/24 | [install](postgresql/INSTALLATION.md), [debug](postgresql/DEBUG.md) |
-
-### Not deployable yet
-
-| Stack           | Why                                                                                                                                                                                                                                                                              |
-| --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `tailscale-mcp` | A stdio-only MCP server, but its compose file publishes port 8000 (which also clashes with Portainer's) and health-checks a port nothing listens on. It belongs in `mcp` behind `mcp-proxy`; see [mcp/INSTALLATION.md](mcp/INSTALLATION.md). Not registered in `scripts/lib.sh`. |
 
 ## How a stack reaches the tailnet
 
@@ -271,7 +265,7 @@ General Docker commands: [docs/debug_docker_commands.md](docs/debug_docker_comma
 
 ## Known issues
 
-- **`tailscale-mcp`:** not deployable as written (see "Not deployable yet").
+- **Synology MCP:** in Portainer, `SYNOLOGY_HOST` must be the NAS LAN IP and `SYNOLOGY_PORT` DSM's HTTPS port (see mcp/INSTALLATION.md).
 
 ## License
 

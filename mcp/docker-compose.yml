@@ -17,20 +17,22 @@
 #     docs/tailscale_patterns.md). The slower proxy path doesn't matter for MCP.
 #
 # Servers (one service each; add a row, a service and a serve.json handler):
-#   | Path       | Service  | Port | Image                                  |
-#   | /synology  | synology | 8485 | ghcr.io/lefty3382/synology-mcp:latest  |
-#   next free port: 8486
+#   | Path       | Service         | Port | Image                                  |
+#   | /synology  | synology        | 8485 | ghcr.io/lefty3382/synology-mcp:latest  |
+#   | /tailscale | tailscale-admin | 8488 | built from servers/tailscale (read-only) |
+#   reserved in the mcp-servers catalog: 8486 /search, 8487 /weather, 8489 /amazon-products
 #
 # Adding a server: catalog and per-server recipes in ~/code/isaackehle/mcp-servers/README.md
 #   (docs/plugin-recipe.md there). In short:
 #   - HTTP MCP server (streamable HTTP or SSE): run it on the next free port.
 #   - stdio-only MCP server: wrap it with mcp-proxy in server mode, e.g.
-#     `mcp-proxy --host 127.0.0.1 --port 8486 -- <server command>` (pin
-#     `mcp<1.20` next to mcp-proxy: newer mcp breaks its import, 2026-09-26).
+#     `mcp-proxy --pass-environment --host 127.0.0.1 --port <port> -- <server command>`.
+#     mcp-proxy 0.12 works with mcp 1.28+ (tested 2026-09-27); older mcp-proxy
+#     releases needed `mcp<1.20`. Without --pass-environment the server gets no env vars.
 #   - Not everything called "tools" is an MCP server: LM Studio plugins (e.g.
 #     Beledarians_LM_Studio_Toolbox) run inside LM Studio, not here.
 #
-# Environment variables: see .env.example (SYNOLOGY_*, TS_AUTHKEY).
+# Environment variables: see .env.example (SYNOLOGY_*, TAILSCALE_*, TS_AUTHKEY).
 #
 # Deployment: scripts/deploy.sh api mcp (Portainer-managed), or
 #   scripts/deploy.sh all mcp nas. See INSTALLATION.md.
@@ -66,6 +68,30 @@ services:
       - SYNOLOGY_TANK_PASSWORD=${SYNOLOGY_PASSWORD}
       - MCP_PORT=8485
       - MCP_PERMISSION_TIER=health
+
+  # ── Identity ──────────────────────────────────────────────
+  # Tailscale admin API, read-only (devices, users, policy file, settings).
+  # Prefer an OAuth client limited to read scopes over a full API key. Starts
+  # without credentials and answers "not configured" rather than crash-looping.
+  tailscale-admin:
+    build: ./servers/tailscale
+    image: mcp-tailscale-admin:local
+    container_name: mcp-tailscale-admin
+
+    # ── Lifecycle ─────────────────────────────────────────────
+    restart: unless-stopped
+    depends_on:
+      - tailscale
+
+    # ── Network ───────────────────────────────────────────────
+    network_mode: service:tailscale   # borrow the sidecar's namespace; port 8488
+
+    # ── Environment ───────────────────────────────────────────
+    environment:
+      - TAILSCALE_OAUTH_CLIENT_ID=${TAILSCALE_OAUTH_CLIENT_ID:-}
+      - TAILSCALE_OAUTH_CLIENT_SECRET=${TAILSCALE_OAUTH_CLIENT_SECRET:-}
+      - TAILSCALE_API_KEY=${TAILSCALE_API_KEY:-}
+      - TAILSCALE_TAILNET=${TAILSCALE_TAILNET:--}
 
   # ── Identity ──────────────────────────────────────────────
   # Tailscale node "mcp": owns the namespace every MCP server shares.

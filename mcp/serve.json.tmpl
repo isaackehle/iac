@@ -5,8 +5,9 @@
   "Web": {
     "mcp.{{TS_TAILNET_DOMAIN}}:443": {
       "Handlers": {
-        "/": { "Text": "MCP servers on this node: /synology/mcp\n" },
-        "/synology": { "Proxy": "http://127.0.0.1:8485" }
+        "/": { "Text": "MCP servers on this node: /synology/mcp /tailscale/mcp\n" },
+        "/synology": { "Proxy": "http://127.0.0.1:8485" },
+        "/tailscale": { "Proxy": "http://127.0.0.1:8488" }
       }
     }
   }
