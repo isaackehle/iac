@@ -21,8 +21,8 @@ mkdir -p $STACK_PATH/{data,pgadmin,ts-state,ts-config}
    - **Compose path:** `postgresql/docker-compose.yml`
 4. Under **Environment variables**, fill in:
    - `POSTGRES_PASSWORD` — PostgreSQL superuser password (choose a strong password)
-   - `PGADMIN_DEFAULT_EMAIL` — pgAdmin admin email (e.g., `you@example.com`)
-   - `PGADMIN_DEFAULT_PASSWORD` — pgAdmin admin password (can be different from Postgres password)
+   - `PGADMIN_EMAIL` — pgAdmin admin email (e.g., `you@example.com`)
+   - `PGADMIN_PASSWORD` — pgAdmin admin password (can be different from Postgres password)
    - `TS_AUTHKEY` — Tailscale auth key (optional, for future sidecar integration)
    - `TS_CERT_DOMAIN` — Tailscale MagicDNS domain (auto-derived as `postgresql.${TS_TAILNET_DOMAIN}`)
 5. Click **Deploy the stack**
@@ -37,7 +37,7 @@ mkdir -p $STACK_PATH/{data,pgadmin,ts-state,ts-config}
 
 - SSH access to the NAS (e.g., `nas` alias in `~/.ssh/config`)
 - The `scripts/deploy.sh` and `scripts/gen-env.sh` tools available on your laptop
-- The central secrets file `iac-secrets.env` with `POSTGRES_PASSWORD`, `PGADMIN_DEFAULT_EMAIL`, and `PGADMIN_DEFAULT_PASSWORD` set
+- The central secrets file `iac-secrets.env` with `POSTGRES_PASSWORD`, `PGADMIN_EMAIL`, and `PGADMIN_PASSWORD` set
 
 ### One-Line Deployment
 
@@ -103,7 +103,7 @@ The stack publishes two ports on the NAS host:
 1. Wait for the stack to start (check `docker ps` for both containers)
 2. Access pgAdmin:
    - Open `https://nas.<tailnet>.ts.net:2660` (or the direct Tailscale IP)
-   - Log in with the `PGADMIN_DEFAULT_EMAIL` / `PGADMIN_DEFAULT_PASSWORD` credentials
+   - Log in with the `PGADMIN_EMAIL` / `PGADMIN_PASSWORD` credentials
 3. Create a new server connection in pgAdmin:
    - Right-click **Servers → Create → Server**
    - Name: `NAS PostgreSQL`
@@ -239,7 +239,7 @@ Include `$STACK_PATH/data` in your Synology backup task (Hyper Backup, Syncthing
    docker logs pgAdmin
    ```
 
-2. Verify `PGADMIN_DEFAULT_EMAIL` and `PGADMIN_DEFAULT_PASSWORD` are set
+2. Verify `PGADMIN_EMAIL` and `PGADMIN_PASSWORD` are set
 3. Check if port 2660 is already in use
 
 ### Database Corruption

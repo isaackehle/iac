@@ -15,8 +15,8 @@
 # Environment variables:
 #   - STACK_NAME=PostgreSQL
 #   - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-#   - PGADMIN_DEFAULT_EMAIL=${PGADMIN_DEFAULT_EMAIL}
-#   - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_DEFAULT_PASSWORD}
+#   - PGADMIN_EMAIL=${PGADMIN_EMAIL}
+#   - PGADMIN_PASSWORD=${PGADMIN_PASSWORD}
 #   - TS_AUTHKEY=${TS_AUTHKEY}
 #   See .env.example for all required variables
 #
@@ -82,8 +82,8 @@ services:
 
     # ── Environment ───────────────────────────────────────────
     environment:
-      - PGADMIN_DEFAULT_EMAIL=${PGADMIN_DEFAULT_EMAIL}
-      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_DEFAULT_PASSWORD}
+      - PGADMIN_DEFAULT_EMAIL=${PGADMIN_EMAIL}          # pgAdmin image expects PGADMIN_DEFAULT_*
+      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_PASSWORD}
       - PGADMIN_LISTEN_PORT=5050
 
     # ── Runtime ───────────────────────────────────────────────
