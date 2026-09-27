@@ -53,6 +53,8 @@ is in `mcp/docker-compose.yml` (next free: 8486).
 
 ## Not covered
 
-DSM's own ports (5000/5001 login portal, 22 SSH, and 5080/5443 used by DSM's
-Tailscale package). If you suspect a clash outside this table, check Control
-Panel → Network.
+DSM's own ports: 5000 (HTTP) and 5001 (HTTPS) by default, and 22 for SSH. DSM's
+Security Advisor recommends moving the web ports (Control Panel → Login Portal → DSM
+tab). If you have, keep the real numbers out of this repo: they go in `~/.env` as
+`DSM_HTTP_PORT` / `DSM_HTTPS_PORT` (see `iac-secrets.env.example`). If you suspect a
+clash outside this table, check Control Panel → Network.

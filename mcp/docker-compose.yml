@@ -56,8 +56,12 @@ services:
 
     # ── Environment ───────────────────────────────────────────
     environment:
+      # DSM on the LAN, not the tailnet: the userspace sidecar gives this
+      # namespace no MagicDNS or tailnet routes, so "nas.<tailnet>" never
+      # resolved and every tool returned {}. The client skips TLS checks.
+      # Port: DSM's default 5001 unless DSM_HTTPS_PORT (in ~/.env) says otherwise.
       - SYNOLOGY_TANK_HOST=${SYNOLOGY_HOST}
-      - SYNOLOGY_TANK_PORT=${SYNOLOGY_PORT}
+      - SYNOLOGY_TANK_PORT=${SYNOLOGY_PORT:-5001}
       - SYNOLOGY_TANK_USERNAME=${SYNOLOGY_USERNAME}
       - SYNOLOGY_TANK_PASSWORD=${SYNOLOGY_PASSWORD}
       - MCP_PORT=8485
