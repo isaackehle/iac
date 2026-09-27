@@ -74,6 +74,31 @@ docker exec nextcloud-db psql -U nextcloud -d nextcloud -c "GRANT USAGE, CREATE 
    - Redis is configured for caching
    - Background jobs use Cron (next step)
 
+## Accounts
+
+`admin` is for administration only; everyone, including you, gets their own account.
+
+**In the browser** (easiest): log in as `admin` → avatar → **Accounts** → **New account**.
+Set a username, display name, a temporary password and the `users` group; each person
+changes the password after first login.
+
+**From a terminal** (no need to enter the container: `docker exec` runs `occ` inside it
+from the NAS). Run this on your laptop; it SSHes to the NAS and prompts for the new
+password, hidden:
+
+```shell
+ssh -t nas '/usr/local/bin/docker exec -it -u www-data nextcloud php occ user:add --display-name "Full Name" --group users <username>'
+```
+
+Other useful `occ` commands, same wrapper:
+
+| Command | Does |
+| --- | --- |
+| `occ user:list` | List accounts |
+| `occ user:resetpassword <username>` | Set a new password (prompts) |
+| `occ group:adduser admin <username>` | Make someone an admin |
+| `occ user:disable <username>` | Turn an account off without deleting its files |
+
 ## Background Jobs (Cron)
 
 `nextcloud-cron` runs `cron.php` every 5 minutes. Nextcloud still defaults to
