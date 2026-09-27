@@ -14,7 +14,6 @@
 # Environment variables:
 #   - STACK_NAME=Nextcloud
 #   - NC_DB_PASSWORD=${NC_DB_PASSWORD}
-#   - NC_ADMIN_USER=${NC_ADMIN_USER}
 #   - NC_ADMIN_PASSWORD=${NC_ADMIN_PASSWORD}
 #   - TS_AUTHKEY=${TS_AUTHKEY}
 #   - TS_CERT_DOMAIN=${TS_CERT_DOMAIN}
@@ -70,7 +69,7 @@ services:
       - POSTGRES_USER=nextcloud
       - POSTGRES_PASSWORD=${NC_DB_PASSWORD}
       - REDIS_HOST=cache
-      - NEXTCLOUD_ADMIN_USER=${NC_ADMIN_USER}
+      - NEXTCLOUD_ADMIN_USER=admin   # fixed; people get their own accounts
       - NEXTCLOUD_ADMIN_PASSWORD=${NC_ADMIN_PASSWORD}
       - NEXTCLOUD_TRUSTED_DOMAINS=${TS_CERT_DOMAIN}
       - OVERWRITEPROTOCOL=https

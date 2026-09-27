@@ -29,7 +29,7 @@ whole `ts-config` directory at `/config`, so the file lands at
    - **Compose path:** `nextcloud/docker-compose.yml`
 4. Under **Environment variables**, fill in the values from `.env.example`:
    - `NC_DB_PASSWORD` — PostgreSQL password for the `nextcloud` user
-   - `NC_ADMIN_USER` / `NC_ADMIN_PASSWORD` — Nextcloud admin account
+   - `NC_ADMIN_PASSWORD` — password for the Nextcloud admin account, `admin` (used only by the first install)
    - `TS_AUTHKEY` — Tailscale auth key (reusable, pre-authorized)
    - `TS_CERT_DOMAIN` — Tailscale MagicDNS domain (e.g. `nextcloud.${TS_TAILNET_DOMAIN}`)
 5. Click **Deploy the stack**
@@ -67,7 +67,8 @@ docker exec nextcloud-db psql -U nextcloud -d nextcloud -c "GRANT USAGE, CREATE 
 ## First-Run Nextcloud Setup
 
 1. From a device on your tailnet, visit `https://nextcloud.${TS_TAILNET_DOMAIN}`
-2. Log in with the `NC_ADMIN_USER` / `NC_ADMIN_PASSWORD` credentials.
+2. Log in as `admin` with `NC_ADMIN_PASSWORD`. Change it later with
+   `docker exec -it -u www-data nextcloud php occ user:resetpassword admin`.
 3. Go to **Administration settings → Overview** and verify:
    - Database is PostgreSQL (connected to `nextcloud-db`)
    - Redis is configured for caching
