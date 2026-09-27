@@ -42,8 +42,8 @@ docker compose -f /volume1/docker/stacks/mosquitto/docker-compose.yaml restart m
 
 ## Config Files
 
-| Purpose | Host Path |
-|---------|-----------|
+| Purpose          | Host Path                                                |
+| ---------------- | -------------------------------------------------------- |
 | Mosquitto config | `/volume1/docker/stacks/mosquitto/config/mosquitto.conf` |
-| Persistent data | `/volume1/docker/stacks/mosquitto/data` |
-| TLS certs | `/volume1/docker/stacks/mosquitto/certs` |
+| Persistent data  | `/volume1/docker/stacks/mosquitto/data`                  |
+| TLS certs        | `/volume1/docker/stacks/mosquitto/certs`                 |

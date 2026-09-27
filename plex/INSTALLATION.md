@@ -32,9 +32,9 @@ Tailscale sidecar and applied via `TS_SERVE_CONFIG` on container start.
 
 ## What the Stack Contains
 
-| Container | Image                             | Role                                                        |
-| --------- | --------------------------------- | ----------------------------------------------------------- |
-| `plex`    | `lscr.io/linuxserver/plex:latest` | Plex Media Server                                           |
+| Container        | Image                             | Role                                                        |
+| ---------------- | --------------------------------- | ----------------------------------------------------------- |
+| `plex`           | `lscr.io/linuxserver/plex:latest` | Plex Media Server                                           |
 | `plex-tailscale` | `tailscale/tailscale:latest`      | Tailscale sidecar — Plex is only reachable via your tailnet |
 
 The `plex` container uses `network_mode: service:plex-tailscale` — it borrows the

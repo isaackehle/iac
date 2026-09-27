@@ -46,8 +46,8 @@ docker compose -f /volume1/docker/stacks/affine/docker-compose.yaml restart affi
 
 ## Config Files
 
-| Purpose | Host Path |
-|---------|-----------|
-| Affine config | `/volume1/docker/stacks/affine/data/config` |
-| Affine storage/uploads | `/volume1/docker/stacks/affine/data/storage` |
-| PostgreSQL data | `/volume1/docker/stacks/affine/data/postgres` |
+| Purpose                | Host Path                                     |
+| ---------------------- | --------------------------------------------- |
+| Affine config          | `/volume1/docker/stacks/affine/data/config`   |
+| Affine storage/uploads | `/volume1/docker/stacks/affine/data/storage`  |
+| PostgreSQL data        | `/volume1/docker/stacks/affine/data/postgres` |

@@ -44,22 +44,22 @@ Copy `serve.json` into `$STACK_PATH/ts-config/` — the sidecar mounts the whole
 
 ### Required Environment Variables
 
-| Variable | Description | How to Generate |
-|----------|-------------|-----------------|
-| `LANGFUSE_DB_PASSWORD` | PostgreSQL password for the `langfuse` user | Choose a strong password (same as used in CREATE USER above) |
-| `LANGFUSE_DB_HOST` | NAS LAN IP (e.g., `192.168.1.100`) | The NAS's LAN IP address |
-| `LANGFUSE_CLICKHOUSE_PASSWORD` | ClickHouse password | `openssl rand -base64 32` |
-| `LANGFUSE_REDIS_AUTH` | Redis password | `openssl rand -base64 32` |
-| `LANGFUSE_MINIO_ROOT_PASSWORD` | MinIO password | `openssl rand -base64 32` |
-| `LANGFUSE_SALT` | App salt | `openssl rand -hex 32` |
-| `LANGFUSE_NEXTAUTH_SECRET` | NextAuth secret | `openssl rand -hex 32` |
-| `LANGFUSE_ENCRYPTION_KEY` | 64-hex encryption key | `openssl rand -hex 32` |
-| `LANGFUSE_INIT_PROJECT_PUBLIC_KEY` | API public key | `python3 -c "import secrets; print('pk-lf-' + secrets.token_hex(16))"` |
-| `LANGFUSE_INIT_PROJECT_SECRET_KEY` | API secret key | `python3 -c "import secrets; print('sk-lf-' + secrets.token_hex(16))"` |
-| `LANGFUSE_INIT_USER_EMAIL` | Admin email | Your email address |
-| `LANGFUSE_INIT_USER_PASSWORD` | Admin password | Choose a strong password |
-| `TS_AUTHKEY` | Tailscale auth key | Generate at <https://login.tailscale.com/admin/settings/keys> (reusable, pre-authorized) |
-| `TS_CERT_DOMAIN` | Tailscale MagicDNS domain | Auto-derived as `langfuse.${TS_TAILNET_DOMAIN}` |
+| Variable                           | Description                                 | How to Generate                                                                          |
+| ---------------------------------- | ------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `LANGFUSE_DB_PASSWORD`             | PostgreSQL password for the `langfuse` user | Choose a strong password (same as used in CREATE USER above)                             |
+| `LANGFUSE_DB_HOST`                 | NAS LAN IP (e.g., `192.168.1.100`)          | The NAS's LAN IP address                                                                 |
+| `LANGFUSE_CLICKHOUSE_PASSWORD`     | ClickHouse password                         | `openssl rand -base64 32`                                                                |
+| `LANGFUSE_REDIS_AUTH`              | Redis password                              | `openssl rand -base64 32`                                                                |
+| `LANGFUSE_MINIO_ROOT_PASSWORD`     | MinIO password                              | `openssl rand -base64 32`                                                                |
+| `LANGFUSE_SALT`                    | App salt                                    | `openssl rand -hex 32`                                                                   |
+| `LANGFUSE_NEXTAUTH_SECRET`         | NextAuth secret                             | `openssl rand -hex 32`                                                                   |
+| `LANGFUSE_ENCRYPTION_KEY`          | 64-hex encryption key                       | `openssl rand -hex 32`                                                                   |
+| `LANGFUSE_INIT_PROJECT_PUBLIC_KEY` | API public key                              | `python3 -c "import secrets; print('pk-lf-' + secrets.token_hex(16))"`                   |
+| `LANGFUSE_INIT_PROJECT_SECRET_KEY` | API secret key                              | `python3 -c "import secrets; print('sk-lf-' + secrets.token_hex(16))"`                   |
+| `LANGFUSE_INIT_USER_EMAIL`         | Admin email                                 | Your email address                                                                       |
+| `LANGFUSE_INIT_USER_PASSWORD`      | Admin password                              | Choose a strong password                                                                 |
+| `TS_AUTHKEY`                       | Tailscale auth key                          | Generate at <https://login.tailscale.com/admin/settings/keys> (reusable, pre-authorized) |
+| `TS_CERT_DOMAIN`                   | Tailscale MagicDNS domain                   | Auto-derived as `langfuse.${TS_TAILNET_DOMAIN}`                                          |
 
 5. Click **Deploy the stack**
 
@@ -132,14 +132,14 @@ curl -v https://langfuse.<tailnet>.ts.net
 
 ## What the Stack Contains
 
-| Container | Image | Role |
-|-----------|-------|------|
-| `langfuse` | `langfuse/langfuse:3` | Web/API — main application |
-| `langfuse-worker` | `langfuse/langfuse-worker:3` | Async trace ingestion — if traces aren't showing in the UI, check this container's logs first |
-| `langfuse-tailscale` | `tailscale/tailscale:latest` | Tailscale sidecar — Langfuse is only reachable via your tailnet |
-| `langfuse-clickhouse` | `clickhouse/clickhouse-server:24.3` | Trace/observation storage |
-| `langfuse-redis` | `redis:7-alpine` | Queues/caching |
-| `langfuse-minio` | `minio/minio:latest` | S3-compatible blob storage for event/media payloads |
+| Container             | Image                               | Role                                                                                          |
+| --------------------- | ----------------------------------- | --------------------------------------------------------------------------------------------- |
+| `langfuse`            | `langfuse/langfuse:3`               | Web/API — main application                                                                    |
+| `langfuse-worker`     | `langfuse/langfuse-worker:3`        | Async trace ingestion — if traces aren't showing in the UI, check this container's logs first |
+| `langfuse-tailscale`  | `tailscale/tailscale:latest`        | Tailscale sidecar — Langfuse is only reachable via your tailnet                               |
+| `langfuse-clickhouse` | `clickhouse/clickhouse-server:24.3` | Trace/observation storage                                                                     |
+| `langfuse-redis`      | `redis:7-alpine`                    | Queues/caching                                                                                |
+| `langfuse-minio`      | `minio/minio:latest`                | S3-compatible blob storage for event/media payloads                                           |
 
 All containers share the `langfuse-net` bridge network. The `langfuse` container uses `network_mode: service:langfuse-tailscale` — it borrows the sidecar's network
 namespace entirely, so it has no `ports:` of its own. That means Langfuse is reachable **only** via the tailnet hostname.
@@ -157,21 +157,21 @@ namespace entirely, so it has no `ports:` of its own. That means Langfuse is rea
 
 ## Persistent Data
 
-| Host Path | Container Path | Contents |
-|-----------|----------------|----------|
-| `$STACK_PATH/clickhouse-data` | `/var/lib/clickhouse` | ClickHouse trace/observation data |
-| `$STACK_PATH/clickhouse-logs` | `/var/log/clickhouse-server` | ClickHouse logs |
-| `$STACK_PATH/redis-data` | `/data` | Redis cache/queues |
-| `$STACK_PATH/minio-data` | `/data/langfuse` | MinIO event/media blobs |
-| `$STACK_PATH/ts-state` | `/var/lib/tailscale` | Tailscale identity (survives container recreation) |
-| `$STACK_PATH/ts-config/serve.json` | `/config/serve.json` | Tailscale serve rules |
+| Host Path                          | Container Path               | Contents                                           |
+| ---------------------------------- | ---------------------------- | -------------------------------------------------- |
+| `$STACK_PATH/clickhouse-data`      | `/var/lib/clickhouse`        | ClickHouse trace/observation data                  |
+| `$STACK_PATH/clickhouse-logs`      | `/var/log/clickhouse-server` | ClickHouse logs                                    |
+| `$STACK_PATH/redis-data`           | `/data`                      | Redis cache/queues                                 |
+| `$STACK_PATH/minio-data`           | `/data/langfuse`             | MinIO event/media blobs                            |
+| `$STACK_PATH/ts-state`             | `/var/lib/tailscale`         | Tailscale identity (survives container recreation) |
+| `$STACK_PATH/ts-config/serve.json` | `/config/serve.json`         | Tailscale serve rules                              |
 
 ## Access
 
-| URL | Description |
-|-----|-------------|
-| `https://langfuse.${TS_TAILNET_DOMAIN}` | Langfuse Web UI (tailnet-only) |
-| `http://<NAS-Tailscale-IP>:9090` | MinIO S3 API (direct, not via sidecar) |
+| URL                                     | Description                            |
+| --------------------------------------- | -------------------------------------- |
+| `https://langfuse.${TS_TAILNET_DOMAIN}` | Langfuse Web UI (tailnet-only)         |
+| `http://<NAS-Tailscale-IP>:9090`        | MinIO S3 API (direct, not via sidecar) |
 
 ## Backups
 

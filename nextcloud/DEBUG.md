@@ -73,10 +73,10 @@ docker compose -f /volume1/docker/stacks/nextcloud/docker-compose.yml restart ne
 
 ## Config Files
 
-| Purpose | Host Path |
-|---------|-----------|
-| Nextcloud app/config | `/volume1/docker/stacks/nextcloud/app` |
-| Nextcloud data | `/volume1/docker/stacks/nextcloud/data` |
-| PostgreSQL data | `/volume1/docker/stacks/nextcloud/postgres` |
+| Purpose                | Host Path                                               |
+| ---------------------- | ------------------------------------------------------- |
+| Nextcloud app/config   | `/volume1/docker/stacks/nextcloud/app`                  |
+| Nextcloud data         | `/volume1/docker/stacks/nextcloud/data`                 |
+| PostgreSQL data        | `/volume1/docker/stacks/nextcloud/postgres`             |
 | Tailscale serve config | `/volume1/docker/stacks/nextcloud/ts-config/serve.json` |
-| Tailscale state | `/volume1/docker/stacks/nextcloud/ts-state` |
+| Tailscale state        | `/volume1/docker/stacks/nextcloud/ts-state`             |

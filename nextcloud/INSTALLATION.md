@@ -36,14 +36,14 @@ whole `ts-config` directory at `/config`, so the file lands at
 
 ## What the Stack Contains
 
-| Container           | Image                        | Role                                                                              |
-| ------------------- | ---------------------------- | --------------------------------------------------------------------------------- |
-| `nextcloud`         | `nextcloud:apache`           | The app. Owns the network namespace; LAN port `8281` → `80`                        |
-| `nextcloud-tailscale` | `tailscale/tailscale:latest` | Sidecar in the app's namespace; serves HTTPS on 443 → `127.0.0.1:80`            |
-| `nextcloud-db`      | `postgres:16`                | PostgreSQL, persistent at `$STACK_PATH/postgres`; has a `pg_isready` healthcheck  |
-| `nextcloud-db-init` | `postgres:16`                | One-shot: grants `CREATE` on schema `public`, then exits (see below)              |
-| `nextcloud-cron`    | `nextcloud:apache`           | Runs background jobs (`cron.php`) every 5 minutes                                 |
-| `nextcloud-redis`   | `redis:7-alpine`             | Cache and file locking                                                            |
+| Container             | Image                        | Role                                                                             |
+| --------------------- | ---------------------------- | -------------------------------------------------------------------------------- |
+| `nextcloud`           | `nextcloud:apache`           | The app. Owns the network namespace; LAN port `8281` → `80`                      |
+| `nextcloud-tailscale` | `tailscale/tailscale:latest` | Sidecar in the app's namespace; serves HTTPS on 443 → `127.0.0.1:80`             |
+| `nextcloud-db`        | `postgres:16`                | PostgreSQL, persistent at `$STACK_PATH/postgres`; has a `pg_isready` healthcheck |
+| `nextcloud-db-init`   | `postgres:16`                | One-shot: grants `CREATE` on schema `public`, then exits (see below)             |
+| `nextcloud-cron`      | `nextcloud:apache`           | Runs background jobs (`cron.php`) every 5 minutes                                |
+| `nextcloud-redis`     | `redis:7-alpine`             | Cache and file locking                                                           |
 
 The app, database, init, cron and Redis containers are on `nextcloud-net`
 (`172.20.30.0/24`). Nextcloud starts only after the database is healthy and
@@ -92,12 +92,12 @@ ssh -t nas '/usr/local/bin/docker exec -it -u www-data nextcloud php occ user:ad
 
 Other useful `occ` commands, same wrapper:
 
-| Command | Does |
-| --- | --- |
-| `occ user:list` | List accounts |
-| `occ user:resetpassword <username>` | Set a new password (prompts) |
-| `occ group:adduser admin <username>` | Make someone an admin |
-| `occ user:disable <username>` | Turn an account off without deleting its files |
+| Command                              | Does                                           |
+| ------------------------------------ | ---------------------------------------------- |
+| `occ user:list`                      | List accounts                                  |
+| `occ user:resetpassword <username>`  | Set a new password (prompts)                   |
+| `occ group:adduser admin <username>` | Make someone an admin                          |
+| `occ user:disable <username>`        | Turn an account off without deleting its files |
 
 ## Background Jobs (Cron)
 

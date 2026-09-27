@@ -103,6 +103,12 @@ declare -A STACK_SERVE_PORTS=(
 # see iac-secrets.env.example for the format and AGENTS.md for the rationale.
 IAC_SECRETS_FILE="${IAC_SECRETS_FILE:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/iac-secrets.env}"
 
+# Personal settings that must never be committed (e.g. DSM ports changed on the
+# Security Advisor's advice) can live in ~/.env instead: get_secret_value falls
+# back to it for keys that aren't in IAC_SECRETS_FILE. Override with
+# IAC_USER_ENV_FILE=/path, or IAC_USER_ENV_FILE= to disable.
+IAC_USER_ENV_FILE="${IAC_USER_ENV_FILE-$HOME/.env}"
+
 compose_file_for() {
   local stack="$1"
   if [[ -f "$stack/docker-compose.yml" ]]; then
@@ -134,9 +140,16 @@ require_stack() {
 # key list.
 get_secret_value() {
   local key="$1"
-  [[ -f "$IAC_SECRETS_FILE" ]] || return 0
-  local value
-  value="$(grep -m1 -E "^${key}=" "$IAC_SECRETS_FILE" | cut -d= -f2- || true)"
+  local value=""
+  if [[ -f "$IAC_SECRETS_FILE" ]]; then
+    value="$(grep -m1 -E "^${key}=" "$IAC_SECRETS_FILE" | cut -d= -f2- || true)"
+  fi
+  # Fallback: ~/.env (optionally "export KEY=..."; surrounding quotes stripped).
+  if [[ -z "$value" && -n "$IAC_USER_ENV_FILE" && -f "$IAC_USER_ENV_FILE" ]]; then
+    value="$(grep -m1 -E "^(export[[:space:]]+)?${key}=" "$IAC_USER_ENV_FILE" | cut -d= -f2- || true)"
+    value="${value%\"}"; value="${value#\"}"; value="${value%\'}"; value="${value#\'}"
+  fi
+  [[ -n "$value" ]] || return 0
 
   if [[ "$value" == op://* ]]; then
     # Unset OP_SERVICE_ACCOUNT tokens before calling op read — they cause

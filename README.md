@@ -38,47 +38,47 @@ below for why that matters). The next free subnet is `172.20.34.0/24`.
 
 ### Infrastructure
 
-| Stack | What it is | URL | Network | Docs |
-| --- | --- | --- | --- | --- |
-| `portainer` | Docker management UI; deploys the other stacks | `https://portainer.${TS_TAILNET_DOMAIN}` | 172.20.21.0/24 | [install](portainer/INSTALLATION.md), [debug](portainer/DEBUG.md) |
-| `pihole` | DNS ad blocking for the LAN and tailnet (DNS on 53) | `https://pihole.${TS_TAILNET_DOMAIN}` | 172.20.20.0/24 | [install](pihole/INSTALLATION.md), [debug](pihole/DEBUG.md) |
-| `ha` | Tailnet front door for Home Assistant, which runs on its own machine | `https://ha.${TS_TAILNET_DOMAIN}`, MCP on `:9584` | 172.20.23.0/24 | [install](ha/INSTALLATION.md) |
-| `mcp` | MCP servers for AI agents, one path each (`/synology`, ...). Server catalog: `~/code/isaackehle/mcp-servers/README.md` | `https://mcp.${TS_TAILNET_DOMAIN}/<server>/...` | 172.20.27.0/24 | [install](mcp/INSTALLATION.md) |
+| Stack       | What it is                                                                                                             | URL                                               | Network        | Docs                                                              |
+| ----------- | ---------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- | -------------- | ----------------------------------------------------------------- |
+| `portainer` | Docker management UI; deploys the other stacks                                                                         | `https://portainer.${TS_TAILNET_DOMAIN}`          | 172.20.21.0/24 | [install](portainer/INSTALLATION.md), [debug](portainer/DEBUG.md) |
+| `pihole`    | DNS ad blocking for the LAN and tailnet (DNS on 53)                                                                    | `https://pihole.${TS_TAILNET_DOMAIN}`             | 172.20.20.0/24 | [install](pihole/INSTALLATION.md), [debug](pihole/DEBUG.md)       |
+| `ha`        | Tailnet front door for Home Assistant, which runs on its own machine                                                   | `https://ha.${TS_TAILNET_DOMAIN}`, MCP on `:9584` | 172.20.23.0/24 | [install](ha/INSTALLATION.md)                                     |
+| `mcp`       | MCP servers for AI agents, one path each (`/synology`, ...). Server catalog: `~/code/isaackehle/mcp-servers/README.md` | `https://mcp.${TS_TAILNET_DOMAIN}/<server>/...`   | 172.20.27.0/24 | [install](mcp/INSTALLATION.md)                                    |
 
 `portainer` is deployed over SSH: Portainer can't manage the stack it runs in, so
 it always shows as "Limited" there.
 
 ### AI
 
-| Stack | What it is | URL | Network | Docs |
-| --- | --- | --- | --- | --- |
+| Stack       | What it is                                             | URL                                      | Network        | Docs                                                                                             |
+| ----------- | ------------------------------------------------------ | ---------------------------------------- | -------------- | ------------------------------------------------------------------------------------------------ |
 | `openwebui` | Chat UI in front of every fleet host's LiteLLM gateway | `https://openwebui.${TS_TAILNET_DOMAIN}` | 172.20.22.0/24 | [install](openwebui/INSTALLATION.md), [debug](openwebui/DEBUG.md), [readme](openwebui/README.md) |
-| `langfuse` | LLM tracing and observability (MinIO S3 on 9090) | `https://langfuse.${TS_TAILNET_DOMAIN}` | 172.20.28.0/24 | [install](langfuse/INSTALLATION.md), [debug](langfuse/DEBUG.md) |
+| `langfuse`  | LLM tracing and observability (MinIO S3 on 9090)       | `https://langfuse.${TS_TAILNET_DOMAIN}`  | 172.20.28.0/24 | [install](langfuse/INSTALLATION.md), [debug](langfuse/DEBUG.md)                                  |
 
 `openwebui` is the reference stack for the sidecar pattern.
 
 ### Home and devices
 
-| Stack | What it is | URL | Network | Docs |
-| --- | --- | --- | --- | --- |
-| `mosquitto` | MQTT broker for IoT devices | `mosquitto.${TS_TAILNET_DOMAIN}`: MQTT 1883, MQTT/TLS 8883, WebSocket/TLS 443 | 172.20.26.0/24 | [install](mosquitto/INSTALLATION.md), [debug](mosquitto/DEBUG.md) |
-| `frigate` | Camera NVR with object detection (RTSP 8554, WebRTC 8555) | `https://frigate.${TS_TAILNET_DOMAIN}` | 172.20.25.0/24 | [install](frigate/INSTALLATION.md), [debug](frigate/DEBUG.md) |
-| `plex` | Media server | `https://plex.${TS_TAILNET_DOMAIN}` | 172.20.31.0/24 | [install](plex/INSTALLATION.md), [debug](plex/DEBUG.md) |
+| Stack       | What it is                                                | URL                                                                           | Network        | Docs                                                              |
+| ----------- | --------------------------------------------------------- | ----------------------------------------------------------------------------- | -------------- | ----------------------------------------------------------------- |
+| `mosquitto` | MQTT broker for IoT devices                               | `mosquitto.${TS_TAILNET_DOMAIN}`: MQTT 1883, MQTT/TLS 8883, WebSocket/TLS 443 | 172.20.26.0/24 | [install](mosquitto/INSTALLATION.md), [debug](mosquitto/DEBUG.md) |
+| `frigate`   | Camera NVR with object detection (RTSP 8554, WebRTC 8555) | `https://frigate.${TS_TAILNET_DOMAIN}`                                        | 172.20.25.0/24 | [install](frigate/INSTALLATION.md), [debug](frigate/DEBUG.md)     |
+| `plex`      | Media server                                              | `https://plex.${TS_TAILNET_DOMAIN}`                                           | 172.20.31.0/24 | [install](plex/INSTALLATION.md), [debug](plex/DEBUG.md)           |
 
 ### Files, notes and automation
 
-| Stack | What it is | URL | Network | Docs |
-| --- | --- | --- | --- | --- |
-| `nextcloud` | File storage and collaboration | `https://nextcloud.${TS_TAILNET_DOMAIN}` | 172.20.30.0/24 | [install](nextcloud/INSTALLATION.md), [debug](nextcloud/DEBUG.md) |
-| `syncthing` | File sync between devices | `https://syncthing.${TS_TAILNET_DOMAIN}` | 172.20.33.0/24 | [install](syncthing/INSTALLATION.md), [debug](syncthing/DEBUG.md) |
-| `affine` | Whiteboard and notes | `https://affine.${TS_TAILNET_DOMAIN}` | 172.20.24.0/24 | [install](affine/INSTALLATION.md), [debug](affine/DEBUG.md) |
-| `n8n` | Workflow automation | `https://n8n.${TS_TAILNET_DOMAIN}` | 172.20.29.0/24 | [install](n8n/INSTALLATION.md), [debug](n8n/DEBUG.md) |
+| Stack        | What it is                             | URL                                                 | Network        | Docs                                                                |
+| ------------ | -------------------------------------- | --------------------------------------------------- | -------------- | ------------------------------------------------------------------- |
+| `nextcloud`  | File storage and collaboration         | `https://nextcloud.${TS_TAILNET_DOMAIN}`            | 172.20.30.0/24 | [install](nextcloud/INSTALLATION.md), [debug](nextcloud/DEBUG.md)   |
+| `syncthing`  | File sync between devices              | `https://syncthing.${TS_TAILNET_DOMAIN}`            | 172.20.33.0/24 | [install](syncthing/INSTALLATION.md), [debug](syncthing/DEBUG.md)   |
+| `affine`     | Whiteboard and notes                   | `https://affine.${TS_TAILNET_DOMAIN}`               | 172.20.24.0/24 | [install](affine/INSTALLATION.md), [debug](affine/DEBUG.md)         |
+| `n8n`        | Workflow automation                    | `https://n8n.${TS_TAILNET_DOMAIN}`                  | 172.20.29.0/24 | [install](n8n/INSTALLATION.md), [debug](n8n/DEBUG.md)               |
 | `postgresql` | Shared Postgres (on 2665) with pgAdmin | `https://postgresql.${TS_TAILNET_DOMAIN}` (pgAdmin) | 172.20.32.0/24 | [install](postgresql/INSTALLATION.md), [debug](postgresql/DEBUG.md) |
 
 ### Not deployable yet
 
-| Stack | Why |
-| --- | --- |
+| Stack           | Why                                                                                                                                                                                                                                                                              |
+| --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `tailscale-mcp` | A stdio-only MCP server, but its compose file publishes port 8000 (which also clashes with Portainer's) and health-checks a port nothing listens on. It belongs in `mcp` behind `mcp-proxy`; see [mcp/INSTALLATION.md](mcp/INSTALLATION.md). Not registered in `scripts/lib.sh`. |
 
 ## How a stack reaches the tailnet
@@ -185,17 +185,17 @@ More: [docs/portainer_deployment.md](docs/portainer_deployment.md),
 scripts/deploy.sh all <stack> nas        # env + dirs + push + serve + up
 ```
 
-| Command | Does |
-| --- | --- |
-| `env <stack>` | Generate `<stack>/.env` locally. |
-| `dirs <stack> <host>` | `mkdir -p` and `chown` the stack's directories on the NAS. |
-| `push <stack> <host>` | Copy the compose file, `.env` and extra config. |
-| `extras <stack> <host>` | Copy only the bind-mounted extra files (for Portainer-managed stacks). |
-| `serve <stack> <host>` | Apply host-level `tailscale serve` mappings. No current stack has any. |
-| `up <stack> <host>` | `docker compose up -d`. |
-| `down <stack> <host>` | `docker compose down -v`. **Removes named volumes**; bind mounts survive. |
-| `api <stack>` | Create the stack in Portainer (above). |
-| `info <stack>` | Print the deploy steps for a stack. |
+| Command                 | Does                                                                      |
+| ----------------------- | ------------------------------------------------------------------------- |
+| `env <stack>`           | Generate `<stack>/.env` locally.                                          |
+| `dirs <stack> <host>`   | `mkdir -p` and `chown` the stack's directories on the NAS.                |
+| `push <stack> <host>`   | Copy the compose file, `.env` and extra config.                           |
+| `extras <stack> <host>` | Copy only the bind-mounted extra files (for Portainer-managed stacks).    |
+| `serve <stack> <host>`  | Apply host-level `tailscale serve` mappings. No current stack has any.    |
+| `up <stack> <host>`     | `docker compose up -d`.                                                   |
+| `down <stack> <host>`   | `docker compose down -v`. **Removes named volumes**; bind mounts survive. |
+| `api <stack>`           | Create the stack in Portainer (above).                                    |
+| `info <stack>`          | Print the deploy steps for a stack.                                       |
 
 - **`<host>`** is anything `ssh` accepts: an `~/.ssh/config` alias like `nas`, or
   `user@<nas-ip>`.
@@ -217,14 +217,14 @@ Test from another tailnet machine, not the NAS itself.
 
 ## Troubleshooting
 
-| Symptom | Likely cause | Where to look |
-| --- | --- | --- |
-| "Connection refused" on the tailnet URL | `serve.json` wrong or stale, or the sidecar was restarted alone | The stack's `DEBUG.md`, [docs/tailscale_patterns.md](docs/tailscale_patterns.md) |
-| Connects, then hangs at the TLS handshake | Tailscale chose a broken direct path. `pihole` and `portainer` force relaying with `TS_DEBUG_ALWAYS_USE_DERP=1` | [pihole/DEBUG.md](pihole/DEBUG.md), [docs/outage_2026_08_03.md](docs/outage_2026_08_03.md) |
-| Sidecar logs "UDP is blocked", certificate timeouts | Unpinned network on a `192.168.x.x` subnet | Pin the subnet (rules above) |
-| Container stuck in "Created" | A host port is already taken | [docs/port_registry.md](docs/port_registry.md) |
-| Portainer shows the stack as "Limited" | Started with `docker compose`, not by Portainer | Deploying → Portainer-managed |
-| Home Assistant answers 400 through `ha` | HA doesn't trust the proxy yet | [ha/INSTALLATION.md](ha/INSTALLATION.md) |
+| Symptom                                             | Likely cause                                                                                                    | Where to look                                                                              |
+| --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| "Connection refused" on the tailnet URL             | `serve.json` wrong or stale, or the sidecar was restarted alone                                                 | The stack's `DEBUG.md`, [docs/tailscale_patterns.md](docs/tailscale_patterns.md)           |
+| Connects, then hangs at the TLS handshake           | Tailscale chose a broken direct path. `pihole` and `portainer` force relaying with `TS_DEBUG_ALWAYS_USE_DERP=1` | [pihole/DEBUG.md](pihole/DEBUG.md), [docs/outage_2026_08_03.md](docs/outage_2026_08_03.md) |
+| Sidecar logs "UDP is blocked", certificate timeouts | Unpinned network on a `192.168.x.x` subnet                                                                      | Pin the subnet (rules above)                                                               |
+| Container stuck in "Created"                        | A host port is already taken                                                                                    | [docs/port_registry.md](docs/port_registry.md)                                             |
+| Portainer shows the stack as "Limited"              | Started with `docker compose`, not by Portainer                                                                 | Deploying → Portainer-managed                                                              |
+| Home Assistant answers 400 through `ha`             | HA doesn't trust the proxy yet                                                                                  | [ha/INSTALLATION.md](ha/INSTALLATION.md)                                                   |
 
 General Docker commands: [docs/debug_docker_commands.md](docs/debug_docker_commands.md).
 
@@ -247,27 +247,27 @@ General Docker commands: [docs/debug_docker_commands.md](docs/debug_docker_comma
 
 ## Docs
 
-| Doc | For |
-| --- | --- |
-| [QUICKSTART.md](QUICKSTART.md) | One-time setup and a first deploy |
-| [AGENTS.md](AGENTS.md) | Conventions for AI agents working in this repo |
-| [docs/tailscale_patterns.md](docs/tailscale_patterns.md) | How each stack is exposed, and why |
-| [docs/tailscale_serve_reference.md](docs/tailscale_serve_reference.md) | `serve.json` format and host serve commands |
-| [docs/tailscale.md](docs/tailscale.md) | Tailscale notes |
-| [docs/port_registry.md](docs/port_registry.md) | Every port, every stack |
-| [docs/docker_compose_standards.md](docs/docker_compose_standards.md) | Compose layout and correctness rules |
-| [docs/portainer_deployment.md](docs/portainer_deployment.md) | Deploying through Portainer |
-| [docs/portainer_ui_basics.md](docs/portainer_ui_basics.md) | Using the Portainer UI |
-| [docs/portainer_iac_migration.md](docs/portainer_iac_migration.md) | Moving stacks into Portainer |
-| [docs/portainer_api/](docs/portainer_api/) | Portainer API notes |
-| [docs/debug_docker_commands.md](docs/debug_docker_commands.md) | Troubleshooting commands |
-| [docs/docker_no_sudo.md](docs/docker_no_sudo.md) | Running `docker` on DSM without sudo |
-| [docs/nas_terminal_config.md](docs/nas_terminal_config.md) | Shell setup on the NAS |
-| [docs/scp_sync.md](docs/scp_sync.md) | Copying files to the NAS (`scp -O`) |
-| [docs/markdown_linting.md](docs/markdown_linting.md) | Markdown lint setup |
-| [docs/outage_2026_08_03.md](docs/outage_2026_08_03.md) | The Portainer outage behind several rules |
-| [docs/rebuild_2026_08.md](docs/rebuild_2026_08.md) | The August 2026 rebuild |
-| [docs/TODO.md](docs/TODO.md) | Known outstanding work |
+| Doc                                                                    | For                                            |
+| ---------------------------------------------------------------------- | ---------------------------------------------- |
+| [QUICKSTART.md](QUICKSTART.md)                                         | One-time setup and a first deploy              |
+| [AGENTS.md](AGENTS.md)                                                 | Conventions for AI agents working in this repo |
+| [docs/tailscale_patterns.md](docs/tailscale_patterns.md)               | How each stack is exposed, and why             |
+| [docs/tailscale_serve_reference.md](docs/tailscale_serve_reference.md) | `serve.json` format and host serve commands    |
+| [docs/tailscale.md](docs/tailscale.md)                                 | Tailscale notes                                |
+| [docs/port_registry.md](docs/port_registry.md)                         | Every port, every stack                        |
+| [docs/docker_compose_standards.md](docs/docker_compose_standards.md)   | Compose layout and correctness rules           |
+| [docs/portainer_deployment.md](docs/portainer_deployment.md)           | Deploying through Portainer                    |
+| [docs/portainer_ui_basics.md](docs/portainer_ui_basics.md)             | Using the Portainer UI                         |
+| [docs/portainer_iac_migration.md](docs/portainer_iac_migration.md)     | Moving stacks into Portainer                   |
+| [docs/portainer_api/](docs/portainer_api/)                             | Portainer API notes                            |
+| [docs/debug_docker_commands.md](docs/debug_docker_commands.md)         | Troubleshooting commands                       |
+| [docs/docker_no_sudo.md](docs/docker_no_sudo.md)                       | Running `docker` on DSM without sudo           |
+| [docs/nas_terminal_config.md](docs/nas_terminal_config.md)             | Shell setup on the NAS                         |
+| [docs/scp_sync.md](docs/scp_sync.md)                                   | Copying files to the NAS (`scp -O`)            |
+| [docs/markdown_linting.md](docs/markdown_linting.md)                   | Markdown lint setup                            |
+| [docs/outage_2026_08_03.md](docs/outage_2026_08_03.md)                 | The Portainer outage behind several rules      |
+| [docs/rebuild_2026_08.md](docs/rebuild_2026_08.md)                     | The August 2026 rebuild                        |
+| [docs/TODO.md](docs/TODO.md)                                           | Known outstanding work                         |
 
 ## Known issues
 

@@ -54,9 +54,9 @@ docker compose -f /volume1/docker/stacks/plex/docker-compose.yml restart plex-ta
 
 ## Config Files
 
-| Purpose | Host Path |
-|---------|-----------|
-| Plex config | `/volume1/docker/stacks/plex/config` |
-| Media libraries | `/volume1/media` (adjust as needed) |
+| Purpose                | Host Path                                          |
+| ---------------------- | -------------------------------------------------- |
+| Plex config            | `/volume1/docker/stacks/plex/config`               |
+| Media libraries        | `/volume1/media` (adjust as needed)                |
 | Tailscale serve config | `/volume1/docker/stacks/plex/ts-config/serve.json` |
-| Tailscale state | `/volume1/docker/stacks/plex/ts-state` |
+| Tailscale state        | `/volume1/docker/stacks/plex/ts-state`             |

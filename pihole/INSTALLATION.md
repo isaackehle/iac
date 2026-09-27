@@ -38,10 +38,10 @@
 
 ## What the Stack Contains
 
-| Container   | Image                        | Role                                                                                                                                       |
-| ----------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| `pihole`    | `pihole/pihole:latest`       | Pi-hole DNS/ad blocker — HTTP admin UI on container port 80 only, publishes DNS (53) + a plain-HTTP debug port (8280) directly to the host |
-| `pihole-tailscale` | `tailscale/tailscale:latest` | Joins the tailnet as the `pihole` node; terminates TLS on 443 and forwards decrypted bytes to Pi-hole's `127.0.0.1:80` (see below)          |
+| Container          | Image                        | Role                                                                                                                                       |
+| ------------------ | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `pihole`           | `pihole/pihole:latest`       | Pi-hole DNS/ad blocker — HTTP admin UI on container port 80 only, publishes DNS (53) + a plain-HTTP debug port (8280) directly to the host |
+| `pihole-tailscale` | `tailscale/tailscale:latest` | Joins the tailnet as the `pihole` node; terminates TLS on 443 and forwards decrypted bytes to Pi-hole's `127.0.0.1:80` (see below)         |
 
 ## Pi-hole Access Architecture
 
@@ -94,10 +94,10 @@ TLS/proxy layer in the way.
 
 ## Access
 
-| URL                                       | Description                                                       |
-| ----------------------------------------- | ----------------------------------------------------------------- |
-| `https://pihole.${TS_TAILNET_DOMAIN}`     | Pi-hole admin — primary path, via `pihole-tailscale` → Pi-hole :80        |
-| `http://pihole.${TS_TAILNET_DOMAIN}:8280` | Raw debug path, straight to Pi-hole, no TLS/proxy involved        |
+| URL                                       | Description                                                        |
+| ----------------------------------------- | ------------------------------------------------------------------ |
+| `https://pihole.${TS_TAILNET_DOMAIN}`     | Pi-hole admin — primary path, via `pihole-tailscale` → Pi-hole :80 |
+| `http://pihole.${TS_TAILNET_DOMAIN}:8280` | Raw debug path, straight to Pi-hole, no TLS/proxy involved         |
 
 ## Backups
 

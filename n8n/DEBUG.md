@@ -50,9 +50,9 @@ docker compose -f /volume1/docker/stacks/n8n/docker-compose.yml restart browserl
 
 ## Config Files
 
-| Purpose | Host Path |
-|---------|-----------|
-| n8n config/workflows | `/volume1/docker/stacks/n8n/config` |
-| n8n files | `/volume1/docker/stacks/n8n/files` |
+| Purpose                | Host Path                                         |
+| ---------------------- | ------------------------------------------------- |
+| n8n config/workflows   | `/volume1/docker/stacks/n8n/config`               |
+| n8n files              | `/volume1/docker/stacks/n8n/files`                |
 | Tailscale serve config | `/volume1/docker/stacks/n8n/ts-config/serve.json` |
-| Tailscale state | `/volume1/docker/stacks/n8n/ts-state` |
+| Tailscale state        | `/volume1/docker/stacks/n8n/ts-state`             |

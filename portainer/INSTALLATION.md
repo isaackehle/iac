@@ -9,10 +9,10 @@ this repo gets deployed *from* Portainer once this is running.
 Two containers sharing one network namespace (Pattern B, same shape as
 `openwebui` — see the root `README.md`):
 
-| Container         | Role                                                          |
-| ----------------- | ------------------------------------------------------------- |
-| `portainer`       | Portainer CE. Listens on `:9000` (HTTP) and `:9443` (HTTPS).  |
-| `portainer-tailscale`    | Tailscale sidecar. Owns the namespace; joins the tailnet.     |
+| Container             | Role                                                         |
+| --------------------- | ------------------------------------------------------------ |
+| `portainer`           | Portainer CE. Listens on `:9000` (HTTP) and `:9443` (HTTPS). |
+| `portainer-tailscale` | Tailscale sidecar. Owns the namespace; joins the tailnet.    |
 
 Request path for `https://portainer.<tailnet>.ts.net`:
 

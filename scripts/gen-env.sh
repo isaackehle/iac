@@ -107,10 +107,26 @@ gen_one() {
       fi
     fi
 
+    # Any other ${VAR} or ${VAR:-default} in the example's default resolves the
+    # same way (IAC_SECRETS_FILE, then ~/.env), else to its default; a ${VAR}
+    # with no value and no default stays as-is (and is reported below).
+    local ref ref_val ref_default ref_text
+    while [[ "$value" =~ \$\{([A-Z_][A-Z0-9_]*)(:-([^}]*))?\} ]]; do
+      ref_text="${BASH_REMATCH[0]}"
+      ref="${BASH_REMATCH[1]}"
+      ref_default="${BASH_REMATCH[3]}"
+      ref_val="$(get_secret_value "$ref")"
+      if [[ -z "$ref_val" ]]; then
+        [[ -n "${BASH_REMATCH[2]}" ]] || break
+        ref_val="$ref_default"
+      fi
+      value="${value//"$ref_text"/$ref_val}"
+    done
+
     echo "${key}=${value}" >>"$out"
 
     case "$value" in
-      ""|*changeme*|*CHANGE_ME*|tskey-auth-xxxx*|tskey-...|*'${TS_TAILNET_DOMAIN}'*|*xxxxxxxx*)
+      ""|*changeme*|*CHANGE_ME*|tskey-auth-xxxx*|tskey-...|*'${'*|*xxxxxxxx*)
         missing+=("$key")
         ;;
     esac
