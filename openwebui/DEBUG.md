@@ -59,8 +59,8 @@ docker compose -f /volume1/docker/stacks/openwebui/docker-compose.yml restart op
 
 ## Config Files
 
-| Purpose | Host Path |
-|---------|-----------|
-| OpenWebUI data | `/volume1/docker/stacks/openwebui/data` |
+| Purpose                | Host Path                                               |
+| ---------------------- | ------------------------------------------------------- |
+| OpenWebUI data         | `/volume1/docker/stacks/openwebui/data`                 |
 | Tailscale serve config | `/volume1/docker/stacks/openwebui/ts-config/serve.json` |
-| Tailscale state | `/volume1/docker/stacks/openwebui/ts-state` |
+| Tailscale state        | `/volume1/docker/stacks/openwebui/ts-state`             |

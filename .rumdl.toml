@@ -35,3 +35,8 @@ indent = 2
 # Inline HTML
 [MD033]
 allowed_elements = ["code", "kbd", "pre", "samp", "var"]
+
+# Tables: aligned columns, so they read well as plain text (rumdl fmt fixes them)
+[MD060]
+enabled = true
+style = "aligned"

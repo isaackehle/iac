@@ -3,10 +3,10 @@
 One Tailscale node, `mcp`, in front of small MCP server containers. Each server
 gets a path:
 
-| URL | Server | Local port |
-| --- | --- | --- |
-| `https://mcp.<tailnet>.ts.net/synology/mcp` | Synology DSM tools (`ghcr.io/lefty3382/synology-mcp`) | 8485 |
-| `https://mcp.<tailnet>.ts.net/` | A plain-text list of the servers | — |
+| URL                                         | Server                                                | Local port |
+| ------------------------------------------- | ----------------------------------------------------- | ---------- |
+| `https://mcp.<tailnet>.ts.net/synology/mcp` | Synology DSM tools (`ghcr.io/lefty3382/synology-mcp`) | 8485       |
+| `https://mcp.<tailnet>.ts.net/`             | A plain-text list of the servers                      | —          |
 
 `http://nas.<tailnet>.ts.net:8485/mcp` also still works (the port is published on
 the NAS) for clients configured before this stack existed. Move them to the `mcp`

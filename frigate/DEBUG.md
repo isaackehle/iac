@@ -35,8 +35,8 @@ docker compose -f /volume1/docker/stacks/frigate/docker-compose.yaml restart fri
 
 ## Config Files
 
-| Purpose | Host Path |
-|---------|-----------|
+| Purpose        | Host Path                                          |
+| -------------- | -------------------------------------------------- |
 | Frigate config | `/volume1/docker/stacks/frigate/config/config.yml` |
-| Media storage | `/volume1/docker/stacks/frigate/storage` |
-| tmpfs cache | in-memory (not persisted) |
+| Media storage  | `/volume1/docker/stacks/frigate/storage`           |
+| tmpfs cache    | in-memory (not persisted)                          |

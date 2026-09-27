@@ -77,14 +77,14 @@ docker compose -f /volume1/docker/stacks/langfuse/docker-compose.yml restart lan
 
 ## Config Files
 
-| Purpose                | Host Path                                                |
-| ----------------------- | --------------------------------------------------------- |
-| ClickHouse data         | `/volume1/docker/stacks/langfuse/clickhouse-data`         |
-| ClickHouse logs         | `/volume1/docker/stacks/langfuse/clickhouse-logs`         |
-| MinIO data              | `/volume1/docker/stacks/langfuse/minio-data`               |
-| Redis data              | `/volume1/docker/stacks/langfuse/redis-data`                |
-| Tailscale serve config  | `/volume1/docker/stacks/langfuse/ts-config/serve.json`    |
-| Tailscale state         | `/volume1/docker/stacks/langfuse/ts-state`                  |
+| Purpose                | Host Path                                              |
+| ---------------------- | ------------------------------------------------------ |
+| ClickHouse data        | `/volume1/docker/stacks/langfuse/clickhouse-data`      |
+| ClickHouse logs        | `/volume1/docker/stacks/langfuse/clickhouse-logs`      |
+| MinIO data             | `/volume1/docker/stacks/langfuse/minio-data`           |
+| Redis data             | `/volume1/docker/stacks/langfuse/redis-data`           |
+| Tailscale serve config | `/volume1/docker/stacks/langfuse/ts-config/serve.json` |
+| Tailscale state        | `/volume1/docker/stacks/langfuse/ts-state`             |
 
 ## Access
 

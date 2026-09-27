@@ -142,8 +142,8 @@ cameras:
 
 ## What the Stack Contains
 
-| Container | Image | Role |
-|-----------|-------|------|
+| Container | Image                                    | Role                                       |
+| --------- | ---------------------------------------- | ------------------------------------------ |
 | `frigate` | `ghcr.io/blakeblackshear/frigate:0.16.4` | Frigate NVR — pinned version for stability |
 
 The container is pinned to a specific version (`0.16.4`) rather than using `:stable` — this is deliberate for GitOps-deployed stacks to ensure predictable
@@ -173,23 +173,23 @@ behavior. Check the [Frigate releases](https://github.com/blakeblackshear/frigat
 
 ## Persistent Data
 
-| Host Path | Container Path | Contents |
-|-----------|----------------|----------|
-| `$STACK_PATH/config` | `/config` | Frigate configuration (`config.yml`, database) |
-| `$STACK_PATH/storage` | `/media/frigate` | Recordings, clips, snapshots |
-| `/tmp/cache` | `/tmp/cache` (tmpfs) | Ephemeral cache for camera streams (1GB) |
+| Host Path             | Container Path       | Contents                                       |
+| --------------------- | -------------------- | ---------------------------------------------- |
+| `$STACK_PATH/config`  | `/config`            | Frigate configuration (`config.yml`, database) |
+| `$STACK_PATH/storage` | `/media/frigate`     | Recordings, clips, snapshots                   |
+| `/tmp/cache`          | `/tmp/cache` (tmpfs) | Ephemeral cache for camera streams (1GB)       |
 
 ## Access
 
-| URL/Endpoint | Description |
-|--------------|-------------|
+| URL/Endpoint                        | Description                                         |
+| ----------------------------------- | --------------------------------------------------- |
 | `https://nas.<tailnet>.ts.net:8971` | Frigate Web UI (tailnet-only, via host-level serve) |
-| `frigate.<tailnet>.ts.net:8971` | Frigate Web UI (tailnet-only, via host-level serve) |
-| `<NAS-Tailscale-IP>:8971` | Direct Tailscale IP access |
-| `<NAS-LAN-IP>:8971` | LAN access (if NAS is on same network) |
-| `<NAS-Tailscale-IP>:8554` | RTSP restream (re-stream camera feeds) |
-| `<NAS-Tailscale-IP>:8555/tcp` | WebRTC over TCP (low-latency live view) |
-| `<NAS-Tailscale-IP>:8555/udp` | WebRTC over UDP (preferred for live view) |
+| `frigate.<tailnet>.ts.net:8971`     | Frigate Web UI (tailnet-only, via host-level serve) |
+| `<NAS-Tailscale-IP>:8971`           | Direct Tailscale IP access                          |
+| `<NAS-LAN-IP>:8971`                 | LAN access (if NAS is on same network)              |
+| `<NAS-Tailscale-IP>:8554`           | RTSP restream (re-stream camera feeds)              |
+| `<NAS-Tailscale-IP>:8555/tcp`       | WebRTC over TCP (low-latency live view)             |
+| `<NAS-Tailscale-IP>:8555/udp`       | WebRTC over UDP (preferred for live view)           |
 
 ## Common Frigate Operations
 

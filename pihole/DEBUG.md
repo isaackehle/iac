@@ -89,9 +89,9 @@ docker exec pihole dig @127.0.0.1 doubleclick.net +short
 
 ## Access URLs
 
-| URL                                       | Description                                                       |
-| ------------------------------------------ | --------------------------------------------------------------------- |
-| `https://pihole.${TS_TAILNET_DOMAIN}`     | Pi-hole admin — primary path: `pihole-tailscale` (TLS) → Pi-hole :80 |
+| URL                                       | Description                                                                                           |
+| ----------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `https://pihole.${TS_TAILNET_DOMAIN}`     | Pi-hole admin — primary path: `pihole-tailscale` (TLS) → Pi-hole :80                                  |
 | `http://pihole.${TS_TAILNET_DOMAIN}:8280` | Raw debug path straight to Pi-hole — no TLS, no Tailscale proxying involved beyond basic reachability |
 
 If the primary URL doesn't work but the `:8280` one does, the problem is
@@ -114,8 +114,8 @@ docker exec pihole pihole restartdns
 
 ## Config Files
 
-| Purpose                 | Host Path                                            |
-| ------------------------ | ----------------------------------------------------- |
-| Pi-hole config           | `/volume1/docker/stacks/pihole/etc-pihole`           |
-| Tailscale serve config   | `/volume1/docker/stacks/pihole/ts-config/serve.json` |
-| Tailscale state          | `/volume1/docker/stacks/pihole/ts-state`             |
+| Purpose                | Host Path                                            |
+| ---------------------- | ---------------------------------------------------- |
+| Pi-hole config         | `/volume1/docker/stacks/pihole/etc-pihole`           |
+| Tailscale serve config | `/volume1/docker/stacks/pihole/ts-config/serve.json` |
+| Tailscale state        | `/volume1/docker/stacks/pihole/ts-state`             |

@@ -150,15 +150,15 @@ docker compose up -d
 
 ## Quick Reference
 
-| Command | Description |
-|---------|-------------|
-| `docker ps` | List running containers |
-| `docker ps -a` | List all containers |
-| `docker logs <name>` | View container logs |
-| `docker inspect <name>` | Get detailed container info |
-| `docker exec -it <name> /bin/bash` | Enter container shell |
-| `docker restart <name>` | Restart container |
-| `docker rm <name>` | Remove container |
-| `docker rmi <image>` | Remove image |
-| `docker volume ls` | List volumes |
-| `docker network ls` | List networks |
+| Command                            | Description                 |
+| ---------------------------------- | --------------------------- |
+| `docker ps`                        | List running containers     |
+| `docker ps -a`                     | List all containers         |
+| `docker logs <name>`               | View container logs         |
+| `docker inspect <name>`            | Get detailed container info |
+| `docker exec -it <name> /bin/bash` | Enter container shell       |
+| `docker restart <name>`            | Restart container           |
+| `docker rm <name>`                 | Remove container            |
+| `docker rmi <image>`               | Remove image                |
+| `docker volume ls`                 | List volumes                |
+| `docker network ls`                | List networks               |

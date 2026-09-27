@@ -93,12 +93,12 @@ curl -v https://nas.<tailnet>.ts.net:3010
 
 ## What the Stack Contains
 
-| Container | Image | Role |
-|-----------|-------|------|
-| `affine_server` | `ghcr.io/toeverything/affine:stable` | Affine web application |
-| `affine_migration_job` | `ghcr.io/toeverything/affine:stable` | Database migration runner (one-time) |
-| `affine_postgres` | `pgvector/pgvector:pg16` | PostgreSQL database with vector support |
-| `affine_redis` | `redis` | Redis cache |
+| Container              | Image                                | Role                                    |
+| ---------------------- | ------------------------------------ | --------------------------------------- |
+| `affine_server`        | `ghcr.io/toeverything/affine:stable` | Affine web application                  |
+| `affine_migration_job` | `ghcr.io/toeverything/affine:stable` | Database migration runner (one-time)    |
+| `affine_postgres`      | `pgvector/pgvector:pg16`             | PostgreSQL database with vector support |
+| `affine_redis`         | `redis`                              | Redis cache                             |
 
 The stack includes an embedded PostgreSQL database and Redis cache — it's self-contained and doesn't rely on external services.
 
@@ -118,20 +118,20 @@ The stack includes an embedded PostgreSQL database and Redis cache — it's self
 
 ## Persistent Data
 
-| Host Path | Container Path | Contents |
-|-----------|----------------|----------|
-| `$STACK_PATH/data/storage` | `/root/.affine/storage` | User uploads, attachments, media files |
-| `$STACK_PATH/data/config` | `/root/.affine/config` | Application configuration |
-| `$STACK_PATH/data/postgres` | `/var/lib/postgresql/data` | PostgreSQL database files |
+| Host Path                   | Container Path             | Contents                               |
+| --------------------------- | -------------------------- | -------------------------------------- |
+| `$STACK_PATH/data/storage`  | `/root/.affine/storage`    | User uploads, attachments, media files |
+| `$STACK_PATH/data/config`   | `/root/.affine/config`     | Application configuration              |
+| `$STACK_PATH/data/postgres` | `/var/lib/postgresql/data` | PostgreSQL database files              |
 
 ## Access
 
-| URL/Endpoint | Description |
-|--------------|-------------|
+| URL/Endpoint                        | Description                                        |
+| ----------------------------------- | -------------------------------------------------- |
 | `https://nas.<tailnet>.ts.net:3010` | Affine Web UI (tailnet-only, via host-level serve) |
-| `affine.<tailnet>.ts.net:3010` | Affine Web UI (tailnet-only, via host-level serve) |
-| `<NAS-Tailscale-IP>:3010` | Direct Tailscale IP access |
-| `<NAS-LAN-IP>:3010` | LAN access (if NAS is on same network) |
+| `affine.<tailnet>.ts.net:3010`      | Affine Web UI (tailnet-only, via host-level serve) |
+| `<NAS-Tailscale-IP>:3010`           | Direct Tailscale IP access                         |
+| `<NAS-LAN-IP>:3010`                 | LAN access (if NAS is on same network)             |
 
 ## Common Affine Operations
 

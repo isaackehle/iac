@@ -129,12 +129,12 @@ The stack publishes two ports on the NAS host:
 
 ## Access
 
-| URL/Endpoint                         | Description                                              |
-| ------------------------------------ | -------------------------------------------------------- |
+| URL/Endpoint                        | Description                                              |
+| ----------------------------------- | -------------------------------------------------------- |
 | `https://nas.<tailnet>.ts.net:2660` | pgAdmin Web UI (tailnet-only, via host-level serve)      |
 | `postgresql.<tailnet>.ts.net:2665`  | PostgreSQL database (tailnet-only, via host-level serve) |
-| `<NAS-Tailscale-IP>:2665`            | Direct Tailscale IP access to PostgreSQL                 |
-| `<NAS-LAN-IP>:2665`                  | LAN access to PostgreSQL (if NAS is on same network)     |
+| `<NAS-Tailscale-IP>:2665`           | Direct Tailscale IP access to PostgreSQL                 |
+| `<NAS-LAN-IP>:2665`                 | LAN access to PostgreSQL (if NAS is on same network)     |
 
 ## Common PostgreSQL Operations
 
