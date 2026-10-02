@@ -66,7 +66,7 @@ sidecar inherits that resolution.
 Always set the sidecar's tailnet name via the `TS_HOSTNAME` environment
 variable. Do **not** use the Docker Compose `hostname:` field on the
 sidecar — it collides with Docker's internal DNS resolver, breaking
-MagicDNS resolution for _every_ sidecar on the host, not just this one.
+MagicDNS resolution for *every* sidecar on the host, not just this one.
 
 **Correct:**
 
@@ -121,10 +121,15 @@ Do **not** use:
 **Two exceptions use the `Web`/`Proxy` shape** (with a rendered hostname key, never
 a literal `${TS_CERT_DOMAIN}`):
 
-- **`ha`** fronts Home Assistant, another machine on the LAN that only speaks HTTPS
-  (its own Let's Encrypt cert). `TCPForward` after `TerminateTLS` would send it
-  plaintext, so `ha` proxies to `https+insecure://{{HA_LAN_IP}}:8123`. See
-  `ha/docker-compose.yml`.
+- **`ha`** fronts Home Assistant, another machine on the LAN. Its UI path speaks HTTPS
+  (HA's own Let's Encrypt cert), so `TCPForward` after `TerminateTLS` would send it
+  plaintext — `ha` proxies the UI to `https+insecure://{{HA_LAN_IP}}:8123` on 80/443 and
+  its MCP server to `http://{{HA_LAN_IP}}:9584`. It additionally carries **raw `TCPForward`
+  with no `TerminateTLS`** for `8123` (HA's UI on its native port) and `2222` (SSH into the
+  HA box): a non-HTTP protocol like SSH needs end-to-end passthrough, and the tailnet is
+  already WireGuard-encrypted. Forwards point at `{{HA_LAN_IP}}:<port>`, never
+  `127.0.0.1` — the HA machine is a *different* host, so a loopback backend would land on
+  the sidecar itself. See `ha/docker-compose.yml` and `ha/serve.json.tmpl`.
 - **`mcp`** routes by path to several MCP servers sharing one node
   (`/synology` → `127.0.0.1:8485`, ...). Path routing needs HTTP, and Tailscale
   strips the prefix. See `mcp/docker-compose.yml`.

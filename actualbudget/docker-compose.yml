@@ -1,0 +1,84 @@
+# Actual Budget — Docker Compose Stack
+#
+# Stack version: 1.0 (2026-09-30)
+# Purpose: Local-first personal budgeting app (https://actualbudget.org), synced
+#   through its own server. Tailnet-only; no LAN or host ports.
+#
+# Services:
+#   - primary (actual-server, listens on 5006)
+#   - tailscale (Tailscale sidecar; owns the network namespace)
+#
+# Environment variables:
+#   - STACK_NAME=ActualBudget
+#   - TZ=${TZ}
+#   - TS_AUTHKEY=${TS_AUTHKEY}
+#   See .env.example for all required variables
+#
+# Deployment:
+#   docker compose --env-file .env -f docker-compose.yml up -d
+#   docker compose --env-file .env -f docker-compose.yml down
+#
+
+name: actualbudget
+
+services:
+  # ── Identity ──────────────────────────────────────────────
+  primary:
+    image: actualbudget/actual-server:latest
+    container_name: actualbudget
+
+    # ── Lifecycle ─────────────────────────────────────────────
+    restart: unless-stopped
+    depends_on:
+      - tailscale
+
+    # ── Network ───────────────────────────────────────────────
+    network_mode: service:tailscale
+
+    # ── Storage ───────────────────────────────────────────────
+    volumes:
+      - /volume1/docker/stacks/actualbudget/data:/data
+
+    # ── Environment ───────────────────────────────────────────
+    environment:
+      - TZ=${TZ}
+
+  # ── Identity ──────────────────────────────────────────────
+  tailscale:
+    image: tailscale/tailscale:latest
+    container_name: actualbudget-tailscale
+
+    # ── Lifecycle ─────────────────────────────────────────────
+    restart: unless-stopped
+
+    # ── Storage ───────────────────────────────────────────────
+    volumes:
+      - /volume1/docker/stacks/actualbudget/ts-state:/var/lib/tailscale
+      - /volume1/docker/stacks/actualbudget/ts-config:/config
+
+    # ── Environment ───────────────────────────────────────────
+    environment:
+      - TS_HOSTNAME=actualbudget
+      - TS_AUTHKEY=${TS_AUTHKEY}
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_AUTH_ONCE=true
+      - TS_SERVE_CONFIG=/config/serve.json
+      # Force DERP relay — see portainer/docker-compose.yml for the full write-up.
+      # Avoids a bogus "direct" path via NAT hairpin that hangs :443 at the TLS handshake.
+      - TS_DEBUG_ALWAYS_USE_DERP=1
+
+    # ── Runtime ───────────────────────────────────────────────
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    devices:
+      - /dev/net/tun:/dev/net/tun
+
+# Pinned, same reason as pihole/portainer/openwebui: DSM's firewall drops
+# forwarded traffic from Docker's default 192.168.x.0/20 pool, which kills
+# outbound (image pulls, DERP, ACME).
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: 172.20.34.0/24

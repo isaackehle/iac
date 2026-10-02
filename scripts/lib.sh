@@ -7,7 +7,7 @@
 # replaces the old per-stack init.sh / apply-serve.sh scripts.
 
 ALL_STACKS=(
-  affine frigate ha langfuse mosquitto n8n nextcloud
+  actualbudget affine frigate ha langfuse mosquitto n8n nextcloud
   openwebui pihole plex portainer postgresql syncthing mcp
 )
 
@@ -16,6 +16,7 @@ ALL_STACKS=(
 # convention existed and still hold real data at their old path — do not
 # "fix" these without manually migrating data on the NAS first.
 declare -A STACK_REMOTE_DIR=(
+  [actualbudget]="/volume1/docker/stacks/actualbudget"
   [affine]="/volume1/docker/stacks/affine"
   [frigate]="/volume1/docker/stacks/frigate"
   [ha]="/volume1/docker/stacks/ha"
@@ -35,6 +36,7 @@ declare -A STACK_REMOTE_DIR=(
 # Directories to `mkdir -p` (relative to STACK_REMOTE_DIR[$stack]) before
 # pushing files. Space-separated, supports brace-free plain paths only.
 declare -A STACK_DIRS=(
+  [actualbudget]="data ts-state ts-config"
   [affine]="data/storage data/config data/postgres ts-state ts-config"
   [frigate]="config storage ts-state ts-config"
   [ha]="ts-state ts-config"   # Tailscale front door for HA (HA_LAN_IP in iac-secrets.env), no app container
@@ -57,6 +59,7 @@ declare -A STACK_DIRS=(
 # directory — no single-file mounts (which break if the file is missing
 # and are cwd-sensitive when relative).
 declare -A STACK_EXTRA_FILES=(
+  [actualbudget]="serve.json:ts-config/serve.json"
   [affine]="serve.json:ts-config/serve.json"
   [frigate]="frigate-config.yml:config/config.yml serve.json:ts-config/serve.json"
   [ha]="serve.json:ts-config/serve.json"
@@ -125,7 +128,7 @@ require_stack() {
   local stack="$1"
   if [[ -z "$stack" || ! -d "$stack" ]]; then
     # Use a simple list instead of array expansion to avoid bash 3.2 issues
-    local known_stacks="affine frigate ha langfuse mosquitto n8n nextcloud openwebui pihole plex portainer postgresql syncthing mcp"
+    local known_stacks="actualbudget affine frigate ha langfuse mosquitto n8n nextcloud openwebui pihole plex portainer postgresql syncthing mcp"
     echo "ERROR: unknown stack '$stack' — expected one of: $known_stacks" >&2
     exit 1
   fi

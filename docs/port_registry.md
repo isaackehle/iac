@@ -37,12 +37,12 @@ Tailscale sidecar in normal stacks, the app itself in the inverted ones (see
 These listen on `<node>.<tailnet>.ts.net`, not on the NAS. Every node serves 443;
 the exceptions are listed.
 
-| Node                | Ports           | What                                                                           |
-| ------------------- | --------------- | ------------------------------------------------------------------------------ |
-| every sidecar stack | 443             | HTTPS with Tailscale's certificate, forwarded to the app                       |
-| `mosquitto`         | 443, 1883, 8883 | WebSocket over TLS (→ 9001), plain MQTT, MQTT over TLS (→ 1883)                |
-| `ha`                | 80, 443, 9584   | Home Assistant UI (HTTP and HTTPS), its MCP server (proxied to the HA machine) |
-| `mcp`               | 443             | MCP servers by path: `/synology` (→ 8485), `/tailscale` (→ 8488)               |
+| Node                | Ports                           | What                                                                                                                                |
+| ------------------- | ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| every sidecar stack | 443                             | HTTPS with Tailscale's certificate, forwarded to the app                                                                            |
+| `mosquitto`         | 443, 1883, 8883                 | WebSocket over TLS (→ 9001), plain MQTT, MQTT over TLS (→ 1883)                                                                     |
+| `ha`                | 80, 443, 4357, 8123, 9584, 2222 | HA UI (HTTP/HTTPS), Observer health page (proxied HTTP), UI on its native port (raw TCP), MCP server, SSH into the HA box (raw TCP) |
+| `mcp`               | 443                             | MCP servers by path: `/synology` (→ 8485), `/tailscale` (→ 8488)                                                                    |
 
 ## Local ports inside shared namespaces
 

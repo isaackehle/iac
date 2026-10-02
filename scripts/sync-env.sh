@@ -25,6 +25,7 @@ NAS_BASE="/volume1/docker/stacks"
 
 # All managed stacks
 ALL_STACKS=(
+    "actualbudget"
     "affine"
     "frigate"
     "ha"
