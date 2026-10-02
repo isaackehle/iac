@@ -2,7 +2,10 @@
   "TCP": {
     "80": { "HTTP": true },
     "443": { "HTTPS": true },
-    "9584": { "HTTPS": true }
+    "9584": { "HTTPS": true },
+    "4357": { "HTTPS": true },
+    "8123": { "TCPForward": "{{HA_LAN_IP}}:8123" },
+    "2222": { "TCPForward": "{{HA_LAN_IP}}:2222" }
   },
   "Web": {
     "ha.{{TS_TAILNET_DOMAIN}}:80": {
@@ -13,6 +16,9 @@
     },
     "ha.{{TS_TAILNET_DOMAIN}}:9584": {
       "Handlers": { "/": { "Proxy": "http://{{HA_LAN_IP}}:9584" } }
+    },
+    "ha.{{TS_TAILNET_DOMAIN}}:4357": {
+      "Handlers": { "/": { "Proxy": "http://{{HA_LAN_IP}}:4357" } }
     }
   }
 }

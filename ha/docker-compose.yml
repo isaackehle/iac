@@ -1,9 +1,11 @@
 # ha — Tailscale front door for Home Assistant
 #
-# Stack version: 1.0 (2026-09-26)
+# Stack version: 1.1 (2026-10-02)
 # Purpose: give Home Assistant a tailnet name, https://ha.<tailnet>.ts.net (plain
 #   http://ha.<tailnet>.ts.net also works: Tailscale already encrypts the hop), and
 #   its MCP server at https://ha.<tailnet>.ts.net:9584, without touching the HA box.
+#   Also relays raw TCP for the HA box's own ports: 8123 (HA UI on its native port,
+#   no TLS termination) and 2222 (SSH into the HA box — see below).
 #
 # Home Assistant doesn't run on the NAS: it's its own machine on the LAN
 # (HA_LAN_IP in iac-secrets.env; homeassistant.local). Its own Tailscale add-on node
@@ -11,19 +13,36 @@
 # host networking, so it can't take a sidecar. This stack is one Tailscale
 # container that joins the tailnet as "ha" and proxies to HA over the LAN.
 #
-# Why Web/Proxy serve mode here, not TCPForward like openwebui/portainer: HA
-# only serves HTTPS on 8123, with a Let's Encrypt cert for kehle.duckdns.org.
-# TCPForward after TerminateTLS would hand HA plaintext on a TLS port, and TCP
-# passthrough would show browsers the duckdns cert on the ts.net name. The
-# proxy terminates Tailscale's cert and re-connects with https+insecure (the
-# duckdns cert doesn't match the LAN IP). It's the slower serve path
-# (tailscale/tailscale#18307), acceptable for one HA UI.
+# This node routes three ways (see serve.json.tmpl):
+#   - Web/Proxy for the HA UI on 80/443 and MCP on 9584. HA only serves HTTPS on
+#     8123, with a Let's Encrypt cert for kehle.duckdns.org. TCPForward after
+#     TerminateTLS would hand HA plaintext on a TLS port, and TCP passthrough
+#     would show browsers the duckdns cert on the ts.net name. The proxy
+#     terminates Tailscale's cert and re-connects with https+insecure (the
+#     duckdns cert doesn't match the LAN IP). It's the slower serve path
+#     (tailscale/tailscale#18307), acceptable for one HA UI.
+#   - Raw TCP for SSH on 2222: TCPForward straight to {{HA_LAN_IP}}:2222 with no
+#     TerminateTLS, so the client's own SSH handshake passes through end to end
+#     (the tailnet is already WireGuard-encrypted — a Tailscale cert would be
+#     meaningless to sshd). Forwarding 127.0.0.1:22 in the sidecar namespace
+#     instead would land on the sidecar container itself, not the HA box.
+#   - Raw TCP for HA's native 8123: TCPForward to {{HA_LAN_IP}}:8123, for clients
+#     that want the UI on its real port without the 443 proxy hop.
+#
+# SSH prerequisite (not something this stack can fix): the HA box must actually
+# run an sshd listening on 2222 (the Advanced SSH & Web Terminal add-on, or an
+# sshd container in Portainer). If nothing listens there, this forward relays a
+# refused connection. Check on the HA box before blaming Tailscale.
 #
 # HA must trust this proxy, or it answers 400 to forwarded requests. In HA's
 # configuration.yaml (see INSTALLATION.md):
 #   http:
 #     use_x_forwarded_for: true
 #     trusted_proxies: [<NAS LAN IP 1>, <NAS LAN IP 2>]   # both NAS ports
+#
+# Nabu Casa (Home Assistant Cloud) remote access is NOT configured here — it's a
+# HA subscription/integration toggled in Settings → Home Assistant Cloud. This
+# stack only exposes the LAN ports the cloud could route through.
 #
 # Services:
 #   - tailscale (the ha node; no app container)
