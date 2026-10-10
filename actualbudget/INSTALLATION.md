@@ -8,16 +8,31 @@ Actual Budget is a local-first budgeting app. The server stores your budget file
 Add `TS_AUTHKEY` (or `TS_AUTHKEY_ACTUALBUDGET`) to `iac-secrets.env`, then from the repo root:
 
 ```shell
-scripts/deploy.sh all actualbudget nas
+scripts/deploy.sh api actualbudget
 ```
 
-That generates `.env`, creates `/volume1/docker/stacks/actualbudget/{data,ts-state,ts-config}`, pushes the compose file and `serve.json`, and starts the stack.
+This is the supported path: it creates the stack **in Portainer** (GitOps mode,
+endpoint 3), pulling `actualbudget/docker-compose.yml` from GitHub main. The
+stack is owned by Portainer — see [AUTH.md](AUTH.md#deployment-use-the-portainer-api-mode)
+for why `docker compose up -d` over SSH must be avoided, and for the Portainer
+gotchas (`name=` filter ignored, corrupted stack rows, the `get_secret_value`
+service-account issue).
+
+For a non-Portainer host, `scripts/deploy.sh all actualbudget <ssh-host>` still
+works.
 
 ## First run
 
 1. Open `https://actualbudget.${TS_TAILNET_DOMAIN}`.
 2. Set a server password when prompted. Actual has no default login, so whoever reaches the URL first sets it.
-3. Create a new budget, or import one from YNAB, nYNAB or another Actual file.
+3. **Sign in.** There is no separate "create user" step — the ADMIN user is
+   created automatically on the first successful password login.
+4. Create a new budget, or import one from YNAB, nYNAB or another Actual file.
+
+The password is bootstrapped once through `POST /account/bootstrap` and must
+**not** be put in `docker-compose.yml`; see [AUTH.md](AUTH.md). It is stored in
+1Password (`op://secrets/Actual Budget/password`) and referenced from
+`iac-secrets.env`.
 
 Actual needs a secure context (HTTPS) for its sync features. The Tailscale certificate provides that; don't reach the app over plain `http://` on the LAN.
 

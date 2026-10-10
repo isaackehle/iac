@@ -65,3 +65,42 @@ docker compose -f /volume1/docker/stacks/actualbudget/docker-compose.yml restart
 | App config             | `/volume1/docker/stacks/actualbudget/config`               |
 | Tailscale serve config | `/volume1/docker/stacks/actualbudget/ts-config/serve.json` |
 | Tailscale state        | `/volume1/docker/stacks/actualbudget/ts-state`             |
+
+## Authentication
+
+The server password is bootstrapped through the API and lives in
+`server-files/account.sqlite`, never in compose. See [AUTH.md](AUTH.md) for the
+full model.
+
+```shell
+# Is a password configured yet?
+curl https://actualbudget.tail303fda.ts.net/account/needs-bootstrap
+
+# Set the initial password (only works while bootstrapped=false), then sign in
+curl -X POST -H 'Content-Type: application/json' \
+  -d '{"loginMethod":"password","password":"<pw>"}' \
+  https://actualbudget.tail303fda.ts.net/account/bootstrap
+```
+
+Inspect account state without printing hashes:
+
+```shell
+sqlite3 /volume1/docker/stacks/actualbudget/data/server-files/account.sqlite \
+  "select method, active, length(extra_data) from auth;
+   select count(*) from users;
+   select count(*) from sessions;"
+```
+
+Note: `docker exec actualbudget sh -c 'grep …'` works for reading the bundled
+server source, which is the fastest way to confirm auth behaviour.
+
+## Portainer
+
+```shell
+export PORTAINER_URL="https://portainer.${TS_TAILNET_DOMAIN}"
+export PORTAINER_API_KEY="$(op read op://secrets/Portainer/PORTAINER_API_KEY)"
+curl -s -H "X-Api-Key: $PORTAINER_API_KEY" "$PORTAINER_URL/api/stacks" |
+  python3 -m json.tool | grep -A2 '"Name": "actualbudget"'
+```
+
+Filter by name client-side — `/api/stacks?name=` is ignored.

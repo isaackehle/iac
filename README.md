@@ -43,7 +43,7 @@ below for why that matters). The next free subnet is `172.20.35.0/24`.
 | `portainer` | Docker management UI; deploys the other stacks                                                                                                                                            | `https://portainer.${TS_TAILNET_DOMAIN}`                                                              | 172.20.21.0/24 | [install](portainer/INSTALLATION.md), [debug](portainer/DEBUG.md) |
 | `pihole`    | DNS ad blocking for the LAN and tailnet (DNS on 53)                                                                                                                                       | `https://pihole.${TS_TAILNET_DOMAIN}`                                                                 | 172.20.20.0/24 | [install](pihole/INSTALLATION.md), [debug](pihole/DEBUG.md)       |
 | `ha`        | Tailnet front door for Home Assistant, which runs on its own machine. Also relays raw TCP for HA's UI on `:8123`, SSH into the HA box on `:2222`, and the Observer health page on `:4357` | `https://ha.${TS_TAILNET_DOMAIN}`, MCP on `:9584`, Observer on `:4357`, UI on `:8123`, SSH on `:2222` | 172.20.23.0/24 | [install](ha/INSTALLATION.md)                                     |
-| `mcp`       | MCP servers for AI agents, one path each (`/synology`, `/tailscale`, ...). Server catalog: `~/code/isaackehle/mcp-servers/README.md`                                                      | `https://mcp.${TS_TAILNET_DOMAIN}/<server>/...`                                                       | 172.20.27.0/24 | [install](mcp/INSTALLATION.md)                                    |
+| `mcp`       | MCP servers for AI agents, one path each (`/synology`, `/tailscale`, ...). Server catalog: `~/code/isaackehle/mcp-servers/README.md`                                                      | `https://mcp.${TS_TAILNET_DOMAIN}/<server>/...`                                                       | 172.20.27.0/24 | [install](mcp/INSTALLATION.md), [monarch](mcp/MONARCH.md)         |
 
 `portainer` is deployed over SSH: Portainer can't manage the stack it runs in, so
 it always shows as "Limited" there.
@@ -67,14 +67,14 @@ it always shows as "Limited" there.
 
 ### Files, notes and automation
 
-| Stack          | What it is                             | URL                                                 | Network        | Docs                                                                    |
-| -------------- | -------------------------------------- | --------------------------------------------------- | -------------- | ----------------------------------------------------------------------- |
-| `nextcloud`    | File storage and collaboration         | `https://nextcloud.${TS_TAILNET_DOMAIN}`            | 172.20.30.0/24 | [install](nextcloud/INSTALLATION.md), [debug](nextcloud/DEBUG.md)       |
-| `syncthing`    | File sync between devices              | `https://syncthing.${TS_TAILNET_DOMAIN}`            | 172.20.33.0/24 | [install](syncthing/INSTALLATION.md), [debug](syncthing/DEBUG.md)       |
-| `actualbudget` | Personal budgeting (Actual Budget)     | `https://actualbudget.${TS_TAILNET_DOMAIN}`         | 172.20.34.0/24 | [install](actualbudget/INSTALLATION.md), [debug](actualbudget/DEBUG.md) |
-| `affine`       | Whiteboard and notes                   | `https://affine.${TS_TAILNET_DOMAIN}`               | 172.20.24.0/24 | [install](affine/INSTALLATION.md), [debug](affine/DEBUG.md)             |
-| `n8n`          | Workflow automation                    | `https://n8n.${TS_TAILNET_DOMAIN}`                  | 172.20.29.0/24 | [install](n8n/INSTALLATION.md), [debug](n8n/DEBUG.md)                   |
-| `postgresql`   | Shared Postgres (on 2665) with pgAdmin | `https://postgresql.${TS_TAILNET_DOMAIN}` (pgAdmin) | 172.20.32.0/24 | [install](postgresql/INSTALLATION.md), [debug](postgresql/DEBUG.md)     |
+| Stack          | What it is                             | URL                                                 | Network        | Docs                                                                                                  |
+| -------------- | -------------------------------------- | --------------------------------------------------- | -------------- | ----------------------------------------------------------------------------------------------------- |
+| `nextcloud`    | File storage and collaboration         | `https://nextcloud.${TS_TAILNET_DOMAIN}`            | 172.20.30.0/24 | [install](nextcloud/INSTALLATION.md), [debug](nextcloud/DEBUG.md)                                     |
+| `syncthing`    | File sync between devices              | `https://syncthing.${TS_TAILNET_DOMAIN}`            | 172.20.33.0/24 | [install](syncthing/INSTALLATION.md), [debug](syncthing/DEBUG.md)                                     |
+| `actualbudget` | Personal budgeting (Actual Budget)     | `https://actualbudget.${TS_TAILNET_DOMAIN}`         | 172.20.34.0/24 | [install](actualbudget/INSTALLATION.md), [auth](actualbudget/AUTH.md), [debug](actualbudget/DEBUG.md) |
+| `affine`       | Whiteboard and notes                   | `https://affine.${TS_TAILNET_DOMAIN}`               | 172.20.24.0/24 | [install](affine/INSTALLATION.md), [debug](affine/DEBUG.md)                                           |
+| `n8n`          | Workflow automation                    | `https://n8n.${TS_TAILNET_DOMAIN}`                  | 172.20.29.0/24 | [install](n8n/INSTALLATION.md), [debug](n8n/DEBUG.md)                                                 |
+| `postgresql`   | Shared Postgres (on 2665) with pgAdmin | `https://postgresql.${TS_TAILNET_DOMAIN}` (pgAdmin) | 172.20.32.0/24 | [install](postgresql/INSTALLATION.md), [debug](postgresql/DEBUG.md)                                   |
 
 ## How a stack reaches the tailnet
 

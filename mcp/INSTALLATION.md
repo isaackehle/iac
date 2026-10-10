@@ -61,6 +61,13 @@ docker logs --tail 50 mcp-tailscale-admin
 | `/synology`  | `synology`        | DSM health, storage and system info (`MCP_PERMISSION_TIER=health`)                                | `SYNOLOGY_*`. `SYNOLOGY_HOST` must be the NAS **LAN IP** (the userspace sidecar gives this namespace no tailnet DNS or routes). `SYNOLOGY_PORT` is DSM's HTTPS port: 5001 by default, or `DSM_HTTPS_PORT` from `~/.env` if you moved it. |
 | `/tailscale` | `tailscale-admin` | Read-only Tailscale admin API: devices, users, policy file, settings. Code: `servers/tailscale/`. | `TAILSCALE_OAUTH_CLIENT_ID` / `_SECRET` (preferred) or `TAILSCALE_API_KEY`                                                                                                                                                               |
 
+### Not in this stack
+
+The Monarch Money MCP server runs **locally as a stdio server**, not as a
+service here — it needs interactive authentication and local access to its
+session credentials. See [MONARCH.md](MONARCH.md) for its setup, the `uv run`
+requirement, and the login flow.
+
 ### tailscale-admin credentials
 
 1. Tailscale admin console → **Settings → OAuth clients → Generate**, with read
