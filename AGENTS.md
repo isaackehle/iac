@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Plans directory: docs/plans/ (small plans, `YYYY-MM-DD-<slug>.md`; large ones go in `PLANS_DIR` or a GitHub issue, see `~/.agents.md`)
+Plans directory: `PLANS_DIR` (all new plans, `YYYY-MM-DD-<slug>.md`; older ones stay in docs/plans/, see `~/.agents.md`)
 
 ## What this repo is
 
@@ -318,7 +318,8 @@ longer exists. Always `docker compose down && docker compose up -d`.
    - Run checks: `rumdl check .`
    - Auto-fix: `rumdl fmt .`
    - Pre-commit hook: `lefthook` runs `rumdl` automatically
-   - Line length limit is 160 characters, blank lines required before/after fenced code blocks, lists must be preceded by blank lines. Don't treat linting warnings as blocking — fix them before committing.
+   - Line length limit is 160 characters, blank lines required before/after fenced code blocks, lists must be preceded by blank lines. Don't treat linting
+  warnings as blocking — fix them before committing.
 
 ## Commands
 

@@ -5,9 +5,13 @@
   "Web": {
     "mcp.{{TS_TAILNET_DOMAIN}}:443": {
       "Handlers": {
-        "/": { "Text": "MCP servers on this node: /synology/mcp /tailscale/mcp\n" },
+        "/": { "Text": "MCP servers on this node:\n  /synology/mcp    - Synology DSM health/status\n  /search/mcp      - Web search (DuckDuckGo)\n  /weather/mcp     - Weather data\n  /tailscale/mcp   - Tailscale admin API\n  /time/mcp        - Time and timezone queries\n  /brave/mcp       - Brave Search\n" },
         "/synology": { "Proxy": "http://127.0.0.1:8485" },
-        "/tailscale": { "Proxy": "http://127.0.0.1:8488" }
+        "/search": { "Proxy": "http://127.0.0.1:8486" },
+        "/weather": { "Proxy": "http://127.0.0.1:8487" },
+        "/tailscale": { "Proxy": "http://127.0.0.1:8488" },
+        "/time": { "Proxy": "http://127.0.0.1:8490" },
+        "/brave": { "Proxy": "http://127.0.0.1:8491" }
       }
     }
   }

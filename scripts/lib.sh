@@ -155,25 +155,26 @@ get_secret_value() {
   [[ -n "$value" ]] || return 0
 
   if [[ "$value" == op://* ]]; then
-    # Unset OP_SERVICE_ACCOUNT tokens before calling op read — they cause
-    # 403s on user vaults. See 1password-cli skill for details.
-    local saved_sa="${OP_SERVICE_ACCOUNT:-}"
-    local saved_sa_token="${OP_SERVICE_ACCOUNT_TOKEN:-}"
-    local saved_token="${OP_TOKEN:-}"
-    unset OP_SERVICE_ACCOUNT OP_SERVICE_ACCOUNT_TOKEN OP_TOKEN
-    local resolved
-    resolved="$(op read "$value" 2>/dev/null)" || {
-      echo "WARN: op read failed for $key ($value) — treating as unset" >&2
-      # Restore env vars before returning
-      [[ -n "$saved_sa" ]] && export OP_SERVICE_ACCOUNT="$saved_sa"
-      [[ -n "$saved_sa_token" ]] && export OP_SERVICE_ACCOUNT_TOKEN="$saved_sa_token"
-      [[ -n "$saved_token" ]] && export OP_TOKEN="$saved_token"
-      return 0
-    }
-    # Restore env vars
-    [[ -n "$saved_sa" ]] && export OP_SERVICE_ACCOUNT="$saved_sa"
-    [[ -n "$saved_sa_token" ]] && export OP_SERVICE_ACCOUNT_TOKEN="$saved_sa_token"
-    [[ -n "$saved_token" ]] && export OP_TOKEN="$saved_token"
+    # Service account FIRST: reads and writes on the secrets vault were verified 2026-10-11, and it never prompts.
+    # (The old advice to unset it came from an August 403 and from a variable named OP_SERVICE_ACCOUNT, without
+    # _TOKEN, holding an unresolved op:// reference. Unset THAT one, not the token.) The desktop app is only a
+    # fallback, because it can raise a Touch ID prompt on every call.
+    local resolved="" sa_token="${OP_SERVICE_ACCOUNT_TOKEN:-}"
+    if [[ -z "$sa_token" && -n "$IAC_USER_ENV_FILE" && -f "$IAC_USER_ENV_FILE" ]]; then
+      sa_token="$(grep -m1 -E '^(export[[:space:]]+)?OP_SERVICE_ACCOUNT_TOKEN=' "$IAC_USER_ENV_FILE" | cut -d= -f2- || true)"
+      sa_token="${sa_token%\"}"; sa_token="${sa_token#\"}"; sa_token="${sa_token%\'}"; sa_token="${sa_token#\'}"
+    fi
+    if [[ -n "$sa_token" && "$sa_token" != op://* ]]; then
+      resolved="$(env -u OP_SERVICE_ACCOUNT OP_SERVICE_ACCOUNT_TOKEN="$sa_token" OP_BIOMETRIC_UNLOCK_ENABLED=false \
+                  op read "$value" 2>/dev/null)" || resolved=""
+    fi
+    if [[ -z "$resolved" ]]; then
+      echo "WARN: service-account read failed for $key; falling back to the 1Password desktop app (may prompt Touch ID)" >&2
+      resolved="$(env -u OP_SERVICE_ACCOUNT -u OP_SERVICE_ACCOUNT_TOKEN -u OP_TOKEN op read "$value" 2>/dev/null)" || {
+        echo "WARN: op read failed for $key ($value): treating as unset" >&2
+        return 0
+      }
+    fi
     echo "$resolved"
     return 0
   fi

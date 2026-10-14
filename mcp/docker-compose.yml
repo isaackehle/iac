@@ -17,10 +17,14 @@
 #     docs/tailscale_patterns.md). The slower proxy path doesn't matter for MCP.
 #
 # Servers (one service each; add a row, a service and a serve.json handler):
-#   | Path       | Service         | Port | Image                                  |
-#   | /synology  | synology        | 8485 | ghcr.io/lefty3382/synology-mcp:latest  |
-#   | /tailscale | tailscale-admin | 8488 | built from servers/tailscale (read-only) |
-#   reserved in the mcp-servers catalog: 8486 /search, 8487 /weather, 8489 /amazon-products
+#   | Path          | Service         | Port | Image                                  |
+#   | /synology     | synology        | 8485 | ghcr.io/lefty3382/synology-mcp:latest  |
+#   | /search       | one-search      | 8486 | ghcr.io/yokingma/one-search-mcp:latest |
+#   | /weather      | weather         | 8487 | ghcr.io/dangahagan/weather-mcp:latest  |
+#   | /tailscale    | tailscale-admin | 8488 | built from servers/tailscale (read-only) |
+#   | /amazon-prod  | amazon-scraper  | 8489 | ghcr.io/pullapi/amazon-scraper-mcp:latest |
+#   | /time         | time            | 8490 | python:3.12-slim + mcp-server-time     |
+#   | /brave        | brave-search    | 8491 | ghcr.io/brave/brave-search-mcp-server:latest |
 #
 # Adding a server: catalog and per-server recipes in ~/code/isaackehle/mcp-servers/README.md
 #   (docs/plugin-recipe.md there). In short:
@@ -94,6 +98,83 @@ services:
       - TAILSCALE_TAILNET=${TAILSCALE_TAILNET:--}
 
   # ── Identity ──────────────────────────────────────────────
+  # Web search via DuckDuckGo (free, no key needed). For better results:
+  # set SEARXNG_URL or TAVILY_API_KEY in .env.
+  one-search:
+    image: ghcr.io/yokingma/one-search-mcp:latest
+    container_name: mcp-one-search
+
+    # ── Lifecycle ─────────────────────────────────────
+    restart: unless-stopped
+    depends_on:
+      - tailscale
+
+    # ── Network ───────────────────────────────────────
+    network_mode: service:tailscale   # borrow the sidecar's namespace; port 8486
+
+    # ── Environment ───────────────────────────────────
+    environment:
+      - MCP_PORT=8486
+      - SEARCH_ENGINE=${SEARCH_ENGINE:-duckduckgo}
+      - SEARXNG_URL=${SEARXNG_URL:-}
+      - TAVILY_API_KEY=${TAVILY_API_KEY:-}
+
+  # ── Identity ──────────────────────────────────────
+  # Weather data (no API key required).
+  weather:
+    image: ghcr.io/dangahagan/weather-mcp:latest
+    container_name: mcp-weather
+
+    # ── Lifecycle ─────────────────────────────────────
+    restart: unless-stopped
+    depends_on:
+      - tailscale
+
+    # ── Network ───────────────────────────────────────
+    network_mode: service:tailscale   # borrow the sidecar's namespace; port 8487
+
+    # ── Environment ───────────────────────────────────
+    environment:
+      - MCP_PORT=8487
+
+  # ── Identity ──────────────────────────────────────
+  # Time and timezone queries (Python, no API key required).
+  time:
+    image: python:3.12-slim
+    container_name: mcp-time
+
+    # ── Lifecycle ─────────────────────────────────────
+    restart: unless-stopped
+    depends_on:
+      - tailscale
+
+    # ── Runtime ───────────────────────────────────────
+    working_dir: /app
+    command: ["sh", "-c", "pip install mcp-server-time && python -m mcp_server_time --port 8490"]
+
+    # ── Network ───────────────────────────────────────
+    network_mode: service:tailscale   # borrow the sidecar's namespace; port 8490
+
+  # ── Identity ──────────────────────────────────────
+  # Brave Search (free tier available). Overlaps with one-search; pick one.
+  brave-search:
+    image: ghcr.io/brave/brave-search-mcp-server:latest
+    container_name: mcp-brave-search
+
+    # ── Lifecycle ─────────────────────────────────────
+    restart: unless-stopped
+    depends_on:
+      - tailscale
+
+    # ── Network ───────────────────────────────────────
+    network_mode: service:tailscale   # borrow the sidecar's namespace; port 8491
+
+    # ── Environment ───────────────────────────────────
+    environment:
+      - BRAVE_API_KEY=${BRAVE_API_KEY:-}
+      - PORT=8491
+
+  # ── Identity ──────────────────────────────────────
   # Tailscale node "mcp": owns the namespace every MCP server shares.
   tailscale:
     image: tailscale/tailscale:latest
