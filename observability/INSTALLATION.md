@@ -46,10 +46,10 @@ In `iac-secrets.env` (names only; see `iac-secrets.env.example`):
 - `TS_AUTHKEY_OBSERVABILITY`: reusable, pre-authorized
 - `TELEGRAM_BOT_TOKEN`, `TELEGRAM_HOME_CHANNEL`
 - `GRAFANA_ADMIN_PASSWORD`
-- `SNMP_V3_USERNAME`, `SNMP_V3_PASSWORD` (auth), `SNMP_V3_PRIV_PASSWORD`: DSM → Control Panel → Terminal & SNMP →
-  SNMPv3 with protocol **SHA** and "Enable SNMP privacy" ticked, protocol **AES** (authPriv; `snmp-auth.yml.tmpl`
-  assumes those; check with `sudo grep -i createuser /etc/snmp/snmpd.conf` on the NAS: it should list SHA and AES). Turn v1/v2c
-  off. Without these the Synology alerts have no data; `SnmpDown` shows that in Grafana only.
+- `SNMP_V3_USERNAME`, `SNMP_V3_PASSWORD`: the DSM SNMPv3 user (Control Panel → Terminal & SNMP → SNMPv3). The
+  protocols in `snmp-auth.yml.tmpl` must match DSM: today MD5 without privacy (authNoPriv). Check on the NAS with
+  `sudo grep -i createuser /etc/snmp/snmpd.conf`. Turn v1/v2c off. Without these the Synology alerts have no data;
+  `SnmpDown` shows that in Grafana only.
 - `DSM_HTTPS_PORT` comes from `~/.env` (personal, never in the repo), for the DSM probe.
 
 The bot token is rendered into its own file (`telegram_bot_token`, used as Alertmanager's `bot_token_file`), never into
