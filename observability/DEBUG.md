@@ -17,20 +17,21 @@ $D exec obs-tailscale tailscale serve status
 **Never `docker restart obs-tailscale` alone.** The borrowers stay pointed at the namespace that no longer exists.
 Recreate the whole stack (Portainer redeploy, or `docker compose down && up -d`). Restarting a borrower alone is fine.
 
-## Probes fail with "no such host" for `*.ts.net`
+## Probes of `*.ts.net` fail
 
-The sidecar runs with `TS_ACCEPT_DNS=true` so the namespace gets MagicDNS (100.100.100.100). Without it nothing in the
-namespace resolves tailnet names (checked 2026-10-18 from `openwebui-tailscale`).
+The sidecar's tailscaled runs in userspace mode (containerboot's default, like every sidecar in this repo): the
+namespace has no route to tailnet IPs and no MagicDNS. The `https_2xx` and `http_2xx` blackbox modules therefore go
+through tailscaled's outbound HTTP proxy (`TS_OUTBOUND_HTTP_PROXY_LISTEN=127.0.0.1:1055`), which dials over the
+tailnet and resolves MagicDNS names itself. `https_insecure` (LAN targets) goes direct.
 
 ```shell
-$D exec obs-tailscale cat /etc/resolv.conf
-$D exec obs-tailscale nslookup discovery.<tailnet>.ts.net 100.100.100.100
-$D exec obs-tailscale nslookup api.telegram.org          # external names must still resolve (Telegram)
+$D inspect obs-tailscale -f '{{range .Config.Env}}{{println .}}{{end}}' | grep OUTBOUND
+$D run --rm --network container:obs-tailscale curlimages/curl:8.10.1 -s -o /dev/null -w '%{http_code}\n' \
+  -x http://127.0.0.1:1055 https://portainer.<tailnet>.ts.net/
 ```
 
-If MagicDNS works but external names break, or the reverse, fall back to tailscaled's outbound proxy for the tailnet
-probes only: set `TS_OUTBOUND_HTTP_PROXY_LISTEN=127.0.0.1:1055` on the sidecar, `TS_ACCEPT_DNS=false`, and
-`proxy_url: http://127.0.0.1:1055` in the `https_2xx` and `http_2xx` blackbox modules.
+Alternative if the proxy ever misbehaves: `TS_USERSPACE=false` on the sidecar (kernel TUN; `/dev/net/tun` and
+`NET_ADMIN` are already there), then drop `proxy_url` from the modules.
 
 ## `ContainerDown` never fires, or `DockerStateStale` fires
 
