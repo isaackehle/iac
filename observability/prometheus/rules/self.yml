@@ -1,0 +1,36 @@
+# The monitoring pipeline watching itself.
+groups:
+  - name: self
+    rules:
+      # Always firing. Not sent to Telegram (routed to "null"); the fleet watchdog
+      # (gateway-healthcheck.py --watchdog, phase 3) checks it is present in
+      # Alertmanager, which proves rules -> Alertmanager works end to end.
+      - alert: Watchdog
+        expr: vector(1)
+        labels:
+          severity: none
+        annotations:
+          summary: "Alerting pipeline heartbeat"
+
+      - alert: ObservabilityTargetDown
+        expr: up{job=~"prometheus|alertmanager|loki|grafana|alloy|blackbox-exporter|node|cadvisor"} == 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Observability component {{ $labels.job }} is not answering scrapes"
+
+      - alert: AlertmanagerNotificationsFailing
+        expr: rate(alertmanager_notifications_failed_total[10m]) > 0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Alertmanager failing to send to {{ $labels.integration }}"
+
+      - alert: PrometheusRuleFailures
+        expr: increase(prometheus_rule_evaluation_failures_total[10m]) > 0
+        labels:
+          severity: warning
+        annotations:
+          summary: "Prometheus rule evaluations failing ({{ $labels.rule_group }})"

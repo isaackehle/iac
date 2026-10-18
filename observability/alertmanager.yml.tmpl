@@ -1,0 +1,53 @@
+# Alertmanager config for the observability stack.
+# Rendered by scripts/gen-env.sh to alertmanager.yml (gitignored), pushed to
+# config/alertmanager/alertmanager.yml. Only double-brace NAME tokens with no spaces are
+# substituted from iac-secrets.env; Go-template actions below must keep their
+# spaces ({{ .Status }}, {{ end }}) or render_templates will try to resolve them.
+# The bot token is never in this file: telegram_bot_token.tmpl renders it to its
+# own file (config/alertmanager/telegram_bot_token).
+
+global:
+  resolve_timeout: 5m
+
+route:
+  receiver: telegram
+  group_by: [alertname, instance, name, service]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+  routes:
+    - matchers: ['alertname = "Watchdog"']
+      receiver: "null"
+    - matchers: ['severity =~ "info|none"']
+      receiver: "null"
+    - matchers: ['severity = "warning"']
+      receiver: telegram
+      group_by: [alertname]
+      group_wait: 2m
+      repeat_interval: 24h
+    - matchers: ['severity = "critical"']
+      receiver: telegram
+
+inhibit_rules:
+  # A critical alert silences the warning of the same name and target.
+  - source_matchers: ['severity = "critical"']
+    target_matchers: ['severity = "warning"']
+    equal: [alertname, instance]
+  # HA itself down on the LAN: don't also page for its tailnet front door.
+  - source_matchers: ['alertname = "EndpointDown"', 'service = "homeassistant-lan"']
+    target_matchers: ['alertname = "EndpointDown"', 'service = "homeassistant"']
+  # Container watcher blind: its absence would otherwise look like nothing is down.
+  # (No inhibition needed; listed here so nobody adds one.)
+
+receivers:
+  - name: "null"
+  - name: telegram
+    telegram_configs:
+      - bot_token_file: /etc/alertmanager/telegram_bot_token
+        chat_id: {{TELEGRAM_HOME_CHANNEL}}
+        send_resolved: true
+        parse_mode: HTML
+        message: |-
+          {{ if eq .Status "firing" }}🔴{{ else }}✅{{ end }} <b>{{ .CommonLabels.alertname }}</b>{{ if .CommonLabels.severity }} [{{ .CommonLabels.severity }}]{{ end }}
+          {{ range .Alerts }}• {{ .Annotations.summary | html }}
+          {{ end }}

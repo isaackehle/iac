@@ -9,3 +9,8 @@ iac-secrets.env
 */serve.json
 */ts-config/serve.json
 iac-secrets.env.backup
+# observability: rendered templates other than serve.json (two of them hold secrets)
+observability/prometheus.yml
+observability/alertmanager.yml
+observability/telegram_bot_token
+observability/snmp-auth.yml

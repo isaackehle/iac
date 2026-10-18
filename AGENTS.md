@@ -20,7 +20,7 @@ curious about the old host-serve-only setup).
 ## Repo layout
 
 One directory per stack (`affine/`, `frigate/`, `homeassistant/`,
-`mosquitto/`, `n8n/`, `nextcloud/`, `openwebui/`, `pihole/`, `plex/`,
+`mosquitto/`, `n8n/`, `nextcloud/`, `observability/`, `openwebui/`, `pihole/`, `plex/`,
 `portainer/`, `postgresql/`, `syncthing/`), plus `_template/` (copy this to
 scaffold a new sidecar-pattern stack), `scripts/` (the deploy tooling, see
 below), and `docs/TODO.md` (known outstanding cleanup work). Each stack
@@ -143,7 +143,7 @@ Stacks: `affine`, `frigate`, `postgresql`
   `https+insecure://127.0.0.1:<port>` for self-signed HTTPS backends.
 
 **Pattern B — Tailscale sidecar container (own tailnet node)**
-Stacks: `homeassistant`, `langfuse`, `openwebui`, `plex`, `portainer`
+Stacks: `homeassistant`, `langfuse`, `observability`, `openwebui`, `plex`, `portainer`
 
 - A `tailscale/tailscale:latest` container joins the tailnet as its own
   node (`<name>.${TS_TAILNET_DOMAIN}`) and the app container has **no

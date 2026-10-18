@@ -1,0 +1,29 @@
+# Loki ruler alerts (LogQL). Labels come from alloy/config.alloy.
+groups:
+  - name: boot-guard
+    rules:
+      # scripts/docker-boot-guard.sh logs "<time> started <name>" for each
+      # container Container Manager failed to start at boot. The guard fixed it,
+      # but this is how we learn it was needed.
+      - alert: BootGuardRescuedContainers
+        expr: sum(count_over_time({job="boot-guard"} |~ "Z started " [15m])) > 0
+        labels:
+          severity: warning
+        annotations:
+          summary: "Boot guard had to start containers after a NAS boot (see /var/log/docker-boot-guard.log)"
+
+      - alert: BootGuardFailed
+        expr: sum(count_over_time({job="boot-guard"} |~ "FAILED to start|still not running|giving up" [15m])) > 0
+        labels:
+          severity: critical
+        annotations:
+          summary: "Boot guard could not start every container after a NAS boot"
+
+  - name: dsm
+    rules:
+      - alert: NasOomKill
+        expr: sum(count_over_time({job="dsm-messages"} |~ "(?i)out of memory|oom-kill|killed process" [10m])) > 0
+        labels:
+          severity: warning
+        annotations:
+          summary: "The NAS kernel killed a process for lack of memory"

@@ -1,0 +1,7 @@
+# Rendered to snmp-auth.yml, pushed to config/snmp/auth.yml. Merged with the
+# image's own snmp.yml (which carries the "synology" module).
+# SNMP_COMMUNITY: DSM → Control Panel → Terminal & SNMP → SNMP (SNMPv1/v2c).
+auths:
+  homelab_v2:
+    community: "{{SNMP_COMMUNITY}}"
+    version: 2

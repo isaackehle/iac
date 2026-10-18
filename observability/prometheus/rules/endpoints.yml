@@ -1,0 +1,19 @@
+# Endpoint probes (blackbox). service= is the friendly name from prometheus.yml.
+groups:
+  - name: endpoints
+    rules:
+      - alert: EndpointDown
+        expr: probe_success == 0
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: "{{ $labels.service }} is unreachable ({{ $labels.instance }})"
+
+      - alert: CertificateExpiringSoon
+        expr: (probe_ssl_earliest_cert_expiry{job="blackbox-tailnet"} - time()) / 86400 < 14
+        for: 1h
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.service }} certificate expires in {{ $value | printf \"%.0f\" }} days"

@@ -1,0 +1,44 @@
+# NAS container alerts. docker_container_* comes from the docker-state service
+# (via node-exporter's textfile collector), which sees stopped containers too;
+# "should run" uses the boot guard's rule: restart policy unless-stopped/always
+# and not stopped by hand.
+groups:
+  - name: containers
+    rules:
+      - alert: ContainerDown
+        expr: docker_container_should_run == 1 and docker_container_running == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "NAS container {{ $labels.name }} is not running"
+          description: >-
+            {{ $labels.name }} has restart policy unless-stopped/always, was not stopped by hand, and is not running.
+            If it joins another container's network, check that owner first; never restart a sidecar alone
+            (docker compose down && up -d). Boot guard log: /var/log/docker-boot-guard.log.
+
+      - alert: ContainerUnhealthy
+        expr: docker_container_unhealthy == 1
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "NAS container {{ $labels.name }} is unhealthy"
+
+      - alert: ContainerRestartLoop
+        expr: increase(docker_container_restarts_total[15m]) > 3
+        labels:
+          severity: warning
+        annotations:
+          summary: "NAS container {{ $labels.name }} restarted {{ $value | printf \"%.0f\" }} times in 15 min"
+
+      - alert: DockerStateStale
+        expr: >-
+          (time() - docker_state_last_run_timestamp_seconds > 180)
+          or absent(docker_state_last_run_timestamp_seconds)
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Container state watcher is stale: ContainerDown alerts are blind"
+          description: "obs-docker-state has not written docker_state.prom for 3 min, or node-exporter cannot read it."

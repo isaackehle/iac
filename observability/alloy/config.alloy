@@ -1,0 +1,60 @@
+// Alloy on the NAS: ships logs to Loki (same namespace, 127.0.0.1:3100).
+//   job="docker"        every running container's stdout/stderr, labelled by container and compose service
+//   job="boot-guard"    /var/log/docker-boot-guard.log (scripts/docker-boot-guard.sh)
+//   job="dsm-messages"  /var/log/messages (DSM syslog)
+// Metrics come from node-exporter and cAdvisor, not from Alloy.
+
+loki.write "local" {
+  endpoint {
+    url = "http://127.0.0.1:3100/loki/api/v1/push"
+  }
+  external_labels = {
+    host = "nas",
+  }
+}
+
+discovery.docker "containers" {
+  host             = "unix:///var/run/docker.sock"
+  refresh_interval = "30s"
+}
+
+discovery.relabel "containers" {
+  targets = discovery.docker.containers.targets
+
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(.*)"
+    target_label  = "container"
+  }
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_project"]
+    target_label  = "compose_project"
+  }
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+    target_label  = "compose_service"
+  }
+  rule {
+    target_label = "job"
+    replacement  = "docker"
+  }
+}
+
+loki.source.docker "containers" {
+  host          = "unix:///var/run/docker.sock"
+  targets       = discovery.docker.containers.targets
+  relabel_rules = discovery.relabel.containers.rules
+  forward_to    = [loki.write.local.receiver]
+}
+
+local.file_match "nas_logs" {
+  path_targets = [
+    {"__path__" = "/host/var/log/docker-boot-guard.log", "job" = "boot-guard"},
+    {"__path__" = "/host/var/log/messages", "job" = "dsm-messages"},
+  ]
+}
+
+loki.source.file "nas_logs" {
+  targets    = local.file_match.nas_logs.targets
+  forward_to = [loki.write.local.receiver]
+}
