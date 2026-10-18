@@ -16,7 +16,9 @@
 #                                                     # .env
 #   scripts/deploy.sh serve  <stack> <ssh-host>       # apply host-level tailscale serve (Pattern A/hybrid stacks)
 #   scripts/deploy.sh up     <stack> <ssh-host>       # ssh in, docker compose up -d
-#   scripts/deploy.sh api    <stack>                  # create stack in Portainer via API with GitConfig (Total control)
+#   scripts/deploy.sh api    <stack>                  # create stack in Portainer via API with GitConfig (Total control);
+#                                                     # refuses if it already exists, never deletes
+#   scripts/deploy.sh redeploy <stack> [--yes]        # Portainer git redeploy of an existing stack, Env unchanged
 #   scripts/deploy.sh down   <stack> <ssh-host>       # ssh in, docker compose down -v
 #   scripts/deploy.sh info   <stack>                  # print step-by-step deploy instructions
 #   scripts/deploy.sh all    <stack> <ssh-host>       # env + dirs + push + serve + up
@@ -57,7 +59,10 @@ Commands:
   serve  <stack> <ssh-host>    apply host-level tailscale serve mappings (if any)
   up     <stack> <ssh-host>    ssh in and run `docker compose up -d`
   down   <stack> <ssh-host>    ssh in and run `docker compose down -v` (remove volumes)
-  api    <stack>               create stack in Portainer via API with GitConfig (Total control)
+  api    <stack>               create stack in Portainer via API with GitConfig (Total control);
+                                refuses if a stack with that name exists, never deletes
+  redeploy <stack> [--yes]     pull the compose file from git and redeploy an existing
+                                Portainer stack, keeping its variables (asks first)
   info   <stack>               print deploy instructions for this stack
   all    <stack> <ssh-host>    env + dirs + push + serve + up
 EOF
@@ -187,6 +192,94 @@ cmd_down() {
   ssh "$host" "cd '$remote' && /usr/local/bin/docker compose -f '$compose' down -v"
 }
 
+# --- Portainer API helpers (api / redeploy) ---------------------------------
+#
+# Stack changes on the NAS go through the Portainer API only, and nothing here
+# ever DELETEs a stack.
+
+PORTAINER_ENDPOINT=3
+
+# portainer_auth STACK — set PORTAINER_URL and PORTAINER_API_KEY. The key is
+# PORTAINER_API_KEY_<suffix> when set (environment first, then iac-secrets.env /
+# ~/.env via get_secret_value; suffix from STACK_PORTAINER_KEY_SUFFIX in lib.sh,
+# default the upper-cased stack name), else PORTAINER_API_KEY. Prints which
+# variable was used, never any part of the value.
+portainer_auth() {
+  local stack="$1"
+  local suffix="${STACK_PORTAINER_KEY_SUFFIX[$stack]:-}"
+  [[ -n "$suffix" ]] || suffix="$(printf '%s' "$stack" | tr '[:lower:]-' '[:upper:]_')"
+  local stack_var="PORTAINER_API_KEY_${suffix}"
+
+  if [[ -z "${PORTAINER_URL:-}" ]]; then
+    PORTAINER_URL="$(get_secret_value "PORTAINER_URL")"
+  fi
+  if [[ -z "${PORTAINER_URL:-}" ]]; then
+    echo "ERROR: PORTAINER_URL not set in the environment, $IAC_SECRETS_FILE or $IAC_USER_ENV_FILE" >&2
+    exit 1
+  fi
+
+  local key source
+  key="${!stack_var:-}"; source="$stack_var (environment)"
+  if [[ -z "$key" ]]; then
+    key="$(get_secret_value "$stack_var")"; source="$stack_var (secrets file or ~/.env)"
+  fi
+  if [[ -z "$key" ]]; then
+    key="${PORTAINER_API_KEY:-}"; source="PORTAINER_API_KEY (environment)"
+  fi
+  if [[ -z "$key" ]]; then
+    key="$(get_secret_value "PORTAINER_API_KEY")"; source="PORTAINER_API_KEY (secrets file or ~/.env)"
+  fi
+  if [[ -z "$key" ]]; then
+    echo "ERROR: neither $stack_var nor PORTAINER_API_KEY is set in the environment, $IAC_SECRETS_FILE or $IAC_USER_ENV_FILE" >&2
+    exit 1
+  fi
+  PORTAINER_API_KEY="$key"
+
+  echo "   Portainer: $PORTAINER_URL"
+  echo "   API key:   $source"
+}
+
+# portainer_curl ARGS... — curl with the API key header. The header is passed
+# through a file descriptor so the key never appears in the process list.
+portainer_curl() {
+  curl -sS --fail-with-body -H @<(printf 'X-Api-Key: %s\n' "$PORTAINER_API_KEY") "$@"
+}
+
+# portainer_stacks_named NAME — read a GET /api/stacks body on stdin, print the
+# stacks whose Name is exactly NAME, one compact JSON object per line. Portainer
+# ignores /api/stacks?name=, so the match has to happen here. Fails on anything
+# that is not a JSON array (an error body, say) instead of matching nothing.
+portainer_stacks_named() {
+  jq -c --arg name "$1" '
+    if type == "array" then .[] | select(.Name == $name)
+    else error("expected a JSON array of stacks, got \(type)") end'
+}
+
+# portainer_find_stack STACK — print the existing Portainer stacks named STACK
+# (see portainer_stacks_named); empty when there are none.
+portainer_find_stack() {
+  local stack="$1" stacks
+  if ! stacks="$(portainer_curl "$PORTAINER_URL/api/stacks")"; then
+    echo "ERROR: GET $PORTAINER_URL/api/stacks failed: $stacks" >&2
+    exit 1
+  fi
+  if ! printf '%s' "$stacks" | portainer_stacks_named "$stack"; then
+    echo "ERROR: could not read the stack list from $PORTAINER_URL/api/stacks" >&2
+    exit 1
+  fi
+}
+
+# redeploy_body — read one stack object on stdin, print the git redeploy body:
+# its current Env passed back unchanged, prune on, same git ref.
+redeploy_body() {
+  jq -c '{
+    env: (.Env // []),
+    prune: true,
+    pullImage: false,
+    repositoryReferenceName: (.GitConfig.ReferenceName // "refs/heads/main")
+  }'
+}
+
 cmd_api() {
   local stack="$1"
   require_stack "$stack"
@@ -194,55 +287,42 @@ cmd_api() {
   local git_url="https://github.com/isaackehle/iac.git"
   local git_branch="main"
   local compose_path="$stack/docker-compose.yml"
-  local endpoint=3
+  local endpoint="$PORTAINER_ENDPOINT"
 
   echo "==> $stack: creating GitOps stack in Portainer via API..."
   echo "  Note: This creates a REPOSITORY-based stack (GitOps)."
   echo "  Portainer will pull docker-compose.yml from GitHub automatically."
+  echo "  It only creates: an existing stack is never deleted or replaced."
+  echo ""
+
+  portainer_auth "$stack"
+  echo ""
+
+  # Refuse when the stack already exists. Checked before the port check, which
+  # would otherwise report the existing stack's own ports as conflicts.
+  echo "==> $stack: checking for an existing Portainer stack named '$stack'..."
+  local existing
+  existing="$(portainer_find_stack "$stack")"
+  if [[ -n "$existing" ]]; then
+    echo ""
+    echo "ERROR: Portainer already has a stack named '$stack'. Nothing was changed."
+    printf '%s\n' "$existing" | jq -r '"   - Id \(.Id), endpoint \(.EndpointId), status \(.Status)"'
+    echo ""
+    echo "   To pull the latest compose file from git and redeploy it, keeping its"
+    echo "   current variables:"
+    echo "     scripts/deploy.sh redeploy $stack"
+    echo ""
+    echo "   That is PUT /api/stacks/<Id>/git/redeploy?endpointId=$endpoint with body"
+    echo '   {"env": <the stack'"'"'s Env, unchanged>, "prune": true, "pullImage": false,'
+    echo '    "repositoryReferenceName": "refs/heads/main"}'
+    exit 1
+  fi
+  echo "   ✓ No existing stack, proceeding with creation"
   echo ""
 
   # Extract port mappings from compose file for pre-check
   local port_mappings
   port_mappings=$(grep -E '^\s+-\s+"?[0-9]+' "$compose_path" 2>/dev/null | head -20 || true)
-  
-  # Source secrets file if it exists (resolves op:// references via get_secret_value)
-  if [[ -f "$IAC_SECRETS_FILE" ]]; then
-    echo "==> $stack: sourcing secrets from $IAC_SECRETS_FILE"
-    
-    # Extract PORTAINER_URL and PORTAINER_API_KEY, resolving op:// references
-    if [[ -n "${PORTAINER_URL:-}" ]]; then
-      echo "   Using PORTAINER_URL from environment"
-    elif PORTAINER_URL_VAL=$(get_secret_value "PORTAINER_URL"); then
-      export PORTAINER_URL="$PORTAINER_URL_VAL"
-      echo "   Resolved PORTAINER_URL from secrets file"
-    else
-      echo "ERROR: PORTAINER_URL not set in environment or $IAC_SECRETS_FILE" >&2
-      exit 1
-    fi
-    
-    if [[ -n "${PORTAINER_API_KEY:-}" ]]; then
-      echo "   Using PORTAINER_API_KEY from environment"
-    elif PORTAINER_API_KEY_VAL=$(get_secret_value "PORTAINER_API_KEY"); then
-      export PORTAINER_API_KEY="$PORTAINER_API_KEY_VAL"
-      echo "   Resolved PORTAINER_API_KEY from secrets file"
-    else
-      echo "ERROR: PORTAINER_API_KEY not set in environment or $IAC_SECRETS_FILE" >&2
-      exit 1
-    fi
-  else
-    echo "ERROR: secrets file not found at $IAC_SECRETS_FILE" >&2
-    exit 1
-  fi
-
-  if [[ -z "${PORTAINER_API_KEY:-}" ]]; then
-    echo "ERROR: PORTAINER_API_KEY not set after sourcing secrets" >&2
-    exit 1
-  fi
-
-  if [[ -z "${PORTAINER_URL:-}" ]]; then
-    echo "ERROR: PORTAINER_URL not set after sourcing secrets" >&2
-    exit 1
-  fi
 
   # Pre-deployment port check (limited - Portainer API doesn't expose all container ports)
   if [[ -n "$port_mappings" ]]; then
@@ -261,8 +341,8 @@ cmd_api() {
       # Try to detect port conflicts via Portainer Docker API
       # Note: This only works for containers managed through Portainer
       local containers_with_port
-      containers_with_port=$(curl -s -H "X-Api-Key: $PORTAINER_API_KEY" \
-        "$PORTAINER_URL/api/docker/endpoints/$endpoint/container?all=1" 2>/dev/null)
+      containers_with_port=$(portainer_curl \
+        "$PORTAINER_URL/api/docker/endpoints/$endpoint/container?all=1" 2>/dev/null || true)
       
       if echo "$containers_with_port" | grep -q "\"HostPort\":\"$host_port\""; then
         # Extract container names using the port
@@ -298,27 +378,6 @@ cmd_api() {
       echo "   Note: Unmanaged containers (legacy deployments) may still conflict"
       echo ""
     fi
-  fi
-  echo "==> $stack: checking for existing containers..."
-  
-  # Check if a stack with this name already exists in Portainer
-  local stack_exists
-  stack_exists=$(curl -s -H "X-Api-Key: $PORTAINER_API_KEY" \
-    "$PORTAINER_URL/api/stacks?name=$stack" 2>/dev/null | jq -r '.[0].Id // empty' 2>/dev/null)
-  
-  if [[ -n "$stack_exists" ]]; then
-    echo "   ⚠ Found existing GitOps stack '$stack' in Portainer"
-    echo "   Removing existing stack before deployment..."
-    
-    curl -s -X DELETE \
-      -H "X-Api-Key: $PORTAINER_API_KEY" \
-      "$PORTAINER_URL/api/stacks/$stack_exists" 2>/dev/null
-    
-    echo "   ✓ Existing GitOps stack removed, proceeding with deployment"
-    echo ""
-  else
-    echo "   ✓ No existing GitOps stack found, proceeding with deployment"
-    echo ""
   fi
 
   # Build env JSON array from .env file
@@ -381,15 +440,16 @@ EOF
   echo "   URL: $api_url"
   echo "   Headers:"
   echo "     Content-Type: application/json"
-  echo "     X-Api-Key: ${PORTAINER_API_KEY:0:10}..."
+  echo "     X-Api-Key: (redacted)"
   echo ""
 
+  # The body goes in on stdin so the env values stay out of the process list.
+  # An HTTP error still leaves its body in stack_response for the checks below.
   local stack_response
-  stack_response=$(curl -s -X POST \
+  stack_response=$(printf '%s' "$stack_json" | portainer_curl -X POST \
     -H "Content-Type: application/json" \
-    -H "X-Api-Key: $PORTAINER_API_KEY" \
-    "$api_url" \
-    -d "$stack_json")
+    --data-binary @- \
+    "$api_url") || true
 
 
   echo "==> $stack: received API response"
@@ -424,9 +484,8 @@ EOF
       echo "   ./scripts/deploy.sh api pihole"
     elif echo "$stack_response" | grep -qi "already exists"; then
       echo "⚠ HINT: A stack with this name already exists."
-      echo "   To fix, either:"
-      echo "   - Remove the existing stack: docker stack rm $stack"
-      echo "   - Or use a different stack name"
+      echo "   To redeploy it from git with its current variables:"
+      echo "     scripts/deploy.sh redeploy $stack"
     fi
     
     exit 1
@@ -444,6 +503,84 @@ EOF
   echo "   ✓ Stack created successfully"
   echo "   Stack ID: $stack_id"
   echo "   → GitOps mode (will pull from GitHub automatically)"
+}
+
+# cmd_redeploy STACK [--yes] — pull the stack's compose file from git and
+# redeploy it: PUT /api/stacks/<id>/git/redeploy with the stack's current Env
+# passed back unchanged and prune on. Variables are not changed; edit them in
+# Portainer. Asks before redeploying unless --yes is given.
+cmd_redeploy() {
+  local stack="$1" assume_yes="${2:-}"
+  require_stack "$stack"
+  if [[ -n "$assume_yes" && "$assume_yes" != "--yes" ]]; then
+    usage
+  fi
+  local endpoint="$PORTAINER_ENDPOINT"
+
+  echo "==> $stack: git redeploy through the Portainer API"
+  portainer_auth "$stack"
+  echo ""
+
+  local existing count
+  existing="$(portainer_find_stack "$stack")"
+  count="$(printf '%s' "$existing" | grep -c . || true)"
+  if [[ "$count" -eq 0 ]]; then
+    echo "ERROR: Portainer has no stack named '$stack'. Create it with: scripts/deploy.sh api $stack" >&2
+    exit 1
+  fi
+  if [[ "$count" -gt 1 ]]; then
+    echo "ERROR: Portainer has $count stacks named '$stack'; refusing to pick one:" >&2
+    printf '%s\n' "$existing" | jq -r '"   - Id \(.Id), endpoint \(.EndpointId)"' >&2
+    exit 1
+  fi
+
+  local id stack_endpoint ref git_url compose env_names
+  id="$(jq -r '.Id' <<< "$existing")"
+  stack_endpoint="$(jq -r '.EndpointId' <<< "$existing")"
+  ref="$(jq -r '.GitConfig.ReferenceName // empty' <<< "$existing")"
+  git_url="$(jq -r '.GitConfig.URL // empty' <<< "$existing")"
+  compose="$(jq -r '.GitConfig.ConfigFilePath // .EntryPoint // empty' <<< "$existing")"
+  env_names="$(jq -r '[(.Env // [])[].name] | join(" ")' <<< "$existing")"
+
+  if [[ "$stack_endpoint" != "$endpoint" ]]; then
+    echo "ERROR: stack '$stack' (Id $id) is on endpoint $stack_endpoint, expected $endpoint; refusing" >&2
+    exit 1
+  fi
+  if [[ -z "$git_url" ]]; then
+    echo "ERROR: stack '$stack' (Id $id) is not a git stack; redeploy it from the Portainer UI" >&2
+    exit 1
+  fi
+
+  echo "   Stack:     $stack (Id $id, endpoint $stack_endpoint)"
+  echo "   Git:       $git_url ${ref:-refs/heads/main} $compose"
+  echo "   Variables: ${env_names:-(none)} (passed back unchanged)"
+  echo "   Request:   PUT /api/stacks/$id/git/redeploy?endpointId=$endpoint, prune true"
+  echo ""
+
+  if [[ "$assume_yes" != "--yes" ]]; then
+    if [[ ! -t 0 ]]; then
+      echo "ERROR: not a terminal; re-run with --yes to redeploy without asking" >&2
+      exit 1
+    fi
+    local answer
+    read -r -p "Redeploy '$stack' (Id $id)? [y/N] " answer
+    if [[ "$answer" != [yY] ]]; then
+      echo "Aborted, nothing changed."
+      exit 1
+    fi
+  fi
+
+  local response
+  if ! response="$(redeploy_body <<< "$existing" | portainer_curl -X PUT \
+      -H "Content-Type: application/json" \
+      --data-binary @- \
+      "$PORTAINER_URL/api/stacks/$id/git/redeploy?endpointId=$endpoint")"; then
+    echo "ERROR: redeploy failed:" >&2
+    jq . <<< "$response" >&2 2>/dev/null || echo "$response" >&2
+    exit 1
+  fi
+
+  echo "   ✓ Redeployed '$stack' (Id $(jq -r '.Id // "?"' <<< "$response"))"
 }
 
 cmd_all() {
@@ -540,6 +677,9 @@ case "$command" in
     ;;
   api)
     cmd_"$command" "$stack"
+    ;;
+  redeploy)
+    cmd_redeploy "$stack" "$host"
     ;;
   *)
     usage

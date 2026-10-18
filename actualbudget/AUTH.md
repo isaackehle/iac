@@ -15,43 +15,39 @@ The stack is owned by **Portainer**, not by a hand-run `docker compose`.
 scripts/deploy.sh api actualbudget
 ```
 
-This creates (or recreates) a GitOps stack on endpoint 3, pulling
+This creates a GitOps stack on endpoint 3, pulling
 `actualbudget/docker-compose.yml` from `github.com/isaackehle/iac.git` main.
+If the stack already exists it stops without changing anything; it never
+deletes a stack. To pull the latest compose file and redeploy the existing
+stack with its current variables:
+
+```bash
+scripts/deploy.sh redeploy actualbudget
+```
 
 **Do not run `docker compose up -d` over SSH on the NAS.** Doing so recreates
 the containers outside Portainer's knowledge, so Portainer's stack record and
 the running containers drift apart. That drift is what produced the corrupted
 stack row described below.
 
-Portainer credentials come from 1Password:
+Portainer credentials: `deploy.sh` uses `PORTAINER_URL` and
+`PORTAINER_API_KEY_ACTUALBUDGET` if set, else `PORTAINER_API_KEY`, from the
+environment or `iac-secrets.env` / `~/.env` (`op://` references are resolved
+with the 1Password service account). For manual API calls:
 
 ```bash
 export PORTAINER_URL="$(grep -m1 '^PORTAINER_URL=' iac-secrets.env | cut -d= -f2-)"
 export PORTAINER_API_KEY="$(op read op://secrets/Portainer/PORTAINER_API_KEY)"
 ```
 
-### gotcha: `get_secret_value` unsets the service account
-
-`scripts/lib.sh` deliberately unsets `OP_SERVICE_ACCOUNT_TOKEN` before calling
-`op read`, to avoid 403s on *user* vaults:
-
-```bash
-unset OP_SERVICE_ACCOUNT OP_SERVICE_ACCOUNT_TOKEN OP_TOKEN
-resolved="$(op read "$value")"
-```
-
-That makes `get_secret_value` return **empty** for items in the `secrets` vault,
-which is where this repo's service-account-only credentials live. When a script
-needs one of those, resolve it explicitly with the service account active
-(`op read "op://secrets/..."`) and export it, so the script's "from environment"
-branch is used instead.
-
 ### gotcha: `/api/stacks?name=` is ignored
 
 Portainer ignores the `name` query filter and returns every stack. Selecting
 `.[0]` then returns the *first stack alphabetically by id*, not the requested
 one — which has previously pointed at `syncthing` when `actualbudget` was
-intended. Always filter client-side and verify identity before a DELETE:
+intended. `deploy.sh` filters client-side (fixed 2026-10-18, when it also
+stopped deleting stacks). For manual calls, always filter client-side and
+verify identity before any DELETE:
 
 ```bash
 sid=$(curl -s -H "X-Api-Key: $KEY" "$URL/api/stacks" \
