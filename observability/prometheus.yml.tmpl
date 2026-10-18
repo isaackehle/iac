@@ -63,14 +63,14 @@ scrape_configs:
         regex: ""
         action: drop
 
-  # ── Synology over SNMP (DSM → Terminal & SNMP must be on) ─
+  # ── Synology over SNMPv3 (DSM → Terminal & SNMP; auth in snmp-auth.yml) ─
   - job_name: snmp
     scrape_interval: 60s
     scrape_timeout: 30s
     metrics_path: /snmp
     params:
       module: [synology]
-      auth: [homelab_v2]
+      auth: [homelab_v3]
     static_configs:
       - targets: ["{{NAS_LAN_IP}}"]
     relabel_configs:
