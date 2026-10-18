@@ -46,8 +46,9 @@ In `iac-secrets.env` (names only; see `iac-secrets.env.example`):
 - `TS_AUTHKEY_OBSERVABILITY`: reusable, pre-authorized
 - `TELEGRAM_BOT_TOKEN`, `TELEGRAM_HOME_CHANNEL`
 - `GRAFANA_ADMIN_PASSWORD`
-- `SNMP_V3_USERNAME`, `SNMP_V3_AUTH_PASSWORD`, `SNMP_V3_PRIV_PASSWORD`: DSM → Control Panel → Terminal & SNMP →
-  SNMPv3 with protocol **SHA** and SNMP privacy **AES** (authPriv; `snmp-auth.yml.tmpl` assumes those). Turn v1/v2c
+- `SNMP_V3_USERNAME`, `SNMP_V3_PASSWORD` (auth), `SNMP_V3_PRIV_PASSWORD`: DSM → Control Panel → Terminal & SNMP →
+  SNMPv3 with protocol **SHA** and "Enable SNMP privacy" ticked, protocol **AES** (authPriv; `snmp-auth.yml.tmpl`
+  assumes those; check with `sudo grep -i createuser /etc/snmp/snmpd.conf` on the NAS: it should list SHA and AES). Turn v1/v2c
   off. Without these the Synology alerts have no data; `SnmpDown` shows that in Grafana only.
 - `DSM_HTTPS_PORT` comes from `~/.env` (personal, never in the repo), for the DSM probe.
 
