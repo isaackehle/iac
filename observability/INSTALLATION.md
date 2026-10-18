@@ -55,18 +55,25 @@ The bot token is rendered into its own file (`telegram_bot_token`, used as Alert
 
 ## Deploy
 
-From the repo root:
+Deployed 2026-10-18 as **Portainer stack 73** (git, `main`, `observability/docker-compose.yml`). Stack changes go through
+the Portainer API only.
+
+**Do not run `scripts/deploy.sh api`.** It looks the stack up with `GET /api/stacks?name=`, which Portainer ignores, and
+DELETEs the first stack returned (today: syncthing, stack 33) before creating the new one.
+
+Config files (everything except the compose file) are pushed with deploy.sh, then the stack is redeployed:
 
 ```shell
 scripts/gen-env.sh observability                 # .env + rendered templates (all gitignored)
-scripts/deploy.sh dirs observability nas         # directories under /volume1/docker/stacks/observability
+scripts/deploy.sh dirs observability nas         # first time only: directories under /volume1/docker/stacks/observability
 scripts/deploy.sh extras observability nas       # config files: serve.json, Prometheus, Alertmanager, Loki, ...
-scripts/deploy.sh api observability              # Portainer git stack from main
 ```
 
-`api` pulls `observability/docker-compose.yml` from GitHub `main`, so merge first. It needs a working
-`PORTAINER_API_KEY`; or create the stack in the Portainer UI (Repository, `observability/docker-compose.yml`) and
-paste the generated `.env`.
+Redeploy (after a compose change is merged): `GET /api/stacks`, pick the entry whose `Name` is `observability`, then
+`PUT /api/stacks/<id>/git/redeploy?endpointId=3` with body `{"env": <that stack's Env, unchanged>, "prune": true,
+"pullImage": false, "repositoryReferenceName": "refs/heads/main"}`. Use `PORTAINER_API_KEY_OBS` (in `~/.env`).
+
+The first start of Grafana runs about 800 database migrations and takes around 10 minutes on the NAS.
 
 The non-root services run as `OBS_PUID:OBS_PGID` (isaac, 1026:100), so the files `deploy.sh` pushes as isaac are
 readable without any chown. Since the 2026-10-17 docker share ACL change a non-root uid can only reach files it owns.
@@ -79,7 +86,7 @@ Edit the file in the repo, then `scripts/gen-env.sh observability && scripts/dep
 - Alertmanager: `curl -X POST https://obs.${TS_TAILNET_DOMAIN}:9093/-/reload`
 - Loki rules: picked up within a minute; Grafana dashboards: within 60 s
 - Alloy: restart `obs-alloy` (a borrower; restarting a borrower is fine, never restart `obs-tailscale` alone)
-- Compose changes: Portainer redeploy (git pull), which recreates the whole stack
+- Compose changes: Portainer API git redeploy (above), which recreates the whole stack
 
 Add a tailnet service to the probes in `prometheus.yml.tmpl` (`blackbox-tailnet`).
 
