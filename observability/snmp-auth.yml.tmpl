@@ -1,7 +1,13 @@
-# Rendered to snmp-auth.yml, pushed to config/snmp/auth.yml. Merged with the
+# Rendered to snmp-auth.yml, pushed to config/snmp/auth.yml (0600). Merged with the
 # image's own snmp.yml (which carries the "synology" module).
-# SNMP_COMMUNITY: DSM → Control Panel → Terminal & SNMP → SNMP (SNMPv1/v2c).
+# DSM → Control Panel → Terminal & SNMP → SNMPv3: protocol SHA, SNMP privacy AES
+# (authPriv). The protocols must match DSM; only the user and passwords are secrets.
 auths:
-  homelab_v2:
-    community: "{{SNMP_COMMUNITY}}"
-    version: 2
+  homelab_v3:
+    version: 3
+    security_level: authPriv
+    username: "{{SNMP_V3_USERNAME}}"
+    auth_protocol: SHA
+    password: "{{SNMP_V3_AUTH_PASSWORD}}"
+    priv_protocol: AES
+    priv_password: "{{SNMP_V3_PRIV_PASSWORD}}"
