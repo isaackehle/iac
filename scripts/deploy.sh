@@ -302,19 +302,36 @@ cmd_api() {
   echo "==> $stack: checking for existing containers..."
   
   # Check if a stack with this name already exists in Portainer
+  # NOTE: Do NOT use ?name= filter — Portainer ignores it and returns
+  # the first stack regardless. Always fetch all stacks and filter by Name.
+  local all_stacks
+  all_stacks=$(curl -s -H "X-Api-Key: $PORTA...KEY" \
+    "$PORTAINER_URL/api/stacks?endpointId=$endpoint" 2>/dev/null)
   local stack_exists
-  stack_exists=$(curl -s -H "X-Api-Key: $PORTAINER_API_KEY" \
-    "$PORTAINER_URL/api/stacks?name=$stack" 2>/dev/null | jq -r '.[0].Id // empty' 2>/dev/null)
+  stack_exists=$(echo "$all_stacks" | jq -r --arg name "$stack" \
+    '[.[] | select(.Name == $name)] | .[0].Id // empty' 2>/dev/null)
   
   if [[ -n "$stack_exists" ]]; then
     echo "   ⚠ Found existing GitOps stack '$stack' in Portainer"
-    echo "   Removing existing stack before deployment..."
+    echo "   Redeploying via Git (preserves existing Env)..."
     
-    curl -s -X DELETE \
-      -H "X-Api-Key: $PORTAINER_API_KEY" \
-      "$PORTAINER_URL/api/stacks/$stack_exists" 2>/dev/null
+    # Use the redeploy endpoint instead of delete+create to preserve
+    # the stack's existing environment variables and configuration.
+    local redeploy_url="$PORTAINER_URL/api/stacks/$stack_exists/git/redeploy?endpointId=$endpoint"
+    local redeploy_response
+    redeploy_response=$(curl -s -X PUT \
+      -H "Content-Type: application/json" \
+      -H "X-Api-Key: $PORTA...KEY" \
+      -d '{}' \
+      "$redeploy_url" 2>/dev/null)
     
-    echo "   ✓ Existing GitOps stack removed, proceeding with deployment"
+    if echo "$redeploy_response" | grep -q '"message"'; then
+      echo "ERROR: Redeploy failed:"
+      echo "$redeploy_response" | jq . 2>/dev/null || echo "$redeploy_response"
+      exit 1
+    fi
+    
+    echo "   ✓ GitOps stack redeployed successfully"
     echo ""
   else
     echo "   ✓ No existing GitOps stack found, proceeding with deployment"
