@@ -21,15 +21,18 @@
 #   - node-exporter   host network; NAS host metrics + the docker-state textfile
 #   - docker-state    no network; lists ALL containers (stopped ones too) every 30s
 #
-# Why the netns borrowers: everything that has to reach the tailnet (blackbox
-# probing *.ts.net, Prometheus receiving pushes) shares the sidecar's kernel-TUN
-# namespace. Every borrower listens on 127.0.0.1 only; the tailnet sees only the
+# Why the netns borrowers: everything that talks to the tailnet (blackbox
+# probing *.ts.net through the proxy below, Prometheus/Loki receiving pushes)
+# shares the sidecar's namespace. Every borrower listens on 127.0.0.1 only; the tailnet sees only the
 # TLS ports in serve.json. Prometheus, Alertmanager and Loki have no login: tailnet
 # membership is the access control. Grafana has an admin password.
 #
-# TS_ACCEPT_DNS=true: without it the sidecar serves no MagicDNS resolver and nothing
-# in the namespace can resolve *.ts.net (checked 2026-10-18 from openwebui-tailscale).
-# Joiners share the owner's resolv.conf. Fallback if this misbehaves: DEBUG.md.
+# Tailnet egress: like every sidecar here, tailscaled runs in userspace mode
+# (containerboot's default), so the namespace has no tailscale0 route and no
+# MagicDNS. Anything that must reach a *.ts.net URL (blackbox) goes through
+# tailscaled's outbound HTTP proxy on 127.0.0.1:1055, which dials over the
+# tailnet and resolves MagicDNS itself. Everything else (Telegram, LAN, images)
+# uses the bridge. Inbound from the tailnet is serve.json as usual.
 #
 # Non-root services run as OBS_PUID:OBS_PGID (isaac, 1026:100), not their image
 # uids: since the 2026-10-17 docker share ACL change a non-root uid only reaches
@@ -65,7 +68,7 @@ services:
       - TS_STATE_DIR=/var/lib/tailscale
       - TS_AUTH_ONCE=true
       - TS_SERVE_CONFIG=/config/serve.json
-      - TS_ACCEPT_DNS=true
+      - TS_OUTBOUND_HTTP_PROXY_LISTEN=127.0.0.1:1055
       # Force DERP relay — see portainer/docker-compose.yml for the full write-up.
       - TS_DEBUG_ALWAYS_USE_DERP=1
 
@@ -304,7 +307,7 @@ services:
       - /var/run:/var/run:ro
       - /sys:/sys:ro
       - /volume1/@docker:/var/lib/docker:ro
-      - /dev/disk:/dev/disk:ro
+      # no /dev/disk mount: it does not exist on DSM
 
     # ── Runtime ───────────────────────────────────────────────
     privileged: true
@@ -334,7 +337,7 @@ services:
 
     # ── Storage ───────────────────────────────────────────────
     volumes:
-      - /:/host:ro,rslave
+      - /:/host:ro   # no rslave: DSM's / is not a shared mount (compose up fails)
       - /volume1/docker/stacks/observability/textfile:/textfile:ro
 
     # ── Runtime ───────────────────────────────────────────────

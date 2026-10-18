@@ -1,4 +1,7 @@
 # blackbox_exporter modules for the observability stack (see prometheus.yml.tmpl).
+# https_2xx and http_2xx probe tailnet URLs, so they go through tailscaled's
+# outbound HTTP proxy (the sidecar is userspace: no tailnet route, no MagicDNS).
+# https_insecure probes LAN addresses directly.
 modules:
   https_2xx:
     prober: http
@@ -7,12 +10,14 @@ modules:
       preferred_ip_protocol: ip4
       follow_redirects: true
       fail_if_not_ssl: true
+      proxy_url: http://127.0.0.1:1055
 
   http_2xx:
     prober: http
     timeout: 10s
     http:
       preferred_ip_protocol: ip4
+      proxy_url: http://127.0.0.1:1055
 
   https_insecure:
     prober: http
