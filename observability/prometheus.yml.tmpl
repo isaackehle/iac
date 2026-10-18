@@ -1,0 +1,142 @@
+# Prometheus config for the observability stack.
+# Rendered by scripts/gen-env.sh to prometheus.yml (gitignored), pushed to
+# config/prometheus/prometheus.yml. Double-brace tokens come from iac-secrets.env
+# (DSM_HTTPS_PORT from ~/.env). Everything in the stack's namespace listens on
+# 127.0.0.1; cadvisor and node-exporter are reached over the stack bridge.
+
+global:
+  scrape_interval: 30s
+  evaluation_interval: 30s
+  external_labels:
+    site: homelab
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ["127.0.0.1:9093"]
+
+# Listed one by one, not *.yml: macOS/SMB "._name.yml" AppleDouble files would
+# match a glob and fail to parse.
+rule_files:
+  - /etc/prometheus/rules/containers.yml
+  - /etc/prometheus/rules/nas.yml
+  - /etc/prometheus/rules/endpoints.yml
+  - /etc/prometheus/rules/self.yml
+
+scrape_configs:
+  # ── The stack itself ──────────────────────────────────────
+  - job_name: prometheus
+    static_configs:
+      - targets: ["127.0.0.1:9090"]
+  - job_name: alertmanager
+    static_configs:
+      - targets: ["127.0.0.1:9093"]
+  - job_name: loki
+    static_configs:
+      - targets: ["127.0.0.1:3100"]
+  - job_name: grafana
+    static_configs:
+      - targets: ["127.0.0.1:3000"]
+  - job_name: alloy
+    static_configs:
+      - targets: ["127.0.0.1:12345"]
+  - job_name: blackbox-exporter
+    static_configs:
+      - targets: ["127.0.0.1:9115"]
+
+  # ── NAS host and containers ───────────────────────────────
+  # node-exporter runs in the host network; 172.20.35.1 is the stack bridge
+  # gateway, i.e. the NAS. Also carries docker-state's textfile metrics.
+  - job_name: node
+    static_configs:
+      - targets: ["172.20.35.1:9100"]
+        labels:
+          instance: nas
+  - job_name: cadvisor
+    static_configs:
+      - targets: ["172.20.35.10:8080"]
+        labels:
+          instance: nas
+    metric_relabel_configs:
+      # Only named containers; drop the cgroup hierarchy noise.
+      - source_labels: [name]
+        regex: ""
+        action: drop
+
+  # ── Synology over SNMP (DSM → Terminal & SNMP must be on) ─
+  - job_name: snmp
+    scrape_interval: 60s
+    scrape_timeout: 30s
+    metrics_path: /snmp
+    params:
+      module: [synology]
+      auth: [homelab_v2]
+    static_configs:
+      - targets: ["{{NAS_LAN_IP}}"]
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - target_label: instance
+        replacement: nas
+      - target_label: __address__
+        replacement: 127.0.0.1:9116
+
+  # ── Endpoint probes (blackbox) ────────────────────────────
+  # Every tailnet service, the way a client reaches it: name, TLS, HTTP status.
+  - job_name: blackbox-tailnet
+    metrics_path: /probe
+    params:
+      module: [https_2xx]
+    static_configs:
+      - targets: ["https://pihole.{{TS_TAILNET_DOMAIN}}/admin/"]
+        labels: { service: pihole }
+      - targets: ["https://portainer.{{TS_TAILNET_DOMAIN}}/"]
+        labels: { service: portainer }
+      - targets: ["https://nextcloud.{{TS_TAILNET_DOMAIN}}/"]
+        labels: { service: nextcloud }
+      - targets: ["https://openwebui.{{TS_TAILNET_DOMAIN}}/"]
+        labels: { service: openwebui }
+      - targets: ["https://syncthing.{{TS_TAILNET_DOMAIN}}/"]
+        labels: { service: syncthing }
+      - targets: ["https://actualbudget.{{TS_TAILNET_DOMAIN}}/"]
+        labels: { service: actualbudget }
+      - targets: ["https://mcp.{{TS_TAILNET_DOMAIN}}/"]
+        labels: { service: mcp }
+      - targets: ["https://ha.{{TS_TAILNET_DOMAIN}}/"]
+        labels: { service: homeassistant }
+      - targets: ["https://obs.{{TS_TAILNET_DOMAIN}}/api/health"]
+        labels: { service: grafana }
+    relabel_configs: &blackbox_relabel
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: 127.0.0.1:9115
+
+  # Fleet LiteLLM gateways over the tailnet (plain HTTP; titan has no listener yet).
+  - job_name: blackbox-gateways
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    static_configs:
+      - targets: ["http://discovery.{{TS_TAILNET_DOMAIN}}:4000/health/liveliness"]
+        labels: { service: litellm-discovery }
+      - targets: ["http://ds9.{{TS_TAILNET_DOMAIN}}:4000/health/liveliness"]
+        labels: { service: litellm-ds9 }
+      - targets: ["http://enterprise.{{TS_TAILNET_DOMAIN}}:4000/health/liveliness"]
+        labels: { service: litellm-enterprise }
+    relabel_configs: *blackbox_relabel
+
+  # LAN endpoints with certificates that don't match the address (DSM's own,
+  # HA's old duckdns one): status only, no TLS verification.
+  - job_name: blackbox-lan
+    metrics_path: /probe
+    params:
+      module: [https_insecure]
+    static_configs:
+      - targets: ["https://{{NAS_LAN_IP}}:{{DSM_HTTPS_PORT}}/"]
+        labels: { service: dsm }
+      - targets: ["https://{{HA_LAN_IP}}:8123/manifest.json"]
+        labels: { service: homeassistant-lan }
+    relabel_configs: *blackbox_relabel

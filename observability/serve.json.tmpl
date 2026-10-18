@@ -1,0 +1,20 @@
+{
+  "TCP": {
+    "443": {
+      "TCPForward": "127.0.0.1:3000",
+      "TerminateTLS": "obs.{{TS_TAILNET_DOMAIN}}"
+    },
+    "9090": {
+      "TCPForward": "127.0.0.1:9090",
+      "TerminateTLS": "obs.{{TS_TAILNET_DOMAIN}}"
+    },
+    "9093": {
+      "TCPForward": "127.0.0.1:9093",
+      "TerminateTLS": "obs.{{TS_TAILNET_DOMAIN}}"
+    },
+    "3100": {
+      "TCPForward": "127.0.0.1:3100",
+      "TerminateTLS": "obs.{{TS_TAILNET_DOMAIN}}"
+    }
+  }
+}

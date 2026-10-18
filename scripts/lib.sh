@@ -8,7 +8,7 @@
 
 ALL_STACKS=(
   actualbudget affine frigate ha langfuse mosquitto n8n nextcloud
-  openwebui pihole plex portainer postgresql syncthing mcp
+  openwebui pihole plex portainer postgresql syncthing mcp observability
 )
 
 # Remote directory each stack is deployed into on the NAS. Standard is
@@ -31,6 +31,7 @@ declare -A STACK_REMOTE_DIR=(
   [postgresql]="/volume1/docker/stacks/postgresql"
   [syncthing]="/volume1/docker/stacks/syncthing"
   [mcp]="/volume1/docker/stacks/mcp"   # was synology-mcp (2026-09-26)
+  [observability]="/volume1/docker/stacks/observability"
 )
 
 # Directories to `mkdir -p` (relative to STACK_REMOTE_DIR[$stack]) before
@@ -51,6 +52,7 @@ declare -A STACK_DIRS=(
   [portainer]="data ts-state ts-config"
   [postgresql]="ts-state ts-config"   # converted to Pattern B (sidecar) on 2026-08-04
   [syncthing]="config sync data ts-state ts-config"
+  [observability]="ts-state ts-config config data/prometheus data/alertmanager data/grafana data/loki data/alloy textfile"
 )
 
 # Extra files to copy beyond the compose file and generated .env, as
@@ -74,6 +76,9 @@ declare -A STACK_EXTRA_FILES=(
   [portainer]="serve.json:ts-config/serve.json"
   [postgresql]="serve.json:ts-config/serve.json"
   [syncthing]="serve.json:ts-config/serve.json"
+  # observability: rendered templates (serve.json, prometheus.yml, alertmanager.yml,
+  # telegram_bot_token, snmp-auth.yml) plus the plain config files under config/.
+  [observability]="serve.json:ts-config/serve.json prometheus.yml:config/prometheus/prometheus.yml prometheus/rules/containers.yml:config/prometheus/rules/containers.yml prometheus/rules/nas.yml:config/prometheus/rules/nas.yml prometheus/rules/endpoints.yml:config/prometheus/rules/endpoints.yml prometheus/rules/self.yml:config/prometheus/rules/self.yml alertmanager.yml:config/alertmanager/alertmanager.yml telegram_bot_token:config/alertmanager/telegram_bot_token loki/loki.yml:config/loki/loki.yml loki/rules/fake/nas.yml:config/loki/rules/fake/nas.yml alloy/config.alloy:config/alloy/config.alloy blackbox/blackbox.yml:config/blackbox/blackbox.yml snmp-auth.yml:config/snmp/auth.yml docker-state/docker-state.sh:config/docker-state/docker-state.sh grafana/provisioning/datasources/datasources.yml:config/grafana/provisioning/datasources/datasources.yml grafana/provisioning/dashboards/dashboards.yml:config/grafana/provisioning/dashboards/dashboards.yml grafana/dashboards/homelab-overview.json:config/grafana/dashboards/homelab-overview.json"
 )
 
 # uid:gid chown overrides for specific subdirectories, as "dir:uid:gid" pairs
@@ -86,6 +91,8 @@ declare -A STACK_CHOWN_OVERRIDES=(
   # `user: "101:101"` in langfuse/docker-compose.yml) — its mounted
   # volumes need to match or it can't write to them on first start.
   [langfuse]="clickhouse-data:101:101 clickhouse-logs:101:101"
+  # observability: none on purpose. Its non-root services run as the SSH user
+  # (OBS_PUID/OBS_PGID), so the default chown to that user is what they need.
 )
 
 # Pattern A: host-level `tailscale serve` mappings, as "host_port:backend_url"
@@ -128,7 +135,7 @@ require_stack() {
   local stack="$1"
   if [[ -z "$stack" || ! -d "$stack" ]]; then
     # Use a simple list instead of array expansion to avoid bash 3.2 issues
-    local known_stacks="actualbudget affine frigate ha langfuse mosquitto n8n nextcloud openwebui pihole plex portainer postgresql syncthing mcp"
+    local known_stacks="actualbudget affine frigate ha langfuse mosquitto n8n nextcloud openwebui pihole plex portainer postgresql syncthing mcp observability"
     echo "ERROR: unknown stack '$stack' — expected one of: $known_stacks" >&2
     exit 1
   fi
