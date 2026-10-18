@@ -53,7 +53,7 @@ Check Portainer UI or run:
 
 ```bash
 curl -s -H "X-Api-Key: $PORTAINER_API_KEY" \
-  "$PORTAINER_URL/api/stacks?name=langfuse" | jq .
+  "$PORTAINER_URL/api/stacks" | jq '.[] | select(.Name == "langfuse")'
 ```
 
 ## How It Works
@@ -112,14 +112,11 @@ In Portainer UI:
 - Click **Pull latest**
 - Click **Restart**
 
-Or via API:
+Or via API, which pulls the compose file from git and redeploys with the
+stack's current variables (`PUT /api/stacks/<id>/git/redeploy`, prune on):
 
 ```bash
-stack_id=$(curl -s -H "X-Api-Key: $PORTAINER_API_KEY" \
-  "$PORTAINER_URL/api/stacks?name=langfuse" | jq -r '.[0].Id')
-
-curl -s -X POST -H "X-Api-Key: $PORTAINER_API_KEY" \
-  "$PORTAINER_URL/api/stacks/$stack_id/pull"
+scripts/deploy.sh redeploy langfuse
 ```
 
 ## Limitations
@@ -209,8 +206,8 @@ This uses `scp -O` (legacy SCP) which works reliably with Synology DSM.
 1. Check Portainer logs:
 
 ```bash
-curl -s -H "X-Api-Key: $PORTA...KEY" \
-  "$PORTAINER_URL/api/stacks?name=langfuse" | jq '.[0].Env'
+curl -s -H "X-Api-Key: $PORTAINER_API_KEY" \
+  "$PORTAINER_URL/api/stacks" | jq '.[] | select(.Name == "langfuse") | .Env'
 ```
 
 2. Check container logs on NAS:
@@ -230,8 +227,8 @@ grep -E '(LANGFUSE_DB_PASSWORD|CLICKHOUSE_PASSWORD)' langfuse/.env
 1. Check Portainer's Git config:
 
 ```bash
-curl -s -H "X-Api-Key: $PORTA...KEY" \
-  "$PORTAINER_URL/api/stacks?name=langfuse" | jq '.[0].GitConfig'
+curl -s -H "X-Api-Key: $PORTAINER_API_KEY" \
+  "$PORTAINER_URL/api/stacks" | jq '.[] | select(.Name == "langfuse") | .GitConfig'
 ```
 
 2. Test GitHub access from NAS:

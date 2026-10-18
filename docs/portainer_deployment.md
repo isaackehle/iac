@@ -53,7 +53,7 @@ This will:
 
 ```bash
 curl -s -H "X-Api-Key: $PORTAINER_API_KEY" \
-  "$PORTAINER_URL/api/stacks?name=langfuse" | jq .
+  "$PORTAINER_URL/api/stacks" | jq '.[] | select(.Name == "langfuse")'
 ```
 
 ## How GitOps Works
@@ -139,7 +139,7 @@ Sidecar stacks (like langfuse) must include all dependencies in one `docker-comp
 
    ```bash
    curl -s -H "X-Api-Key: $PORTAINER_API_KEY" \
-     "$PORTAINER_URL/api/stacks?name=langfuse" | jq '.[0].Env'
+     "$PORTAINER_URL/api/stacks" | jq '.[] | select(.Name == "langfuse") | .Env'
    ```
 
 2. Check container logs:
@@ -160,7 +160,7 @@ ssh nas "docker logs langfuse-tailscale --tail 50"
 
    ```bash
    curl -s -H "X-Api-Key: $PORTAINER_API_KEY" \
-     "$PORTAINER_URL/api/stacks?name=langfuse" | jq '.[0].GitConfig'
+     "$PORTAINER_URL/api/stacks" | jq '.[] | select(.Name == "langfuse") | .GitConfig'
    ```
 
 2. Test GitHub access:

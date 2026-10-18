@@ -18,6 +18,9 @@ for why `docker compose up -d` over SSH must be avoided, and for the Portainer
 gotchas (`name=` filter ignored, corrupted stack rows, the `get_secret_value`
 service-account issue).
 
+It stops if the stack already exists and never deletes one. To redeploy the
+existing stack after a compose change: `scripts/deploy.sh redeploy actualbudget`.
+
 For a non-Portainer host, `scripts/deploy.sh all actualbudget <ssh-host>` still
 works.
 

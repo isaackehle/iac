@@ -108,6 +108,14 @@ declare -A STACK_CHOWN_OVERRIDES=(
 declare -A STACK_SERVE_PORTS=(
 )
 
+# Suffix of the per-stack Portainer API key, PORTAINER_API_KEY_<suffix>, that
+# `scripts/deploy.sh api|redeploy` prefer over PORTAINER_API_KEY. The default
+# suffix is the stack name upper-cased (pihole -> PORTAINER_API_KEY_PIHOLE); list
+# a stack here only when its key is named differently.
+declare -A STACK_PORTAINER_KEY_SUFFIX=(
+  [observability]="OBS"
+)
+
 # Default location of the central secrets file. Override with
 # IAC_SECRETS_FILE=/some/other/path. Lives at the repo root, gitignored —
 # see iac-secrets.env.example for the format and AGENTS.md for the rationale.
