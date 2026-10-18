@@ -28,14 +28,14 @@ name: portainer
 services:
   # ── Identity ──────────────────────────────────────────────
   primary:
-    image: portainer/portainer-ce:latest
+    image: portainer/portainer-ce:2.45.2
     container_name: portainer
 
     # ── Lifecycle ─────────────────────────────────────────────
     restart: unless-stopped
     depends_on:
       - tailscale
-    command: ["--trusted-origins=${TS_CERT_DOMAIN}"]
+    command: ["--trusted-origins=https://${TS_CERT_DOMAIN}"]
 
     # ── Network ───────────────────────────────────────────────
     network_mode: service:tailscale
