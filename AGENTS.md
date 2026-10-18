@@ -121,6 +121,11 @@ locally since they don't touch the network.
 (replaces the old root-level `apply-serve.sh` that scanned for per-stack
 scripts).
 
+`scripts/docker-boot-guard.sh` is not deploy tooling. It runs on the NAS
+itself as a DSM boot-up task and starts the `network_mode: service:` containers
+that Container Manager failed to start at boot. See
+`docs/docker_boot_guard.md`.
+
 If you add a new stack, you must add entries to all of the relevant tables
 above or `deploy.sh`/`gen-env.sh` will silently no-op for it (empty string
 default for missing map entries, not an error).
