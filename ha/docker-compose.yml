@@ -14,12 +14,12 @@
 # container that joins the tailnet as "ha" and proxies to HA over the LAN.
 #
 # This node routes three ways (see serve.json.tmpl):
-#   - Web/Proxy for the HA UI on 80/443 and MCP on 9584. HA only serves HTTPS on
-#     8123, with a Let's Encrypt cert for kehle.duckdns.org. TCPForward after
+#   - Web/Proxy for the HA UI on 80/443 and MCP on 9584. HA serves HTTPS on
+#     8123 with a Let's Encrypt cert for the old duckdns name. TCPForward after
 #     TerminateTLS would hand HA plaintext on a TLS port, and TCP passthrough
 #     would show browsers the duckdns cert on the ts.net name. The proxy
 #     terminates Tailscale's cert and re-connects with https+insecure (the
-#     duckdns cert doesn't match the LAN IP). It's the slower serve path
+#     old duckdns cert doesn't match the LAN IP). It's the slower serve path
 #     (tailscale/tailscale#18307), acceptable for one HA UI.
 #   - Raw TCP for SSH on 2222: TCPForward straight to {{HA_LAN_IP}}:2222 with no
 #     TerminateTLS, so the client's own SSH handshake passes through end to end
