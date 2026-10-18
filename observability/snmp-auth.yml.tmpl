@@ -1,15 +1,16 @@
 # Rendered to snmp-auth.yml, pushed to config/snmp/auth.yml (0600). Merged with the
 # image's own snmp.yml (which carries the "synology" module).
-# Must match DSM → Control Panel → Terminal & SNMP → SNMPv3. As of 2026-10-18 DSM serves
-# MD5 auth without privacy (authNoPriv): no cleartext community on the LAN, but the
-# metrics themselves are not encrypted. To move to SHA + AES: set it in DSM (tick
-# "Enable SNMP privacy"), confirm `sudo grep -i createuser /etc/snmp/snmpd.conf` lists
-# SHA and AES, add SNMP_V3_PRIV_PASSWORD, then use security_level: authPriv,
-# auth_protocol: SHA, priv_protocol: AES, priv_password from SNMP_V3_PRIV_PASSWORD (double-brace token).
+# Must match DSM → Control Panel → Terminal & SNMP → SNMPv3 exactly. Check what DSM
+# actually saved on the NAS with `sudo grep -i createuser /etc/snmp/snmpd.conf`
+# (fields: user, auth protocol, password, priv protocol, password). As of 2026-10-18
+# DSM saves MD5 + DES. If DSM is switched to SHA + AES, change auth_protocol and
+# priv_protocol below to match; the secrets stay the same.
 auths:
   homelab_v3:
     version: 3
-    security_level: authNoPriv
+    security_level: authPriv
     username: "{{SNMP_V3_USERNAME}}"
     auth_protocol: MD5
     password: "{{SNMP_V3_PASSWORD}}"
+    priv_protocol: DES
+    priv_password: "{{SNMP_V3_PRIV_PASSWORD}}"
