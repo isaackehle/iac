@@ -1,0 +1,31 @@
+# Fleet laptops (discovery, enterprise): LiteLLM probed by the laptop-probe
+# service, which knows a MacBook sleeps (3 misses -> asleep, then every 30 min,
+# with a 15 s re-check before it counts as awake). Warning, not critical: a
+# sleeping laptop is expected. ds9 is always on and stays on blackbox
+# (EndpointDown, critical).
+groups:
+  - name: laptops
+    rules:
+      - alert: LaptopAsleep
+        expr: laptop_asleep == 1
+        # A probe-triggered dark wake that lasts a minute or two would otherwise
+        # send a ✅ and then a new warning.
+        keep_firing_for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.host }} is asleep or unreachable: LiteLLM missed 3 probes in a row"
+          description: >-
+            laptop-probe now checks {{ $labels.host }} every 30 min. If it should be awake (discovery on its power
+            adapter), run scripts/host-diag.sh there. Transitions: Loki {container="obs-laptop-probe"}.
+
+      - alert: LaptopProbeStale
+        expr: >-
+          (time() - laptop_probe_last_run_timestamp_seconds > 180)
+          or absent(laptop_probe_last_run_timestamp_seconds)
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Laptop prober is stale: LaptopAsleep alerts are blind"
+          description: "obs-laptop-probe has not written laptop_probe.prom for 3 min, or node-exporter cannot read it."

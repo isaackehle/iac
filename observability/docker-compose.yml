@@ -20,6 +20,8 @@
 #   - cadvisor        on the stack bridge at a fixed IP; per-container CPU/memory
 #   - node-exporter   host network; NAS host metrics + the docker-state textfile
 #   - docker-state    no network; lists ALL containers (stopped ones too) every 30s
+#   - laptop-probe    borrows the sidecar netns; LiteLLM on the sleeping laptops
+#                     (discovery, enterprise), asleep-aware, via the textfile
 #
 # Why the netns borrowers: everything that talks to the tailnet (blackbox
 # probing *.ts.net through the proxy below, Prometheus/Loki receiving pushes)
@@ -370,6 +372,35 @@ services:
 
     # ── Runtime ───────────────────────────────────────────────
     entrypoint: ["/bin/sh", "/opt/docker-state/docker-state.sh"]
+
+  # ── Identity ──────────────────────────────────────────────
+  laptop-probe:
+    image: curlimages/curl:8.10.1
+    container_name: obs-laptop-probe
+
+    # ── Lifecycle ─────────────────────────────────────────────
+    restart: unless-stopped
+    depends_on:
+      - tailscale
+
+    # ── Network ───────────────────────────────────────────────
+    # Borrows the sidecar netns for tailscaled's outbound proxy (127.0.0.1:1055),
+    # same as blackbox. Nothing listens; results go out via the textfile.
+    network_mode: service:tailscale
+
+    # ── Storage ───────────────────────────────────────────────
+    volumes:
+      - /volume1/docker/stacks/observability/config/laptop-probe:/opt/laptop-probe:ro
+      - /volume1/docker/stacks/observability/textfile:/textfile
+
+    # ── Environment ───────────────────────────────────────────
+    environment:
+      - TS_TAILNET_DOMAIN=${TS_TAILNET_DOMAIN}
+      - LAPTOPS=discovery enterprise
+
+    # ── Runtime ───────────────────────────────────────────────
+    user: "${OBS_PUID}:${OBS_PGID}"
+    entrypoint: ["/bin/sh", "/opt/laptop-probe/laptop-probe.sh"]
 
 # Pinned, same reason as pihole/portainer/openwebui: DSM's firewall drops
 # forwarded traffic from Docker's default 192.168.x.0/20 pool, which kills

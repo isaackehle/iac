@@ -16,9 +16,9 @@ Design and phases: `~/Documents/Projects/Homelab/Plans/2026-10-18-homelab-observ
 
 ## What it alerts on
 
-Alerts go to Telegram (the same bot and chat as `gateway-healthcheck.py`). Critical alerts are sent at once and repeat
-every 4 h, warnings are grouped and repeat every 24 h, and every alert sends a ✅ when it resolves. `info` alerts only
-show in Grafana.
+Alerts go to Telegram (the same bot and chat as `gateway-healthcheck.py`). Critical alerts (🔴) are sent at once and
+repeat every 4 h, warnings (🟡) are grouped and repeat every 24 h, and every alert sends a ✅ "cleared" (no severity)
+when it resolves. `info` alerts only show in Grafana.
 
 | Alert                                                                                   | Severity           | Source                                                              |
 | --------------------------------------------------------------------------------------- | ------------------ | ------------------------------------------------------------------- |
@@ -26,7 +26,9 @@ show in Grafana.
 | `ContainerUnhealthy`                                                                    | critical           | docker-state: healthcheck unhealthy, 5 min                          |
 | `ContainerRestartLoop`                                                                  | warning            | more than 3 restarts in 15 min                                      |
 | `DockerStateStale`                                                                      | critical           | the container watcher itself stopped writing                        |
-| `EndpointDown`                                                                          | critical           | blackbox: tailnet services, DSM, HA, fleet LiteLLM, 3 min           |
+| `EndpointDown`                                                                          | critical           | blackbox: tailnet services, DSM, HA, ds9 LiteLLM, 3 min             |
+| `LaptopAsleep`                                                                          | warning            | laptop-probe: discovery/enterprise LiteLLM missed 3 probes in a row |
+| `LaptopProbeStale`                                                                      | warning            | the laptop prober itself stopped writing                            |
 | `CertificateExpiringSoon`                                                               | warning            | tailnet certificate under 14 days                                   |
 | `NasVolumeFilling` / `NasVolumeFull`                                                    | warning / critical | `/volume1` over 85 % / 95 %                                         |
 | `NasMemoryLow`                                                                          | warning            | under 10 % available for 10 min                                     |
