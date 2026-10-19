@@ -161,15 +161,20 @@ scripts/deploy.sh extras <stack> nas     # copy bind-mounted files (serve.json, 
 scripts/deploy.sh api <stack>            # create the stack in Portainer, with <stack>/.env as its variables
 ```
 
-- **Requires** `PORTAINER_URL` and `PORTAINER_API_KEY` in `iac-secrets.env`.
+- **Requires** `PORTAINER_URL` and `PORTAINER_API_KEY` in `iac-secrets.env` (or
+  `~/.env`). A per-stack `PORTAINER_API_KEY_<STACK>` (e.g. `PORTAINER_API_KEY_PIHOLE`)
+  wins over `PORTAINER_API_KEY`; observability uses `PORTAINER_API_KEY_OBS`.
+- **`api` only creates.** It looks the stack up by name client-side and stops if it
+  already exists. It never deletes a stack.
 - **The compose file has to be on `main`** on GitHub first, because that's what
   Portainer reads.
 - **Moving a stack started with `docker compose` into Portainer** (it shows
   "Limited"): `docker compose down` on the NAS, then run the steps above. Data in
   `/volume1/docker/stacks/<stack>` bind mounts is kept, and so is the Tailscale
   identity in `ts-state/`, so no re-login.
-- **Updating:** push, then in Portainer Stacks → `<stack>` → Pull and redeploy (or
-  wait for its poll). Re-run `extras` if a bind-mounted file changed.
+- **Updating:** push, then `scripts/deploy.sh redeploy <stack>` (git redeploy with
+  the stack's current variables, prune on; asks first) or Portainer Stacks →
+  `<stack>` → Pull and redeploy. Re-run `extras` if a bind-mounted file changed.
 
 More: [docs/portainer_deployment.md](docs/portainer_deployment.md),
 [docs/portainer_ui_basics.md](docs/portainer_ui_basics.md),
@@ -190,7 +195,8 @@ scripts/deploy.sh all <stack> nas        # env + dirs + push + serve + up
 | `serve <stack> <host>`  | Apply host-level `tailscale serve` mappings. No current stack has any.    |
 | `up <stack> <host>`     | `docker compose up -d`.                                                   |
 | `down <stack> <host>`   | `docker compose down -v`. **Removes named volumes**; bind mounts survive. |
-| `api <stack>`           | Create the stack in Portainer (above).                                    |
+| `api <stack>`           | Create the stack in Portainer (above). Never deletes.                     |
+| `redeploy <stack>`      | Git redeploy of an existing Portainer stack, variables unchanged.         |
 | `info <stack>`          | Print the deploy steps for a stack.                                       |
 
 - **`<host>`** is anything `ssh` accepts: an `~/.ssh/config` alias like `nas`, or

@@ -60,8 +60,9 @@ The bot token is rendered into its own file (`telegram_bot_token`, used as Alert
 Deployed 2026-10-18 as **Portainer stack 73** (git, `main`, `observability/docker-compose.yml`). Stack changes go through
 the Portainer API only.
 
-**Do not run `scripts/deploy.sh api`.** It looks the stack up with `GET /api/stacks?name=`, which Portainer ignores, and
-DELETEs the first stack returned (today: syncthing, stack 33) before creating the new one.
+`scripts/deploy.sh api` only creates stacks: it finds the stack by name client-side (Portainer ignores
+`/api/stacks?name=`) and refuses if it already exists. It never deletes anything. Before 2026-10-18 it DELETEd the first
+stack in the list (syncthing, stack 33), so do not run an older copy of the script.
 
 Config files (everything except the compose file) are pushed with deploy.sh, then the stack is redeployed:
 
@@ -71,9 +72,16 @@ scripts/deploy.sh dirs observability nas         # first time only: directories 
 scripts/deploy.sh extras observability nas       # config files: serve.json, Prometheus, Alertmanager, Loki, ...
 ```
 
-Redeploy (after a compose change is merged): `GET /api/stacks`, pick the entry whose `Name` is `observability`, then
+Redeploy (after a compose change is merged):
+
+```shell
+scripts/deploy.sh redeploy observability         # asks first; --yes to skip the prompt
+```
+
+That is `GET /api/stacks`, pick the entry whose `Name` is `observability`, then
 `PUT /api/stacks/<id>/git/redeploy?endpointId=3` with body `{"env": <that stack's Env, unchanged>, "prune": true,
-"pullImage": false, "repositoryReferenceName": "refs/heads/main"}`. Use `PORTAINER_API_KEY_OBS` (in `~/.env`).
+"pullImage": false, "repositoryReferenceName": "refs/heads/main"}`. It uses `PORTAINER_API_KEY_OBS` (in `~/.env`) over
+`PORTAINER_API_KEY`. Variables are passed back unchanged; change them in Portainer.
 
 The first start of Grafana runs about 800 database migrations and takes around 10 minutes on the NAS.
 
