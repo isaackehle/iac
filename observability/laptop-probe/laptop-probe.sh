@@ -26,6 +26,7 @@
 # sidecar is userspace, so this namespace has no tailnet route and no MagicDNS.
 
 OUT=/textfile/laptop_probe.prom
+CONF=${CONF:-/opt/laptop-probe/laptop-probe.conf}
 S=/tmp/laptop-probe
 LAPTOPS=${LAPTOPS:-discovery enterprise}
 PROXY=${PROXY:-http://127.0.0.1:1055}
@@ -103,8 +104,11 @@ write_metrics() {
   } > "$OUT.tmp" && chmod 0644 "$OUT.tmp" && mv "$OUT.tmp" "$OUT"
 }
 
-if [ -z "$TS_TAILNET_DOMAIN" ]; then
-  echo "$(date -u +%FT%TZ) laptop-probe level=error msg=\"TS_TAILNET_DOMAIN is not set\"" >&2
+# TS_TAILNET_DOMAIN, rendered from laptop-probe.conf.tmpl by gen-env.sh.
+# shellcheck source=/dev/null
+[ -r "$CONF" ] && . "$CONF"
+if [ -z "$TS_TAILNET_DOMAIN" ] || [ "$TS_TAILNET_DOMAIN" = "{{TS_TAILNET_DOMAIN}}" ]; then
+  echo "$(date -u +%FT%TZ) laptop-probe level=error msg=\"TS_TAILNET_DOMAIN is not set in $CONF (run scripts/deploy.sh extras observability)\"" >&2
   exit 1
 fi
 
