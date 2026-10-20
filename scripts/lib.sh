@@ -6,6 +6,18 @@
 # stack need on the NAS" and "where does each stack live on the NAS" — it
 # replaces the old per-stack init.sh / apply-serve.sh scripts.
 
+# The tables below are associative arrays (declare -A), which need bash 4+.
+# macOS's /bin/bash is 3.2, and a caller with `#!/usr/bin/env bash` gets it
+# when Homebrew's bash is not first in PATH; it then fails with
+# "actualbudget: unbound variable". Re-run the caller under a newer bash.
+if (( BASH_VERSINFO[0] < 4 )); then
+  for _bash in /opt/homebrew/bin/bash /usr/local/bin/bash; do
+    [[ -x "$_bash" ]] && exec "$_bash" "$0" "$@"
+  done
+  echo "ERROR: $0 needs bash 4+ (brew install bash); this is bash $BASH_VERSION" >&2
+  exit 1
+fi
+
 ALL_STACKS=(
   actualbudget affine frigate ha langfuse mosquitto n8n nextcloud
   openwebui pihole plex portainer postgresql syncthing mcp observability
