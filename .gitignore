@@ -14,3 +14,4 @@ observability/prometheus.yml
 observability/alertmanager.yml
 observability/telegram_bot_token
 observability/snmp-auth.yml
+observability/laptop-probe.conf

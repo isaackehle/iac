@@ -6,6 +6,18 @@
 # stack need on the NAS" and "where does each stack live on the NAS" — it
 # replaces the old per-stack init.sh / apply-serve.sh scripts.
 
+# The tables below are associative arrays (declare -A), which need bash 4+.
+# macOS's /bin/bash is 3.2, and a caller with `#!/usr/bin/env bash` gets it
+# when Homebrew's bash is not first in PATH; it then fails with
+# "actualbudget: unbound variable". Re-run the caller under a newer bash.
+if (( BASH_VERSINFO[0] < 4 )); then
+  for _bash in /opt/homebrew/bin/bash /usr/local/bin/bash; do
+    [[ -x "$_bash" ]] && exec "$_bash" "$0" "$@"
+  done
+  echo "ERROR: $0 needs bash 4+ (brew install bash); this is bash $BASH_VERSION" >&2
+  exit 1
+fi
+
 ALL_STACKS=(
   actualbudget affine frigate ha langfuse mosquitto n8n nextcloud
   openwebui pihole plex portainer postgresql syncthing mcp observability
@@ -78,7 +90,7 @@ declare -A STACK_EXTRA_FILES=(
   [syncthing]="serve.json:ts-config/serve.json"
   # observability: rendered templates (serve.json, prometheus.yml, alertmanager.yml,
   # telegram_bot_token, snmp-auth.yml) plus the plain config files under config/.
-  [observability]="serve.json:ts-config/serve.json prometheus.yml:config/prometheus/prometheus.yml prometheus/rules/containers.yml:config/prometheus/rules/containers.yml prometheus/rules/nas.yml:config/prometheus/rules/nas.yml prometheus/rules/endpoints.yml:config/prometheus/rules/endpoints.yml prometheus/rules/self.yml:config/prometheus/rules/self.yml prometheus/rules/laptops.yml:config/prometheus/rules/laptops.yml alertmanager.yml:config/alertmanager/alertmanager.yml telegram_bot_token:config/alertmanager/telegram_bot_token loki/loki.yml:config/loki/loki.yml loki/rules/fake/nas.yml:config/loki/rules/fake/nas.yml alloy/config.alloy:config/alloy/config.alloy blackbox/blackbox.yml:config/blackbox/blackbox.yml snmp-auth.yml:config/snmp/auth.yml docker-state/docker-state.sh:config/docker-state/docker-state.sh laptop-probe/laptop-probe.sh:config/laptop-probe/laptop-probe.sh grafana/provisioning/datasources/datasources.yml:config/grafana/provisioning/datasources/datasources.yml grafana/provisioning/dashboards/dashboards.yml:config/grafana/provisioning/dashboards/dashboards.yml grafana/dashboards/homelab-overview.json:config/grafana/dashboards/homelab-overview.json"
+  [observability]="serve.json:ts-config/serve.json prometheus.yml:config/prometheus/prometheus.yml prometheus/rules/containers.yml:config/prometheus/rules/containers.yml prometheus/rules/nas.yml:config/prometheus/rules/nas.yml prometheus/rules/endpoints.yml:config/prometheus/rules/endpoints.yml prometheus/rules/self.yml:config/prometheus/rules/self.yml prometheus/rules/laptops.yml:config/prometheus/rules/laptops.yml alertmanager.yml:config/alertmanager/alertmanager.yml telegram_bot_token:config/alertmanager/telegram_bot_token loki/loki.yml:config/loki/loki.yml loki/rules/fake/nas.yml:config/loki/rules/fake/nas.yml alloy/config.alloy:config/alloy/config.alloy blackbox/blackbox.yml:config/blackbox/blackbox.yml snmp-auth.yml:config/snmp/auth.yml docker-state/docker-state.sh:config/docker-state/docker-state.sh laptop-probe/laptop-probe.sh:config/laptop-probe/laptop-probe.sh laptop-probe.conf:config/laptop-probe/laptop-probe.conf grafana/provisioning/datasources/datasources.yml:config/grafana/provisioning/datasources/datasources.yml grafana/provisioning/dashboards/dashboards.yml:config/grafana/provisioning/dashboards/dashboards.yml grafana/dashboards/homelab-overview.json:config/grafana/dashboards/homelab-overview.json"
 )
 
 # uid:gid chown overrides for specific subdirectories, as "dir:uid:gid" pairs

@@ -394,8 +394,10 @@ services:
       - /volume1/docker/stacks/observability/textfile:/textfile
 
     # ── Environment ───────────────────────────────────────────
+    # The tailnet domain comes from config/laptop-probe/laptop-probe.conf
+    # (rendered from laptop-probe.conf.tmpl, pushed by deploy.sh extras), not
+    # from a stack variable, so a git redeploy needs no new Portainer variable.
     environment:
-      - TS_TAILNET_DOMAIN=${TS_TAILNET_DOMAIN}
       - LAPTOPS=discovery enterprise
 
     # ── Runtime ───────────────────────────────────────────────

@@ -50,7 +50,9 @@ without a healthcheck drop out of the output.
 discovery and enterprise are MacBooks, so `obs-laptop-probe` checks their LiteLLM (`:4000/health/liveliness`, through
 the proxy above) with a state machine instead of blackbox: every 30 s while awake, marked asleep after 3 misses in a
 row, then every 30 min; an answer while asleep is re-checked 15 s later before it counts as awake. Each transition is
-one `level=info` line (`event=asleep|answered|woke|dark-wake`). Tunables are env vars at the top of the script.
+one `level=info` line (`event=asleep|answered|woke|dark-wake`). Tunables are env vars at the top of the script; the
+tailnet domain comes from `config/laptop-probe/laptop-probe.conf` (rendered from `laptop-probe.conf.tmpl`, pushed by
+`deploy.sh extras`), so if the container exits with `TS_TAILNET_DOMAIN is not set`, re-run `extras`.
 
 ```shell
 cat /volume1/docker/stacks/observability/textfile/laptop_probe.prom
