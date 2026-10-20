@@ -22,6 +22,7 @@ rule_files:
   - /etc/prometheus/rules/nas.yml
   - /etc/prometheus/rules/endpoints.yml
   - /etc/prometheus/rules/self.yml
+  - /etc/prometheus/rules/laptops.yml
 
 scrape_configs:
   # ── The stack itself ──────────────────────────────────────
@@ -115,17 +116,15 @@ scrape_configs:
         replacement: 127.0.0.1:9115
 
   # Fleet LiteLLM gateways over the tailnet (plain HTTP; titan has no listener yet).
+  # Always-on hosts only. The laptops (discovery, enterprise) sleep, so the
+  # laptop-probe service checks them instead (rules/laptops.yml, warning).
   - job_name: blackbox-gateways
     metrics_path: /probe
     params:
       module: [http_2xx]
     static_configs:
-      - targets: ["http://discovery.{{TS_TAILNET_DOMAIN}}:4000/health/liveliness"]
-        labels: { service: litellm-discovery }
       - targets: ["http://ds9.{{TS_TAILNET_DOMAIN}}:4000/health/liveliness"]
         labels: { service: litellm-ds9 }
-      - targets: ["http://enterprise.{{TS_TAILNET_DOMAIN}}:4000/health/liveliness"]
-        labels: { service: litellm-enterprise }
     relabel_configs: *blackbox_relabel
 
   # LAN endpoints with certificates that don't match the address (DSM's own,

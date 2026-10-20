@@ -1,7 +1,7 @@
 # Observability: debugging
 
 Containers: `obs-tailscale` (owns the network namespace), `obs-prometheus`, `obs-alertmanager`, `obs-loki`,
-`obs-grafana`, `obs-alloy`, `obs-blackbox`, `obs-snmp` (all borrow it), `obs-cadvisor` (stack bridge, 172.20.35.10),
+`obs-grafana`, `obs-alloy`, `obs-blackbox`, `obs-snmp`, `obs-laptop-probe` (all borrow it), `obs-cadvisor` (stack bridge, 172.20.35.10),
 `obs-node-exporter` (host network, :9100), `obs-docker-state` (no network). Files live under
 `/volume1/docker/stacks/observability/` (`config/`, `data/`, `textfile/`, `ts-state/`, `ts-config/`).
 
@@ -44,6 +44,21 @@ curl -s http://127.0.0.1:9100/metrics | grep -E '^docker_|node_textfile_scrape_e
 Every container should appear, including stopped ones. One-shot containers (`restart: no`) show `should_run 0`.
 The script uses `{{.ID}}` in `docker inspect`. With `{{.Id}}` the CLI falls back to the raw JSON map, and containers
 without a healthcheck drop out of the output.
+
+## `LaptopAsleep` looks wrong, or `LaptopProbeStale` fires
+
+discovery and enterprise are MacBooks, so `obs-laptop-probe` checks their LiteLLM (`:4000/health/liveliness`, through
+the proxy above) with a state machine instead of blackbox: every 30 s while awake, marked asleep after 3 misses in a
+row, then every 30 min; an answer while asleep is re-checked 15 s later before it counts as awake. Each transition is
+one `level=info` line (`event=asleep|answered|woke|dark-wake`). Tunables are env vars at the top of the script.
+
+```shell
+cat /volume1/docker/stacks/observability/textfile/laptop_probe.prom
+$D logs --tail 20 obs-laptop-probe
+```
+
+In Grafana Explore (Loki): `{container="obs-laptop-probe"} |= "event=woke"`. Restarting the container starts every
+laptop as awake again, so a sleeping one is re-marked asleep about 1 min later.
 
 ## Prometheus can't scrape `node` (172.20.35.1:9100)
 

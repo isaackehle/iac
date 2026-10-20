@@ -47,7 +47,9 @@ receivers:
         chat_id: {{TELEGRAM_HOME_CHANNEL}}
         send_resolved: true
         parse_mode: HTML
+        # Firing: 🔴 critical, 🟡 warning, with the severity. Resolved: ✅ "cleared"
+        # and no severity, so a clear never reads like a new critical.
         message: |-
-          {{ if eq .Status "firing" }}🔴{{ else }}✅{{ end }} <b>{{ .CommonLabels.alertname }}</b>{{ if .CommonLabels.severity }} [{{ .CommonLabels.severity }}]{{ end }}
-          {{ range .Alerts }}• {{ .Annotations.summary | html }}
+          {{ if eq .Status "firing" }}{{ if eq .CommonLabels.severity "critical" }}🔴{{ else }}🟡{{ end }} <b>{{ .CommonLabels.alertname }}</b>{{ if .CommonLabels.severity }} [{{ .CommonLabels.severity }}]{{ end }}{{ else }}✅ <b>{{ .CommonLabels.alertname }}</b> cleared{{ end }}
+          {{ range .Alerts }}• {{ if eq .Status "resolved" }}was: {{ end }}{{ .Annotations.summary | html }}
           {{ end }}
