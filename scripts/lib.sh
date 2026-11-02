@@ -19,7 +19,7 @@ if (( BASH_VERSINFO[0] < 4 )); then
 fi
 
 ALL_STACKS=(
-  actualbudget affine frigate ha langfuse mosquitto n8n nextcloud
+  actualbudget affine dsm frigate ha langfuse mosquitto n8n nextcloud
   openwebui pihole plex portainer postgresql syncthing mcp observability
 )
 
@@ -30,6 +30,7 @@ ALL_STACKS=(
 declare -A STACK_REMOTE_DIR=(
   [actualbudget]="/volume1/docker/stacks/actualbudget"
   [affine]="/volume1/docker/stacks/affine"
+  [dsm]="/volume1/docker/stacks/dsm"
   [frigate]="/volume1/docker/stacks/frigate"
   [ha]="/volume1/docker/stacks/ha"
   [langfuse]="/volume1/docker/stacks/langfuse"
@@ -51,6 +52,7 @@ declare -A STACK_REMOTE_DIR=(
 declare -A STACK_DIRS=(
   [actualbudget]="data ts-state ts-config"
   [affine]="data/storage data/config data/postgres ts-state ts-config"
+  [dsm]="state ts-config"
   [frigate]="config storage ts-state ts-config"
   [ha]="ts-state ts-config"   # Tailscale front door for HA (HA_LAN_IP in iac-secrets.env), no app container
   [langfuse]="ts-state ts-config clickhouse-data clickhouse-logs minio-data redis-data"
@@ -75,6 +77,7 @@ declare -A STACK_DIRS=(
 declare -A STACK_EXTRA_FILES=(
   [actualbudget]="serve.json:ts-config/serve.json"
   [affine]="serve.json:ts-config/serve.json"
+  [dsm]="serve.json:ts-config/serve.json"
   [frigate]="frigate-config.yml:config/config.yml serve.json:ts-config/serve.json"
   [ha]="serve.json:ts-config/serve.json"
   [langfuse]="serve.json:ts-config/serve.json"
@@ -155,7 +158,7 @@ require_stack() {
   local stack="$1"
   if [[ -z "$stack" || ! -d "$stack" ]]; then
     # Use a simple list instead of array expansion to avoid bash 3.2 issues
-    local known_stacks="actualbudget affine frigate ha langfuse mosquitto n8n nextcloud openwebui pihole plex portainer postgresql syncthing mcp observability"
+    local known_stacks="actualbudget affine dsm frigate ha langfuse mosquitto n8n nextcloud openwebui pihole plex portainer postgresql syncthing mcp observability"
     echo "ERROR: unknown stack '$stack' — expected one of: $known_stacks" >&2
     exit 1
   fi
