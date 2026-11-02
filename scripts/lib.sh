@@ -164,6 +164,8 @@ require_stack() {
   fi
 }
 
+
+
 # get_secret_value KEY — look up KEY in $IAC_SECRETS_FILE, empty if unset/missing.
 # Values that are op:// references (official 1Password protocol) are resolved
 # via `op read`; plain values pass through unchanged. This lets secrets move
