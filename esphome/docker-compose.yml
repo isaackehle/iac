@@ -1,0 +1,78 @@
+# ESPHome Stack — Compiler + Dashboard for IoT Devices, hosted on NAS
+#
+# Stack version: 1.0
+# Purpose: Move ESPHome firmware tooling off the HA-OS add-on so it
+#   survives HA Core restarts / OS upgrades. Hosts the dashboard behind
+#   a Tailscale sidecar; HA-side `esphome` integration points here via
+#   its "add device by host" flow.
+#
+# Services:
+#   - esphome        (primary, host networking for mDNS multicast)
+#   - esphome-tailscale  (Tailscale sidecar, host networking)
+#
+# Why network_mode: host
+#   ESPHome devices advertise themselves via mDNS (`_esphome._tcp`).
+#   mDNS multicast is link-local and does not cross a Docker bridge,
+#   so the primary must see the host's physical interface directly.
+#   The Tailscale sidecar is also on host networking so its serve.json
+#   forwarding reaches the primary without an extra bridge hop.
+#
+# Environment variables:
+#   - TS_AUTHKEY, TS_TAILNET_DOMAIN
+#   See .env.example for all required values.
+#
+# Deployment:
+#   docker compose -f docker-compose.yml up -d
+#   docker compose -f docker-compose.yml down
+#
+
+name: esphome
+
+services:
+  # ── Identity ──────────────────────────────────────────────
+  esphome:
+    image: ghcr.io/esphome/esphome:latest
+    container_name: esphome
+    restart: unless-stopped
+
+    # ── Network ───────────────────────────────────────────────
+    # mDNS multicast needs link-local access to the host interface.
+    network_mode: host
+
+    # ── Storage ───────────────────────────────────────────────
+    # ESPHome keeps YAML source + compiled firmware under /config.
+    volumes:
+      - ./config:/config
+
+  # ── Identity ──────────────────────────────────────────────
+  esphome-tailscale:
+    image: tailscale/tailscale:latest
+    container_name: esphome-tailscale
+    restart: unless-stopped
+
+    # ── Network ───────────────────────────────────────────────
+    # Same reason as primary: lets Tailscale reach 127.0.0.1:6052
+    # via the host's loopback without bridge gymnastics.
+    network_mode: host
+
+    # ── Storage ───────────────────────────────────────────────
+    volumes:
+      - ./ts-state:/var/lib/tailscale
+      - ./ts-config:/config
+
+    # ── Environment ───────────────────────────────────────────
+    # TS_HOSTNAME drives the MagicDNS name — never set `hostname:` here,
+    # it collides with Docker internal DNS and breaks peer sidecars too.
+    environment:
+      - TS_HOSTNAME=esphome
+      - TS_AUTHKEY=${TS_AUTHKEY}
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_AUTH_ONCE=true
+      - TS_SERVE_CONFIG=/config/serve.json
+
+    # ── Runtime ───────────────────────────────────────────────
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    devices:
+      - /dev/net/tun:/dev/net/tun
