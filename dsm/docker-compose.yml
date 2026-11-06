@@ -28,7 +28,7 @@ services:
     volumes:
       # mirror however mcp-tailscale mounts its state + serve config
       - ./state:/var/lib/tailscale
-      - ./serve.json:/config/serve.json:ro
+      - ./ts-config:/config
     extra_hosts:
       - "host.docker.internal:host-gateway"   # reach DSM on the host
     # NOTE: no network_mode: service:..., this one stands alone on the bridge
