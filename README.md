@@ -8,7 +8,7 @@ deployed through Portainer where possible, and over SSH where not.
 
 - **New here:** [QUICKSTART.md](QUICKSTART.md) walks through the one-time setup and
   a first deploy.
-- **Agents:** read [AGENTS.md](AGENTS.md) first. It has the conventions and the
+- **Agents:** read [AGENTS.md](iac/AGENTS.md) first. It has the conventions and the
   mistakes not to repeat.
 - **Not in this repo:** the local AI fleet (LM Studio, LiteLLM, model roles) lives
   in the `homelab` repo. Home Assistant runs on its own machine; this repo only
@@ -252,7 +252,7 @@ General Docker commands: [docs/debug_docker_commands.md](docs/debug_docker_comma
 | Doc                                                                    | For                                            |
 | ---------------------------------------------------------------------- | ---------------------------------------------- |
 | [QUICKSTART.md](QUICKSTART.md)                                         | One-time setup and a first deploy              |
-| [AGENTS.md](AGENTS.md)                                                 | Conventions for AI agents working in this repo |
+| [AGENTS.md](iac/AGENTS.md)                                             | Conventions for AI agents working in this repo |
 | [docs/tailscale_patterns.md](docs/tailscale_patterns.md)               | How each stack is exposed, and why             |
 | [docs/tailscale_serve_reference.md](docs/tailscale_serve_reference.md) | `serve.json` format and host serve commands    |
 | [docs/tailscale.md](docs/tailscale.md)                                 | Tailscale notes                                |
