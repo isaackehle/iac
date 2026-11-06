@@ -110,6 +110,7 @@ scripts/deploy.sh all dsm nas
 **Root cause**: A Portainer-managed stack (ID 74) was deployed via the Portainer UI with root path `/data/compose/74/dsm/`. This path doesn't exist on the NAS and can't be created (permission denied). The Portainer stack is separate from the manual docker-compose stack at `/volume1/docker/stacks/dsm/`.
 
 **Fix**: Remove the stuck container and redeploy via the deploy script:
+
 ```bash
 # Remove the stuck container:
 ssh nas '/volume1/@appstore/ContainerManager/usr/bin/docker rm -f dsm-tailscale'
