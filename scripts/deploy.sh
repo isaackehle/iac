@@ -76,7 +76,7 @@ cmd_env() {
 cmd_dirs() {
   local stack="$1" host="$2"
   require_stack "$stack"
-  local remote="${STACK_REMOTE_DIR[$stack]}"
+  local remote="${STACK_REMOTE_DIR[$stack]:-/volume1/docker/stacks/$stack}"
   local dirs="${STACK_DIRS[$stack]:-}"
 
   echo "==> $stack: ensuring $remote exists on $host"
@@ -103,7 +103,7 @@ cmd_dirs() {
 cmd_push() {
   local stack="$1" host="$2"
   require_stack "$stack"
-  local remote="${STACK_REMOTE_DIR[$stack]}"
+  local remote="${STACK_REMOTE_DIR[$stack]:-/volume1/docker/stacks/$stack}"
   local compose
   compose="$(compose_file_for "$stack")"
 
@@ -121,7 +121,7 @@ cmd_push() {
 cmd_extras() {
   local stack="$1" host="$2"
   require_stack "$stack"
-  local remote="${STACK_REMOTE_DIR[$stack]}"
+  local remote="${STACK_REMOTE_DIR[$stack]:-/volume1/docker/stacks/$stack}"
   local extras="${STACK_EXTRA_FILES[$stack]:-}"
 
   if [[ -z "$extras" ]]; then
@@ -168,7 +168,7 @@ cmd_serve() {
 cmd_up() {
   local stack="$1" host="$2"
   require_stack "$stack"
-  local remote="${STACK_REMOTE_DIR[$stack]}"
+  local remote="${STACK_REMOTE_DIR[$stack]:-/volume1/docker/stacks/$stack}"
   local compose
   compose="$(compose_file_for "$stack")"
 
@@ -182,7 +182,7 @@ cmd_up() {
 cmd_down() {
   local stack="$1" host="$2"
   require_stack "$stack"
-  local remote="${STACK_REMOTE_DIR[$stack]}"
+  local remote="${STACK_REMOTE_DIR[$stack]:-/volume1/docker/stacks/$stack}"
   local compose
   compose="$(compose_file_for "$stack")"
 
@@ -596,7 +596,7 @@ cmd_info() {
   local stack="$1"
   require_stack "$stack"
 
-  local remote="${STACK_REMOTE_DIR[$stack]}"
+  local remote="${STACK_REMOTE_DIR[$stack]:-/volume1/docker/stacks/$stack}"
   local compose
   compose="$(compose_file_for "$stack")"
   local dirs="${STACK_DIRS[$stack]:-}"

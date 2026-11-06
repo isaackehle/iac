@@ -64,6 +64,7 @@ sudo tailscale serve --bg http://127.0.0.1:5080
 **Fix**: Changed the volume mount from `./serve.json:/config/serve.json:ro` to `./ts-config:/config` (matching how other stacks like `ha` handle serve.json). Redeploy with `scripts/deploy.sh all dsm nas`.
 
 **Verify**:
+
 ```bash
 # Check container status on NAS
 ssh nas '/volume1/@appstore/ContainerManager/usr/bin/docker ps --filter "name=dsm-tailscale"'
@@ -77,6 +78,7 @@ curl -sk https://dsm.tail303fda.ts.net/
 **Symptom**: `ls /volume1/docker/stacks/dsm/` shows only `state/` and `ts-config/` directories.
 
 **Fix**: Ensure the stack directory exists and deploy:
+
 ```bash
 # On NAS:
 mkdir -p /volume1/docker/stacks/dsm

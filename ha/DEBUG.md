@@ -15,6 +15,7 @@ This stack runs a Tailscale proxy for Home Assistant, exposing it on the tailnet
 **Root cause**: The health check was failing because the proxy returns 400 for plain HTTP requests to an HTTPS endpoint. This is **not a failure** — it's expected behavior from the Tailscale proxy.
 
 **Verify**:
+
 ```bash
 # Check HA box is alive
 ssh ha 'uptime'
@@ -33,6 +34,7 @@ curl -sk https://ha.tail303fda.ts.net/
 **Root cause**: The HA box (Raspberry Pi) goes offline periodically. The docker-compose.yml notes: *"Its own Tailscale add-on node ('homeassistant') has been unreliable (offline since 2026-09-24)."*
 
 **Fix**: Check the HA box directly:
+
 ```bash
 ssh ha 'curl -sk https://127.0.0.1:8123/api/'
 ```
