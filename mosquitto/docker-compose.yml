@@ -15,8 +15,6 @@
 #   docker compose -f mosquitto.yaml up -d
 #   docker compose -f mosquitto.yaml down
 #
-name: mosquitto
-
 services:
   # ── Identity ──────────────────────────────────────────────
   primary:
@@ -66,6 +64,7 @@ services:
     environment:
       - TS_HOSTNAME=mosquitto
       - TS_AUTHKEY=${TS_AUTHKEY}
+      - TS_STACK_ROOT=${TS_STACK_ROOT}
       - TS_STATE_DIR=/var/lib/tailscale
       - TS_AUTH_ONCE=true
       - TS_SERVE_CONFIG=/config/serve.json

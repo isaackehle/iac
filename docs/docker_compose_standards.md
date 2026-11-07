@@ -453,6 +453,7 @@ services:
     environment:
       - TS_HOSTNAME=${TS_HOSTNAME:-portainer}
       - TS_AUTHKEY=${TS_AUTHKEY}
+      - TS_STACK_ROOT=${TS_STACK_ROOT}
       - TS_STATE_DIR=/var/lib/tailscale
       - TS_AUTH_ONCE=true
       - TS_SERVE_CONFIG=/config/serve.json
