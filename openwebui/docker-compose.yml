@@ -47,6 +47,7 @@ services:
       - /volume1/docker/stacks/openwebui/data:/app/backend/data
 
     # ── Environment ───────────────────────────────────────────
+    env_file: .env
     environment:
       - TZ=${TZ}
 
