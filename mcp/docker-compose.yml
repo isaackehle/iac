@@ -60,10 +60,11 @@ services:
     # ── Network ───────────────────────────────────────────────
     network_mode: service:tailscale   # borrow the sidecar's namespace
 
-      # DSM on the LAN, not the tailnet: the userspace sidecar gives this
-      # namespace no MagicDNS or tailnet routes, so "nas.<tailnet>" never
-      # resolved and every tool returned {}. The client skips TLS checks.
-      # Port: DSM's default 5001 unless DSM_HTTPS_PORT (in ~/.env) says otherwise.
+    # DSM on the LAN, not the tailnet: the userspace sidecar gives this
+    # namespace no MagicDNS or tailnet routes, so "nas.<tailnet>" never
+    # resolved and every tool returned {}. The client skips TLS checks.
+    # Port: DSM's default 5001 unless DSM_HTTPS_PORT (in ~/.env) says otherwise.
+    environment:
       - SYNOLOGY_TANK_HOST=${SYNOLOGY_HOST}
       - SYNOLOGY_TANK_PORT=${SYNOLOGY_PORT:-5001}
       - SYNOLOGY_TANK_USERNAME=${SYNOLOGY_USERNAME}
@@ -88,6 +89,7 @@ services:
     # ── Network ───────────────────────────────────────────────
     network_mode: service:tailscale   # borrow the sidecar's namespace; port 8488
 
+    environment:
       - TAILSCALE_OAUTH_CLIENT_ID=${TAILSCALE_OAUTH_CLIENT_ID:-}
       - TAILSCALE_OAUTH_CLIENT_SECRET=${TAILSCALE_OAUTH_CLIENT_SECRET:-}
       - TAILSCALE_API_KEY=${TAILSCALE_API_KEY:-}
@@ -107,6 +109,7 @@ services:
 
     network_mode: service:tailscale   # borrow the sidecar's namespace; port 8486
 
+    environment:
       - MCP_PORT=8486
       - SEARCH_ENGINE=${SEARCH_ENGINE:-duckduckgo}
       - SEARXNG_URL=${SEARXNG_URL:-}
@@ -165,6 +168,7 @@ services:
 
     network_mode: service:tailscale   # borrow the sidecar's namespace; port 8491
 
+    environment:
       - BRAVE_API_KEY=${BRAVE_API_KEY:-}
       - PORT=8491
 
