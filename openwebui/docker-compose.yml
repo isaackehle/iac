@@ -67,23 +67,26 @@ services:
       # and Docker mounts an empty directory. deploy.sh copies the script here.
       - /volume1/docker/stacks/openwebui/configure-litellm.sh:/scripts/configure-litellm.sh:ro
 
+    # ── Environment ───────────────────────────────────────────
+    # Explicitly load .env so OPENWEBUI_API_KEY and LITELLM_ENGINES are
+    # available when `docker compose run --rm config` is invoked directly
+    # (not via `deploy.sh all`).  The primary/tailscale services load .env
+    # implicitly via docker compose's default .env resolution; config does
+    # not — it uses explicit env: lines with ${VAR:-} substitution which
+    # falls back to empty when .env is absent.
+    env_file: .env
+
     # ── Network ─────────────────────────────────────────────────────
     # Must be host: the tailscale service uses network_mode: host, so it
     # has no IP on the Docker network and "tailscale" is unresolvable
     # from any other container. Host mode lets us reach 127.0.0.1:8080.
     network_mode: host
 
-    # ── Environment ───────────────────────────────────────────
-    # OPENWEBUI_API_KEY intentionally has no ${VAR:?...} guard: it doesn't
-    # exist until an admin account is created once via the web UI (see
-    # configure-litellm.sh), so it must not block `primary`/`tailscale` from
-    # coming up on a fresh deploy.
+    # ── Environment (overrides / additions) ───────────────────
+    # With network_mode: host, 127.0.0.1:8080 reaches the primary (which
+    # shares the tailscale container's network namespace).
     environment:
-      # With network_mode: host, 127.0.0.1:8080 reaches the primary (which
-      # shares the tailscale container's network namespace).
       - OPENWEBUI_API_URL=http://127.0.0.1:8080
-      - OPENWEBUI_API_KEY=${OPENWEBUI_API_KEY:-}
-      - LITELLM_ENGINES=${LITELLM_ENGINES:-'[]'}
 
     # ── Runtime ───────────────────────────────────────────────
     command: "sh -c \"apk add --no-cache bash python3 curl >/dev/null && timeout 180 /bin/sh -c 'until curl -sf $$OPENWEBUI_API_URL/health >/dev/null 2>&1; do sleep 2; done' && bash /scripts/configure-litellm.sh\""
