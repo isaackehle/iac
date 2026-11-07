@@ -59,7 +59,8 @@ Commands:
   serve  <stack> <ssh-host>    apply host-level tailscale serve mappings (if any)
   up     <stack> <ssh-host>    ssh in and run `docker compose up -d`
   down   <stack> <ssh-host>    ssh in and run `docker compose down -v` (remove volumes)
-  api    <stack>               create stack in Portainer via API with GitConfig (Total control);
+  api    <stack> <ssh-host>    create stack in Portainer via API with GitConfig (Total control);
+                                also creates stack directories (ts-state, ts-config, etc.)
                                 refuses if a stack with that name exists, never deletes
   redeploy <stack> [--yes]     pull the compose file from git and redeploy an existing
                                 Portainer stack, keeping its variables (asks first)
@@ -281,8 +282,10 @@ redeploy_body() {
 }
 
 cmd_api() {
-  local stack="$1"
+  local stack="$1" host="$2"
   require_stack "$stack"
+
+  cmd_dirs "$stack" "$host"
 
   local git_url="https://github.com/isaackehle/iac.git"
   local git_branch="main"
@@ -676,7 +679,8 @@ case "$command" in
     "cmd_${command}" "$stack" "$host"
     ;;
   api)
-    cmd_"$command" "$stack"
+    [[ -n "$host" ]] || usage
+    cmd_"$command" "$stack" "$host"
     ;;
   redeploy)
     cmd_redeploy "$stack" "$host"
