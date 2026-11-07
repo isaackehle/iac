@@ -15,3 +15,7 @@ observability/alertmanager.yml
 observability/telegram_bot_token
 observability/snmp-auth.yml
 observability/laptop-probe.conf
+
+# Per-user stack overrides (private in a public repo).
+scripts/stacks-local.yaml
+scripts/stacks-local.yaml.example

@@ -44,6 +44,10 @@ services:
     volumes:
       - ${TS_STACK_ROOT}/esphome/config:/config
 
+    # ── Environment ───────────────────────────────────────────
+    environment:
+      - TS_STACK_ROOT=${TS_STACK_ROOT}
+
   # ── Identity ──────────────────────────────────────────────
   esphome-tailscale:
     image: tailscale/tailscale:latest

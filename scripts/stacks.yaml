@@ -1,0 +1,74 @@
+# scripts/stacks.yaml — Default deployment type for each stack.
+#
+# This file is a config file with defaults — not the source of truth for
+# what is enabled or disabled on your machine.  Scripts read it as the
+# fallback.  If a private override file exists (stacks-local.yaml), it
+# takes precedence.
+#
+# Fields:
+#   type:     container_manager | portainer | disabled | never
+#             container_manager = Synology Container Manager owns this
+#                 stack; never touch via the Portainer API.
+#             portainer     = managed through the Portainer API; use
+#                 `api` to create or `redeploy` to update.
+#             disabled    = skip entirely (never deployed, never listed
+#                 in enabled_stacks, never in --all output).
+#             never       = same as disabled, but also rejected by
+#                 require_stack (cannot be overridden to "enabled").
+#   notes:    optional human-readable notes (ignored by scripts).
+
+stacks:
+  actualbudget:
+    type: portainer
+    notes: ""
+  affine:
+    type: portainer
+    notes: ""
+  dsm:
+    type: portainer
+    notes: ""
+  esphome:
+    type: portainer
+    notes: ""
+  frigate:
+    type: portainer
+    notes: ""
+  ha:
+    type: portainer
+    notes: ""
+  langfuse:
+    type: portainer
+    notes: ""
+  mcp:
+    type: portainer
+    notes: ""
+  mosquitto:
+    type: disabled
+    notes: "Disabled — removed explicit `name:` from docker-compose.yml"
+  n8n:
+    type: portainer
+    notes: ""
+  nextcloud:
+    type: portainer
+    notes: ""
+  observability:
+    type: portainer
+    notes: ""
+  openwebui:
+    type: portainer
+    notes: ""
+  pihole:
+    type: portainer
+    notes: ""
+  plex:
+    type: disabled
+    notes: "Disabled — not deploying Plex"
+  portainer:
+    type: container_manager
+    notes: "Deployed via Container Manager, not Portainer API. API-created stack (Id 83) was deleted."
+  postgresql:
+    type: portainer
+    notes: ""
+  syncthing:
+    type: portainer
+    notes: ""

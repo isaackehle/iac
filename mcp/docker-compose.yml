@@ -20,7 +20,7 @@
 #   | Path          | Service         | Port | Image                                  |
 #   | /synology     | synology        | 8485 | ghcr.io/lefty3382/synology-mcp:latest  |
 #   | /search       | one-search      | 8486 | ghcr.io/yokingma/one-search-mcp:latest |
-#   | /weather      | weather         | 8487 | ghcr.io/dangahagan/weather-mcp:latest  |
+#   | /weather      | weather         | 8487 | node:22-slim + @dangahagan/weather-mcp |
 #   | /tailscale    | tailscale-admin | 8488 | built from servers/tailscale (read-only) |
 #   | /amazon-prod  | amazon-scraper  | 8489 | ghcr.io/pullapi/amazon-scraper-mcp:latest |
 #   | /time         | time            | 8490 | python:3.12-slim + mcp-server-time     |
@@ -60,8 +60,6 @@ services:
     # ── Network ───────────────────────────────────────────────
     network_mode: service:tailscale   # borrow the sidecar's namespace
 
-    # ── Environment ───────────────────────────────────────────
-    environment:
       # DSM on the LAN, not the tailnet: the userspace sidecar gives this
       # namespace no MagicDNS or tailnet routes, so "nas.<tailnet>" never
       # resolved and every tool returned {}. The client skips TLS checks.
@@ -90,8 +88,6 @@ services:
     # ── Network ───────────────────────────────────────────────
     network_mode: service:tailscale   # borrow the sidecar's namespace; port 8488
 
-    # ── Environment ───────────────────────────────────────────
-    environment:
       - TAILSCALE_OAUTH_CLIENT_ID=${TAILSCALE_OAUTH_CLIENT_ID:-}
       - TAILSCALE_OAUTH_CLIENT_SECRET=${TAILSCALE_OAUTH_CLIENT_SECRET:-}
       - TAILSCALE_API_KEY=${TAILSCALE_API_KEY:-}
@@ -109,11 +105,8 @@ services:
     depends_on:
       - tailscale
 
-    # ── Network ───────────────────────────────────────
     network_mode: service:tailscale   # borrow the sidecar's namespace; port 8486
 
-    # ── Environment ───────────────────────────────────
-    environment:
       - MCP_PORT=8486
       - SEARCH_ENGINE=${SEARCH_ENGINE:-duckduckgo}
       - SEARXNG_URL=${SEARXNG_URL:-}
@@ -122,7 +115,7 @@ services:
   # ── Identity ──────────────────────────────────────
   # Weather data (no API key required).
   weather:
-    image: ghcr.io/dangahagan/weather-mcp:latest
+    image: node:22-slim
     container_name: mcp-weather
 
     # ── Lifecycle ─────────────────────────────────────
@@ -130,12 +123,17 @@ services:
     depends_on:
       - tailscale
 
-    # ── Network ───────────────────────────────────────
+
+    # ── Runtime ───────────────────────────────
+    working_dir: /app
+    command:
+      - sh
+      - -c
+      - "npm install -g @dangahagan/weather-mcp --omit=optional && npx @dangahagan/weather-mcp"
+
+    # ── Network ───────────────────────────────
     network_mode: service:tailscale   # borrow the sidecar's namespace; port 8487
 
-    # ── Environment ───────────────────────────────────
-    environment:
-      - MCP_PORT=8487
 
   # ── Identity ──────────────────────────────────────
   # Time and timezone queries (Python, no API key required).
@@ -152,7 +150,6 @@ services:
     working_dir: /app
     command: ["sh", "-c", "pip install mcp-server-time && python -m mcp_server_time --port 8490"]
 
-    # ── Network ───────────────────────────────────────
     network_mode: service:tailscale   # borrow the sidecar's namespace; port 8490
 
   # ── Identity ──────────────────────────────────────
@@ -166,11 +163,8 @@ services:
     depends_on:
       - tailscale
 
-    # ── Network ───────────────────────────────────────
     network_mode: service:tailscale   # borrow the sidecar's namespace; port 8491
 
-    # ── Environment ───────────────────────────────────
-    environment:
       - BRAVE_API_KEY=${BRAVE_API_KEY:-}
       - PORT=8491
 
@@ -190,8 +184,6 @@ services:
     devices:
       - /dev/net/tun:/dev/net/tun
 
-    # ── Environment ───────────────────────────────────────────
-    environment:
       - TS_HOSTNAME=mcp
       - TS_AUTHKEY=${TS_AUTHKEY}
       - TS_STACK_ROOT=${TS_STACK_ROOT}

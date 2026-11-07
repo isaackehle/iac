@@ -41,6 +41,7 @@ services:
 
     # ── Environment ───────────────────────────────────────────
     environment:
+      - TS_STACK_ROOT=${TS_STACK_ROOT}
       - TZ=${TZ}
 
   # ── Identity ──────────────────────────────────────────────

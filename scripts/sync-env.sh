@@ -20,27 +20,10 @@
 set -e
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# shellcheck source=lib.sh
+source "$ROOT_DIR/scripts/lib.sh"
 SSH_HOST="${SSH_HOST:-nas}"
 NAS_BASE="/volume1/docker/stacks"
-
-# All managed stacks
-ALL_STACKS=(
-    "actualbudget"
-    "affine"
-    "frigate"
-    "ha"
-    "langfuse"
-    "mcp"
-    "mosquitto"
-    "n8n"
-    "nextcloud"
-    "openwebui"
-    "pihole"
-    "plex"
-    "portainer"
-    "postgresql"
-    "syncthing"
-)
 
 usage() {
     cat >&2 <<EOF
@@ -93,29 +76,29 @@ pull() {
 
 list_stacks() {
     echo "Managed stacks:"
-    for stack in "${ALL_STACKS[@]}"; do
+    while IFS= read -r stack; do
         echo "  - $stack"
-    done
+    done < <(enabled_stacks)
 }
 
 push_all() {
     echo "Pushing all .env files to NAS..."
-    for stack in "${ALL_STACKS[@]}"; do
+    while IFS= read -r stack; do
         local local_env="$ROOT_DIR/$stack/.env"
         if [ -f "$local_env" ]; then
             push "$stack"
         else
             echo "⚠ Skipping $stack (no .env file)"
         fi
-    done
+    done < <(enabled_stacks)
     echo "✓ All .env files pushed"
 }
 
 pull_all() {
     echo "Pulling all .env files from NAS..."
-    for stack in "${ALL_STACKS[@]}"; do
+    while IFS= read -r stack; do
         pull "$stack"
-    done
+    done < <(enabled_stacks)
     echo "✓ All .env files pulled"
 }
 

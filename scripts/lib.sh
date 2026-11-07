@@ -18,10 +18,117 @@ if (( BASH_VERSINFO[0] < 4 )); then
   exit 1
 fi
 
+# All known stacks (including disabled ones). For the list of stacks that
+# should actually be operated on, use `enabled_stacks` below, which reads
+# scripts/stacks.yaml and skips disabled / _template stacks.
 ALL_STACKS=(
   actualbudget affine dsm esphome frigate ha langfuse mosquitto n8n nextcloud
   openwebui pihole plex portainer postgresql syncthing mcp observability
 )
+
+STACKS_YAML="${STACKS_YAML:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/scripts/stacks.yaml}"
+STACKS_LOCAL_YAML="${STACKS_LOCAL_YAML:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/scripts/stacks-local.yaml}"
+
+# parse_stacks_yaml FILE — print "stackname:TYPE" pairs from a stacks YAML
+# file, one per line.  Exits 1 if the file is missing.
+parse_stacks_yaml() {
+  local file="$1"
+  [[ -f "$file" ]] || return 1
+  local in_stacks=false current_stack="" cur_type=""
+  while IFS= read -r line; do
+    [[ "$line" =~ ^[[:space:]]*# ]] && continue
+    [[ -z "${line// /}" ]] && continue
+    if [[ "$line" == "stacks:" ]]; then
+      in_stacks=true
+      continue
+    fi
+    if $in_stacks && [[ "$line" =~ ^[a-zA-Z] ]] && [[ "$line" != " "* ]]; then
+      in_stacks=false
+      continue
+    fi
+    if $in_stacks && [[ "$line" =~ ^[[:space:]]{2}[a-zA-Z_][a-zA-Z0-9_]*:[[:space:]]*$ ]]; then
+      if [[ -n "$current_stack" && -n "$cur_type" ]]; then
+        echo "${current_stack}:${cur_type}"
+      fi
+      current_stack="${line%%:*}"
+      current_stack="${current_stack// /}"
+      cur_type=""
+      continue
+    fi
+    if [[ "$line" =~ ^[[:space:]]+type:[[:space:]]+(container_manager|portainer|disabled) ]]; then
+      cur_type="${BASH_REMATCH[1]}"
+    fi
+  done < "$file"
+  # Don't forget the last stack
+  if [[ -n "$current_stack" && -n "$cur_type" ]]; then
+    echo "${current_stack}:${cur_type}"
+  fi
+}
+
+# enabled_stacks — print stack names whose effective type is NOT "disabled"
+# and is NOT "_template".  One name per line.
+#
+# Merges two sources: stacks-local.yaml (private, gitignored) takes
+# precedence over stacks.yaml (public, defaults).  Falls back to
+# ALL_STACKS when both files are missing (warns on stderr).
+enabled_stacks() {
+  if [[ ! -f "$STACKS_YAML" && ! -f "$STACKS_LOCAL_YAML" ]]; then
+    echo "WARN: neither $STACKS_YAML nor $STACKS_LOCAL_YAML found; falling back to ALL_STACKS" >&2
+    printf '%s\n' "${ALL_STACKS[@]}"
+    return
+  fi
+
+  # Build a map: stackname → effective type (local overrides default).
+  declare -A type_map=()
+
+  # Load defaults from stacks.yaml.
+  while IFS=: read -r name typ; do
+    type_map["$name"]="$typ"
+  done < <(parse_stacks_yaml "$STACKS_YAML" 2>/dev/null)
+
+  # Overlay local overrides (stacks-local.yaml).
+  if [[ -f "$STACKS_LOCAL_YAML" ]]; then
+    while IFS=: read -r name typ; do
+      type_map["$name"]="$typ"
+    done < <(parse_stacks_yaml "$STACKS_LOCAL_YAML" 2>/dev/null)
+  fi
+
+  # Print stacks whose effective type is not "disabled" and not "_template".
+  for name in "${!type_map[@]}"; do
+    if [[ "${type_map[$name]}" != "disabled" && "$name" != "_template" ]]; then
+      echo "$name"
+    fi
+  done | sort
+}
+
+# stack_type STACK — print the effective type (container_manager |
+# portainer | disabled), merging local override over stacks.yaml defaults.
+# Returns 0 on success, 1 if the stack is missing from both files.
+stack_type() {
+  local stack="$1"
+
+  # Check local override first.
+  if [[ -f "$STACKS_LOCAL_YAML" ]]; then
+    while IFS=: read -r name typ; do
+      if [[ "$name" == "$stack" ]]; then
+        echo "$typ"
+        return 0
+      fi
+    done < <(parse_stacks_yaml "$STACKS_LOCAL_YAML" 2>/dev/null)
+  fi
+
+  # Fall back to stacks.yaml.
+  if [[ -f "$STACKS_YAML" ]]; then
+    while IFS=: read -r name typ; do
+      if [[ "$name" == "$stack" ]]; then
+        echo "$typ"
+        return 0
+      fi
+    done < <(parse_stacks_yaml "$STACKS_YAML" 2>/dev/null)
+  fi
+
+  return 1
+}
 
 # Remote directory each stack is deployed into on the NAS. Standard is
 # /volume1/docker/stacks/<stack>; a few stacks were deployed before that
@@ -126,14 +233,6 @@ declare -A STACK_CHOWN_OVERRIDES=(
 declare -A STACK_SERVE_PORTS=(
 )
 
-# Suffix of the per-stack Portainer API key, PORTAINER_API_KEY_<suffix>, that
-# `scripts/deploy.sh api|redeploy` prefer over PORTAINER_API_KEY. The default
-# suffix is the stack name upper-cased (pihole -> PORTAINER_API_KEY_PIHOLE); list
-# a stack here only when its key is named differently.
-declare -A STACK_PORTAINER_KEY_SUFFIX=(
-  [observability]="OBS"
-)
-
 # Default location of the central secrets file. Override with
 # IAC_SECRETS_FILE=/some/other/path. Lives at the repo root, gitignored —
 # see iac-secrets.env.example for the format and AGENTS.md for the rationale.
@@ -163,6 +262,13 @@ require_stack() {
     # Use a simple list instead of array expansion to avoid bash 3.2 issues
     local known_stacks="actualbudget affine dsm frigate ha langfuse mosquitto n8n nextcloud openwebui pihole plex portainer postgresql syncthing mcp observability"
     echo "ERROR: unknown stack '$stack' — expected one of: $known_stacks" >&2
+    exit 1
+  fi
+  # Check if the stack is disabled (local override or default).
+  local typ
+  typ="$(stack_type "$stack" 2>/dev/null)" || typ=""
+  if [[ "$typ" == "disabled" ]]; then
+    echo "ERROR: stack '$stack' is disabled — skipping" >&2
     exit 1
   fi
 }

@@ -68,7 +68,7 @@ services:
     # env_file removed because Portainer API passes env vars directly
     environment:
       # Postgres
-      - DATABASE_URL=postgresql://langfuse:${LANGFUSE_DB_PASSWORD}@${LANGFUSE_DB_HOST}:${LANGFUSE_DB_PORT}/langfuse
+      - DATABASE_URL=postgresql://langfuse:${LANGFUSE_DB_PASSWORD}@postgresql-tailscale:5432/langfuse
       # App secrets
       - SALT=${LANGFUSE_SALT}
       - NEXTAUTH_SECRET=${LANGFUSE_NEXTAUTH_SECRET}
@@ -123,7 +123,7 @@ services:
     # All env vars are passed via Portainer API / env vars
     environment:
       # Postgres
-      - DATABASE_URL=postgresql://langfuse:${LANGFUSE_DB_PASSWORD}@${LANGFUSE_DB_HOST}:${LANGFUSE_DB_PORT}/langfuse
+      - DATABASE_URL=postgresql://langfuse:${LANGFUSE_DB_PASSWORD}@postgresql-tailscale:5432/langfuse
       # App secrets
       - SALT=${LANGFUSE_SALT}
       - ENCRYPTION_KEY=${LANGFUSE_ENCRYPTION_KEY}
@@ -177,7 +177,7 @@ services:
       - TS_SERVE_CONFIG=/config/serve.json
       - TS_CERT_DOMAIN=${TS_CERT_DOMAIN}
       # Langfuse app config (inherited by primary and worker containers)
-      - DATABASE_URL=postgresql://langfuse:***@${LANGFUSE_DB_HOST}:${LANGFUSE_DB_PORT}/langfuse
+      - DATABASE_URL=postgresql://langfuse:${LANGFUSE_DB_PASSWORD}@postgresql-tailscale:5432/langfuse
       - SALT=${LANGFUSE_SALT}
       - NEXTAUTH_SECRET=${LANGFUSE_NEXTAUTH_SECRET}
       - ENCRYPTION_KEY=${LANGFUSE_ENCRYPTION_KEY}

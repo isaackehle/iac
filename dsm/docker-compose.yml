@@ -21,6 +21,7 @@ services:
     hostname: dsm                      # → https://dsm.tail303fda.ts.net
     restart: always                    # survives DSM updates (see tonight)
     environment:
+      - TS_STACK_ROOT=${TS_STACK_ROOT}
       - TS_AUTHKEY=${TS_AUTHKEY}       # same pattern as your other sidecars
       - TS_STATE_DIR=/var/lib/tailscale
       - TS_SERVE_CONFIG=/config/serve.json

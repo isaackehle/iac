@@ -64,6 +64,7 @@ services:
     # Anchored: cron needs the same values (the image's redis and
     # reverse-proxy config files read them at runtime).
     environment: &nextcloud-env
+      - TS_STACK_ROOT=${TS_STACK_ROOT}
       - POSTGRES_HOST=config
       - POSTGRES_DB=nextcloud
       - POSTGRES_USER=nextcloud
@@ -129,6 +130,7 @@ services:
 
     # ── Environment ───────────────────────────────────────────
     environment:
+      - TS_STACK_ROOT=${TS_STACK_ROOT}
       - POSTGRES_DB=nextcloud
       - POSTGRES_USER=nextcloud
       - POSTGRES_PASSWORD=${NC_DB_PASSWORD}

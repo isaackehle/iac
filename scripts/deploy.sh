@@ -196,21 +196,17 @@ cmd_down() {
 # --- Portainer API helpers (api / redeploy) ---------------------------------
 #
 # Stack changes on the NAS go through the Portainer API only, and nothing here
-# ever DELETEs a stack.
+# ever DELETEs a stack. Before operating on a stack, deploy.sh checks
+# scripts/stacks.yaml (via `stack_type()`): stacks with `type: disabled` are
+# rejected; stacks with `type: container_manager` are excluded — they are
+# managed by Synology Container Manager, not the Portainer API.
 
 PORTAINER_ENDPOINT=3
 
-# portainer_auth STACK — set PORTAINER_URL and PORTAINER_API_KEY. The key is
-# PORTAINER_API_KEY_<suffix> when set (environment first, then iac-secrets.env /
-# ~/.env via get_secret_value; suffix from STACK_PORTAINER_KEY_SUFFIX in lib.sh,
-# default the upper-cased stack name), else PORTAINER_API_KEY. Prints which
-# variable was used, never any part of the value.
+# portainer_auth STACK — set PORTAINER_URL and PORTAINER_API_KEY.
+# All stacks use a single PORTAINER_API_KEY — no stack-specific suffix.
+# Prints which variable was used, never any part of the value.
 portainer_auth() {
-  local stack="$1"
-  local suffix="${STACK_PORTAINER_KEY_SUFFIX[$stack]:-}"
-  [[ -n "$suffix" ]] || suffix="$(printf '%s' "$stack" | tr '[:lower:]-' '[:upper:]_')"
-  local stack_var="PORTAINER_API_KEY_${suffix}"
-
   if [[ -z "${PORTAINER_URL:-}" ]]; then
     PORTAINER_URL="$(get_secret_value "PORTAINER_URL")"
   fi
@@ -219,25 +215,19 @@ portainer_auth() {
     exit 1
   fi
 
-  local key source
-  key="${!stack_var:-}"; source="$stack_var (environment)"
+  local key
+  key="${PORTAINER_API_KEY:-}"
   if [[ -z "$key" ]]; then
-    key="$(get_secret_value "$stack_var")"; source="$stack_var (secrets file or ~/.env)"
+    key="$(get_secret_value "PORTAINER_API_KEY")"
   fi
   if [[ -z "$key" ]]; then
-    key="${PORTAINER_API_KEY:-}"; source="PORTAINER_API_KEY (environment)"
-  fi
-  if [[ -z "$key" ]]; then
-    key="$(get_secret_value "PORTAINER_API_KEY")"; source="PORTAINER_API_KEY (secrets file or ~/.env)"
-  fi
-  if [[ -z "$key" ]]; then
-    echo "ERROR: neither $stack_var nor PORTAINER_API_KEY is set in the environment, $IAC_SECRETS_FILE or $IAC_USER_ENV_FILE" >&2
+    echo "ERROR: PORTAINER_API_KEY not set in the environment, $IAC_SECRETS_FILE or $IAC_USER_ENV_FILE" >&2
     exit 1
   fi
   PORTAINER_API_KEY="$key"
 
   echo "   Portainer: $PORTAINER_URL"
-  echo "   API key:   $source"
+  echo "   API key:   PORTAINER_API_KEY"
 }
 
 # portainer_curl ARGS... — curl with the API key header. The header is passed
@@ -284,6 +274,14 @@ redeploy_body() {
 cmd_api() {
   local stack="$1" host="$2"
   require_stack "$stack"
+
+  # Refuse stacks managed by Synology Container Manager (not the Portainer API).
+  local st
+  st="$(stack_type "$stack" 2>/dev/null)" || true
+  if [[ "$st" == "container_manager" ]]; then
+    echo "ERROR: '$stack' is type 'container_manager' — managed by Synology Container Manager, not Portainer API" >&2
+    exit 1
+  fi
 
   cmd_dirs "$stack" "$host"
 
@@ -515,6 +513,15 @@ EOF
 cmd_redeploy() {
   local stack="$1" assume_yes="${2:-}"
   require_stack "$stack"
+
+  # Refuse stacks managed by Synology Container Manager (not the Portainer API).
+  local st
+  st="$(stack_type "$stack" 2>/dev/null)" || true
+  if [[ "$st" == "container_manager" ]]; then
+    echo "ERROR: '$stack' is type 'container_manager' — managed by Synology Container Manager, not Portainer API" >&2
+    exit 1
+  fi
+
   if [[ -n "$assume_yes" && "$assume_yes" != "--yes" ]]; then
     usage
   fi
