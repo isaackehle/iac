@@ -64,3 +64,49 @@ docker compose -f /volume1/docker/stacks/openwebui/docker-compose.yml restart op
 | OpenWebUI data         | `/volume1/docker/stacks/openwebui/data`                 |
 | Tailscale serve config | `/volume1/docker/stacks/openwebui/ts-config/serve.json` |
 | Tailscale state        | `/volume1/docker/stacks/openwebui/ts-state`             |
+
+## Troubleshooting
+
+### openwebui-tailscale: "connection refused" (proxy returns 000)
+
+**Symptom**: `https://openwebui.tail303fda.ts.net/` returns HTTP 000 (connection refused/timed out).
+
+**Root cause**: The `tailscale` service in `docker-compose.yml` was missing `network_mode: host`. Without it, the Tailscale sidecar runs in its own Docker network namespace and cannot reach 127.0.0.1:8080 on the host (it tries to reach port 8080 within the sidecar container itself, not on the host).
+
+**Fix**: Add `network_mode: host` to the `tailscale` service in `docker-compose.yml`.
+
+**Steps**:
+```bash
+# 1. Edit docker-compose.yml — add network_mode: host to the tailscale service
+# 2. Redeploy:
+scripts/deploy.sh all openwebui nas
+# 3. Verify:
+curl -sk -o /dev/null -w "HTTP %{http_code}\n" https://openwebui.tail303fda.ts.net/
+```
+
+**Note**: The openwebui container takes ~90 seconds to initialize (health: starting → healthy). Do not assume failure during this window.
+
+---
+
+### Portainer stack conflict (recurring)
+
+**Symptom**: Deploy fails with `Conflict. The container name "/<id>_openwebui" is already in use by container`.
+
+**Root cause**: A Portainer-managed stack was deployed via the Portainer UI, creating containers with conflicting names.
+
+**Fix**: Remove conflicting containers and redeploy via the deploy script:
+```bash
+ssh nas '/volume1/@appstore/ContainerManager/usr/bin/docker rm -f openwebui openwebui-tailscale'
+scripts/deploy.sh all openwebui nas
+```
+
+**Prevention**: Do not deploy the openwebui stack via the Portainer UI. Use `scripts/deploy.sh all openwebui nas` only.
+
+---
+
+### Container name corrections
+
+The existing debug commands reference `openwebui-ts` which does not exist. The actual container names are:
+- `openwebui` (primary — serves on port 8080)
+- `openwebui-tailscale` (sidecar — Tailscale proxy)
+- `openwebui-config` (one-shot config runner)
