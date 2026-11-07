@@ -47,7 +47,6 @@ services:
       - /volume1/docker/stacks/openwebui/data:/app/backend/data
 
     # ── Environment ───────────────────────────────────────────
-    env_file: .env
     environment:
       - TZ=${TZ}
 
@@ -75,7 +74,6 @@ services:
     network_mode: host
 
     # ── Environment ───────────────────────────────────────────
-    env_file: .env
     # OPENWEBUI_API_KEY intentionally has no ${VAR:?...} guard: it doesn't
     # exist until an admin account is created once via the web UI (see
     # configure-litellm.sh), so it must not block `primary`/`tailscale` from
