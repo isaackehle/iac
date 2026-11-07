@@ -52,28 +52,47 @@ while [ "$(date +%s)" -lt "$END_TIME" ]; do
     sleep 2
 done
 
-echo "Configuring LiteLLM connections..."
+# Validate and process LITELLM_ENGINES in a single Python invocation.
+# Tries json.load first (double-quoted JSON); falls back to ast.literal_eval
+# so the script also accepts single-quoted .env values written by hand.
+readarray -t _result < <(python3 -c "
+import sys, json, ast
 
-BASE_URLS="[]"
-API_KEYS="[]"
-CONFIG_MAP="{}"
+raw = sys.argv[1]
+engines = None
+try:
+    engines = json.loads(raw)
+except json.JSONDecodeError:
+    try:
+        engines = ast.literal_eval(raw)
+    except (ValueError, SyntaxError) as exc:
+        print(f'ERROR: LITELLM_ENGINES is not valid JSON or Python literal: {exc}', file=sys.stderr)
+        print(f'  Value: {raw!r}', file=sys.stderr)
+        sys.exit(1)
 
-while IFS= read -r engine; do
-    [ -z "$engine" ] && continue
+if not isinstance(engines, list):
+    print('ERROR: LITELLM_ENGINES must be a JSON array', file=sys.stderr)
+    sys.exit(1)
 
-    NAME=$(echo "$engine" | python3 -c "import sys, json; print(json.load(sys.stdin)['name'])")
-    URL=$(echo "$engine" | python3 -c "import sys, json; print(json.load(sys.stdin)['url'].rstrip('/'))")
+base_urls = []
+api_keys  = []
+configs   = {}
 
-    echo "  Adding: ${NAME} -> ${URL}"
+for i, eng in enumerate(engines):
+    name  = eng.get('name', f'host-{i}')
+    url   = eng.get('url', '').rstrip('/')
+    base_urls.append(url)
+    api_keys.append(sys.argv[2])
+    configs[str(i)] = {'enable': True, 'tags': [], 'prefix_id': name}
+    print(f'  Adding: {name} -> {url}')
 
-    BASE_URLS=$(echo "$BASE_URLS" | python3 -c "import sys, json; urls=json.load(sys.stdin); urls.append('${URL}'); print(json.dumps(urls))")
-    API_KEYS=$(echo "$API_KEYS" | python3 -c "import sys, json; keys=json.load(sys.stdin); keys.append('${SHARED_KEY}'); print(json.dumps(keys))")
-    # keyed by index (OpenWebUI's OPENAI_API_CONFIGS shape), so each connection
-    # gets a human-readable name in the picker instead of just its URL.
-    IDX=$(echo "$BASE_URLS" | python3 -c "import sys, json; print(len(json.load(sys.stdin)) - 1)")
-    CONFIG_MAP=$(echo "$CONFIG_MAP" | python3 -c "import sys, json; m=json.load(sys.stdin); m['${IDX}']={'enable': True, 'tags': [], 'prefix_id': '${NAME}'}; print(json.dumps(m))")
-
-done < <(python3 -c "import sys, json; engines=json.load(sys.stdin); [print(json.dumps(e)) for e in engines]" <<< "$LITELLM_ENGINES")
+print(json.dumps(base_urls))
+print(json.dumps(api_keys))
+print(json.dumps(configs))
+" "$LITELLM_ENGINES" "$SHARED_KEY")
+BASE_URLS="${_result[0]}"
+API_KEYS="${_result[1]}"
+CONFIG_MAP="${_result[2]}"
 
 echo "Sending configuration to OpenWebUI..."
 curl -s -X POST "${API_URL}/openai/config/update" \
