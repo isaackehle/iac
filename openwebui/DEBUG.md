@@ -76,6 +76,7 @@ docker compose -f /volume1/docker/stacks/openwebui/docker-compose.yml restart op
 **Fix**: Add `network_mode: host` to the `tailscale` service in `docker-compose.yml`.
 
 **Steps**:
+
 ```bash
 # 1. Edit docker-compose.yml — add network_mode: host to the tailscale service
 # 2. Redeploy:
@@ -95,6 +96,7 @@ curl -sk -o /dev/null -w "HTTP %{http_code}\n" https://openwebui.tail303fda.ts.n
 **Root cause**: A Portainer-managed stack was deployed via the Portainer UI, creating containers with conflicting names.
 
 **Fix**: Remove conflicting containers and redeploy via the deploy script:
+
 ```bash
 ssh nas '/volume1/@appstore/ContainerManager/usr/bin/docker rm -f openwebui openwebui-tailscale'
 scripts/deploy.sh all openwebui nas
@@ -107,6 +109,7 @@ scripts/deploy.sh all openwebui nas
 ### Container name corrections
 
 The existing debug commands reference `openwebui-ts` which does not exist. The actual container names are:
+
 - `openwebui` (primary — serves on port 8080)
 - `openwebui-tailscale` (sidecar — Tailscale proxy)
 - `openwebui-config` (one-shot config runner)
