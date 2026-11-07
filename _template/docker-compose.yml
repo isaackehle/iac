@@ -54,8 +54,8 @@ services:
 
     # ── Storage ───────────────────────────────────────────────
     volumes:
-      - ./ts-state:/var/lib/tailscale
-      - ./ts-config:/config
+      - ${TS_STACK_ROOT}/_template/ts-state:/var/lib/tailscale
+      - ${TS_STACK_ROOT}/_template/ts-config:/config
 
     # ── Environment ───────────────────────────────────────────
     environment:

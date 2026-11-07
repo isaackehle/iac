@@ -42,9 +42,9 @@ services:
     # ── Storage ───────────────────────────────────────────────
     volumes:
       # Persistent data (recordings, snapshots, clips)
-      - /volume1/docker/stacks/frigate/storage:/media/frigate
+      - ${TS_STACK_ROOT}/frigate/storage:/media/frigate
       # Application config (frigate.yml, database)
-      - /volume1/docker/stacks/frigate/config:/config
+      - ${TS_STACK_ROOT}/frigate/config:/config
       # Ephemeral cache (tmpfs for performance)
       - type: tmpfs
         target: /tmp/cache
@@ -100,8 +100,8 @@ services:
 
     # ── Storage ───────────────────────────────────────────────
     volumes:
-      - /volume1/docker/stacks/frigate/ts-state:/var/lib/tailscale
-      - /volume1/docker/stacks/frigate/ts-config:/config
+      - ${TS_STACK_ROOT}/frigate/ts-state:/var/lib/tailscale
+      - ${TS_STACK_ROOT}/frigate/ts-config:/config
 
 # Pinned: DSM's firewall drops forwarded traffic from Docker's default
 # 192.168.x.0/20 pool, which silently kills outbound access (image pulls,

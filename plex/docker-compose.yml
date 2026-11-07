@@ -36,7 +36,7 @@ services:
 
     # ── Storage ───────────────────────────────────────────────
     volumes:
-      - /volume1/docker/stacks/plex/config:/config      # Application config & metadata
+      - ${TS_STACK_ROOT}/plex/config:/config      # Application config & metadata
       - /volume1/media:/media                           # Media libraries
 
     # ── Environment ───────────────────────────────────────────
@@ -56,8 +56,8 @@ services:
 
     # ── Storage ───────────────────────────────────────────────
     volumes:
-      - /volume1/docker/stacks/plex/ts-state:/var/lib/tailscale  # Tailscale state
-      - /volume1/docker/stacks/plex/ts-config:/config            # Tailscale serve config
+      - ${TS_STACK_ROOT}/plex/ts-state:/var/lib/tailscale  # Tailscale state
+      - ${TS_STACK_ROOT}/plex/ts-config:/config            # Tailscale serve config
 
     # ── Environment ───────────────────────────────────────────
     environment:

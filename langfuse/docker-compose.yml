@@ -161,8 +161,8 @@ services:
 
     # ── Storage ───────────────────────────────────────────────
     volumes:
-      - /volume1/docker/stacks/langfuse/ts-state:/var/lib/tailscale
-      - /volume1/docker/stacks/langfuse/ts-config:/config
+      - ${TS_STACK_ROOT}/langfuse/ts-state:/var/lib/tailscale
+      - ${TS_STACK_ROOT}/langfuse/ts-config:/config
 
     # ── Environment ───────────────────────────────────────────
     # CRITICAL: primary and worker inherit this environment via network_mode: service:tailscale
@@ -223,8 +223,8 @@ services:
 
     # ── Storage ───────────────────────────────────────────────
     volumes:
-      - /volume1/docker/stacks/langfuse/clickhouse-data:/var/lib/clickhouse
-      - /volume1/docker/stacks/langfuse/clickhouse-logs:/var/log/clickhouse-server
+      - ${TS_STACK_ROOT}/langfuse/clickhouse-data:/var/lib/clickhouse
+      - ${TS_STACK_ROOT}/langfuse/clickhouse-logs:/var/log/clickhouse-server
 
     # ── Environment ─────────────────────────────────────────────
     environment:
@@ -261,7 +261,7 @@ services:
 
     # ── Storage ───────────────────────────────────────────────
     volumes:
-      - /volume1/docker/stacks/langfuse/redis-data:/data
+      - ${TS_STACK_ROOT}/langfuse/redis-data:/data
 
     # ── Environment ─────────────────────────────────────────────
     environment:
@@ -291,7 +291,7 @@ services:
 
     # ── Storage ───────────────────────────────────────────────
     volumes:
-      - /volume1/docker/stacks/langfuse/minio-data:/data
+      - ${TS_STACK_ROOT}/langfuse/minio-data:/data
 
     # ── Environment ─────────────────────────────────────────────
     environment:

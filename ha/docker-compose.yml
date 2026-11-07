@@ -81,8 +81,8 @@ services:
 
     # ── Storage ───────────────────────────────────────────────
     volumes:
-      - /volume1/docker/stacks/ha/ts-state:/var/lib/tailscale
-      - /volume1/docker/stacks/ha/ts-config:/config
+      - ${TS_STACK_ROOT}/ha/ts-state:/var/lib/tailscale
+      - ${TS_STACK_ROOT}/ha/ts-config:/config
 
     devices:
       - /dev/net/tun:/dev/net/tun

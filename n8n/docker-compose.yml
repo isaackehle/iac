@@ -48,8 +48,8 @@ services:
 
     # ── Storage ───────────────────────────────────────────────
     volumes:
-      - /volume1/docker/stacks/n8n/config:/home/node/.n8n
-      - /volume1/docker/stacks/n8n/files:/files
+      - ${TS_STACK_ROOT}/n8n/config:/home/node/.n8n
+      - ${TS_STACK_ROOT}/n8n/files:/files
 
     # ── Environment ───────────────────────────────────────────
     environment:
@@ -97,8 +97,8 @@ services:
 
     # ── Storage ───────────────────────────────────────────────
     volumes:
-      - /volume1/docker/stacks/n8n/ts-state:/var/lib/tailscale
-      - /volume1/docker/stacks/n8n/ts-config:/config
+      - ${TS_STACK_ROOT}/n8n/ts-state:/var/lib/tailscale
+      - ${TS_STACK_ROOT}/n8n/ts-config:/config
 
     # ── Environment ───────────────────────────────────────────
     environment:

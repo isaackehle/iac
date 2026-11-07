@@ -37,7 +37,7 @@ services:
 
     # ── Storage ───────────────────────────────────────────────
     volumes:
-      - /volume1/docker/stacks/actualbudget/data:/data
+      - ${TS_STACK_ROOT}/actualbudget/data:/data
 
     # ── Environment ───────────────────────────────────────────
     environment:
@@ -53,8 +53,8 @@ services:
 
     # ── Storage ───────────────────────────────────────────────
     volumes:
-      - /volume1/docker/stacks/actualbudget/ts-state:/var/lib/tailscale
-      - /volume1/docker/stacks/actualbudget/ts-config:/config
+      - ${TS_STACK_ROOT}/actualbudget/ts-state:/var/lib/tailscale
+      - ${TS_STACK_ROOT}/actualbudget/ts-config:/config
 
     # ── Environment ───────────────────────────────────────────
     environment:

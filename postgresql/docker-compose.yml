@@ -43,7 +43,7 @@ services:
 
     # ── Storage ───────────────────────────────────────────────
     volumes:
-      - /volume1/docker/stacks/postgresql:/var/lib/postgresql:rw
+      - ${TS_STACK_ROOT}/postgresql:/var/lib/postgresql:rw
 
     # ── Environment ───────────────────────────────────────────
     environment:
@@ -78,7 +78,7 @@ services:
 
     # ── Storage ───────────────────────────────────────────────
     volumes:
-      - /volume1/docker/stacks/postgresql/pgadmin:/var/lib/pgadmin:rw
+      - ${TS_STACK_ROOT}/postgresql/pgadmin:/var/lib/pgadmin:rw
 
     # ── Environment ───────────────────────────────────────────
     environment:
@@ -113,8 +113,8 @@ services:
 
     # ── Storage ───────────────────────────────────────────────
     volumes:
-      - /volume1/docker/stacks/postgresql/ts-state:/var/lib/tailscale
-      - /volume1/docker/stacks/postgresql/ts-config:/config
+      - ${TS_STACK_ROOT}/postgresql/ts-state:/var/lib/tailscale
+      - ${TS_STACK_ROOT}/postgresql/ts-config:/config
 
     # ── Environment ───────────────────────────────────────────
     environment:

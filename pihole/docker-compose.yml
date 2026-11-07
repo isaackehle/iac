@@ -41,7 +41,7 @@ services:
 
     # ── Storage ───────────────────────────────────────────────
     volumes:
-      - /volume1/docker/stacks/pihole/etc-pihole:/etc/pihole
+      - ${TS_STACK_ROOT}/pihole/etc-pihole:/etc/pihole
 
     # ── Environment ───────────────────────────────────────────
     environment:
@@ -67,8 +67,8 @@ services:
 
     # ── Storage ───────────────────────────────────────────────
     volumes:
-      - /volume1/docker/stacks/pihole/ts-state:/var/lib/tailscale
-      - /volume1/docker/stacks/pihole/ts-config:/config
+      - ${TS_STACK_ROOT}/pihole/ts-state:/var/lib/tailscale
+      - ${TS_STACK_ROOT}/pihole/ts-config:/config
 
     # ── Environment ───────────────────────────────────────────
     environment:

@@ -42,7 +42,7 @@ services:
     # ── Storage ───────────────────────────────────────────────
     # ESPHome keeps YAML source + compiled firmware under /config.
     volumes:
-      - ./config:/config
+      - ${TS_STACK_ROOT}/esphome/config:/config
 
   # ── Identity ──────────────────────────────────────────────
   esphome-tailscale:
@@ -57,8 +57,8 @@ services:
 
     # ── Storage ───────────────────────────────────────────────
     volumes:
-      - ./ts-state:/var/lib/tailscale
-      - ./ts-config:/config
+      - ${TS_STACK_ROOT}/esphome/ts-state:/var/lib/tailscale
+      - ${TS_STACK_ROOT}/esphome/ts-config:/config
 
     # ── Environment ───────────────────────────────────────────
     # TS_HOSTNAME drives the MagicDNS name — never set `hostname:` here,

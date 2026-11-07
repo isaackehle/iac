@@ -204,8 +204,8 @@ services:
 
     # ── Storage ───────────────────────────────────────────────
     volumes:
-      - /volume1/docker/stacks/mcp/ts-state:/var/lib/tailscale
-      - /volume1/docker/stacks/mcp/ts-config:/config
+      - ${TS_STACK_ROOT}/mcp/ts-state:/var/lib/tailscale
+      - ${TS_STACK_ROOT}/mcp/ts-config:/config
 
 # Pinned: DSM's firewall drops forwarded traffic from Docker's default
 # 192.168.x.0/20 pool, which silently kills outbound access (image pulls,

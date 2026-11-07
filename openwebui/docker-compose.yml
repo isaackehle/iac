@@ -44,7 +44,7 @@ services:
 
     # ── Storage ───────────────────────────────────────────────
     volumes:
-      - /volume1/docker/stacks/openwebui/data:/app/backend/data
+      - ${TS_STACK_ROOT}/openwebui/data:/app/backend/data
 
     # ── Environment ───────────────────────────────────────────
     environment:
@@ -65,7 +65,7 @@ services:
       # Absolute, not ./: Portainer CE runs compose inside its own container, so a
       # relative bind source resolves to a path that doesn't exist on the NAS
       # and Docker mounts an empty directory. deploy.sh copies the script here.
-      - /volume1/docker/stacks/openwebui/configure-litellm.sh:/scripts/configure-litellm.sh:ro
+      - ${TS_STACK_ROOT}/openwebui/configure-litellm.sh:/scripts/configure-litellm.sh:ro
 
     # ── Environment ───────────────────────────────────────────
     # Explicitly load .env so OPENWEBUI_API_KEY and LITELLM_ENGINES are
@@ -102,8 +102,8 @@ services:
 
     # ── Storage ───────────────────────────────────────────────
     volumes:
-      - /volume1/docker/stacks/openwebui/ts-state:/var/lib/tailscale
-      - /volume1/docker/stacks/openwebui/ts-config:/config
+      - ${TS_STACK_ROOT}/openwebui/ts-state:/var/lib/tailscale
+      - ${TS_STACK_ROOT}/openwebui/ts-config:/config
 
     # ── Environment ───────────────────────────────────────────
     environment:

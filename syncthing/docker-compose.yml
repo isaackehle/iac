@@ -41,10 +41,10 @@ services:
 
     # ── Storage ───────────────────────────────────────────────
     volumes:
-      - /volume1/docker/stacks/syncthing/config:/config:rw
-      - /volume1/docker/stacks/syncthing/sync:/config/sync:rw
-      - /volume1/docker/stacks/syncthing/data:/var/syncthing/data:rw
-      - /volume1/docker/stacks/syncthing/shared:/config/shared:rw  # Shared folder (admin + isaac users)
+      - ${TS_STACK_ROOT}/syncthing/config:/config:rw
+      - ${TS_STACK_ROOT}/syncthing/sync:/config/sync:rw
+      - ${TS_STACK_ROOT}/syncthing/data:/var/syncthing/data:rw
+      - ${TS_STACK_ROOT}/syncthing/shared:/config/shared:rw  # Shared folder (admin + isaac users)
 
     # ── Environment ───────────────────────────────────────────
     environment:
@@ -75,8 +75,8 @@ services:
 
     # ── Storage ───────────────────────────────────────────────
     volumes:
-      - /volume1/docker/stacks/syncthing/ts-config:/config            # serve.json
-      - /volume1/docker/stacks/syncthing/ts-state:/var/lib/tailscale  # Tailscale identity
+      - ${TS_STACK_ROOT}/syncthing/ts-config:/config            # serve.json
+      - ${TS_STACK_ROOT}/syncthing/ts-state:/var/lib/tailscale  # Tailscale identity
 
     # ── Environment ───────────────────────────────────────────
     environment:

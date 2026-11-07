@@ -45,7 +45,7 @@ services:
     # ── Storage ───────────────────────────────────────────────
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - /volume1/docker/stacks/portainer/data:/data
+      - ${TS_STACK_ROOT}/portainer/data:/data
 
   # ── Identity ──────────────────────────────────────────────
   tailscale:
@@ -57,8 +57,8 @@ services:
 
     # ── Storage ───────────────────────────────────────────────
     volumes:
-      - /volume1/docker/stacks/portainer/ts-state:/var/lib/tailscale
-      - /volume1/docker/stacks/portainer/ts-config:/config
+      - ${TS_STACK_ROOT}/portainer/ts-state:/var/lib/tailscale
+      - ${TS_STACK_ROOT}/portainer/ts-config:/config
 
     # ── Environment ───────────────────────────────────────────
     environment:

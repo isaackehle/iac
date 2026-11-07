@@ -60,8 +60,8 @@ services:
 
     # ── Storage ───────────────────────────────────────────────
     volumes:
-      - /volume1/docker/stacks/observability/ts-state:/var/lib/tailscale
-      - /volume1/docker/stacks/observability/ts-config:/config
+      - ${TS_STACK_ROOT}/observability/ts-state:/var/lib/tailscale
+      - ${TS_STACK_ROOT}/observability/ts-config:/config
 
     # ── Environment ───────────────────────────────────────────
     environment:
@@ -102,8 +102,8 @@ services:
 
     # ── Storage ───────────────────────────────────────────────
     volumes:
-      - /volume1/docker/stacks/observability/config/prometheus:/etc/prometheus:ro
-      - /volume1/docker/stacks/observability/data/prometheus:/prometheus
+      - ${TS_STACK_ROOT}/observability/config/prometheus:/etc/prometheus:ro
+      - ${TS_STACK_ROOT}/observability/data/prometheus:/prometheus
 
     # ── Runtime ───────────────────────────────────────────────
     user: "${OBS_PUID}:${OBS_PGID}"
@@ -138,8 +138,8 @@ services:
 
     # ── Storage ───────────────────────────────────────────────
     volumes:
-      - /volume1/docker/stacks/observability/config/alertmanager:/etc/alertmanager:ro
-      - /volume1/docker/stacks/observability/data/alertmanager:/alertmanager
+      - ${TS_STACK_ROOT}/observability/config/alertmanager:/etc/alertmanager:ro
+      - ${TS_STACK_ROOT}/observability/data/alertmanager:/alertmanager
 
     # ── Runtime ───────────────────────────────────────────────
     user: "${OBS_PUID}:${OBS_PGID}"
@@ -165,8 +165,8 @@ services:
 
     # ── Storage ───────────────────────────────────────────────
     volumes:
-      - /volume1/docker/stacks/observability/config/loki:/etc/loki:ro
-      - /volume1/docker/stacks/observability/data/loki:/loki
+      - ${TS_STACK_ROOT}/observability/config/loki:/etc/loki:ro
+      - ${TS_STACK_ROOT}/observability/data/loki:/loki
 
     # ── Runtime ───────────────────────────────────────────────
     user: "${OBS_PUID}:${OBS_PGID}"
@@ -188,9 +188,9 @@ services:
 
     # ── Storage ───────────────────────────────────────────────
     volumes:
-      - /volume1/docker/stacks/observability/data/grafana:/var/lib/grafana
-      - /volume1/docker/stacks/observability/config/grafana/provisioning:/etc/grafana/provisioning:ro
-      - /volume1/docker/stacks/observability/config/grafana/dashboards:/etc/grafana/dashboards:ro
+      - ${TS_STACK_ROOT}/observability/data/grafana:/var/lib/grafana
+      - ${TS_STACK_ROOT}/observability/config/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ${TS_STACK_ROOT}/observability/config/grafana/dashboards:/etc/grafana/dashboards:ro
 
     # ── Environment ───────────────────────────────────────────
     environment:
@@ -228,8 +228,8 @@ services:
     # API read-only; Alloy only lists containers and reads logs) and
     # /var/log/messages, which is 0660 system:log.
     volumes:
-      - /volume1/docker/stacks/observability/config/alloy:/etc/alloy:ro
-      - /volume1/docker/stacks/observability/data/alloy:/var/lib/alloy/data
+      - ${TS_STACK_ROOT}/observability/config/alloy:/etc/alloy:ro
+      - ${TS_STACK_ROOT}/observability/data/alloy:/var/lib/alloy/data
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /var/log:/host/var/log:ro
 
@@ -256,7 +256,7 @@ services:
 
     # ── Storage ───────────────────────────────────────────────
     volumes:
-      - /volume1/docker/stacks/observability/config/blackbox:/etc/blackbox:ro
+      - ${TS_STACK_ROOT}/observability/config/blackbox:/etc/blackbox:ro
 
     # ── Runtime ───────────────────────────────────────────────
     user: "${OBS_PUID}:${OBS_PGID}"
@@ -279,7 +279,7 @@ services:
 
     # ── Storage ───────────────────────────────────────────────
     volumes:
-      - /volume1/docker/stacks/observability/config/snmp:/etc/snmp-auth:ro
+      - ${TS_STACK_ROOT}/observability/config/snmp:/etc/snmp-auth:ro
 
     # ── Runtime ───────────────────────────────────────────────
     # The image's own snmp.yml carries the "synology" module; ours adds only the auth.
@@ -340,7 +340,7 @@ services:
     # ── Storage ───────────────────────────────────────────────
     volumes:
       - /:/host:ro   # no rslave: DSM's / is not a shared mount (compose up fails)
-      - /volume1/docker/stacks/observability/textfile:/textfile:ro
+      - ${TS_STACK_ROOT}/observability/textfile:/textfile:ro
 
     # ── Runtime ───────────────────────────────────────────────
     user: "${OBS_PUID}:${OBS_PGID}"
@@ -365,8 +365,8 @@ services:
     # Root: Docker socket plus @docker/containers/*/config.v2.json, where the
     # "stopped by hand" flag lives (same rule as scripts/docker-boot-guard.sh).
     volumes:
-      - /volume1/docker/stacks/observability/config/docker-state:/opt/docker-state:ro
-      - /volume1/docker/stacks/observability/textfile:/textfile
+      - ${TS_STACK_ROOT}/observability/config/docker-state:/opt/docker-state:ro
+      - ${TS_STACK_ROOT}/observability/textfile:/textfile
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /volume1/@docker/containers:/docker-containers:ro
 
@@ -390,8 +390,8 @@ services:
 
     # ── Storage ───────────────────────────────────────────────
     volumes:
-      - /volume1/docker/stacks/observability/config/laptop-probe:/opt/laptop-probe:ro
-      - /volume1/docker/stacks/observability/textfile:/textfile
+      - ${TS_STACK_ROOT}/observability/config/laptop-probe:/opt/laptop-probe:ro
+      - ${TS_STACK_ROOT}/observability/textfile:/textfile
 
     # ── Environment ───────────────────────────────────────────
     # The tailnet domain comes from config/laptop-probe/laptop-probe.conf
