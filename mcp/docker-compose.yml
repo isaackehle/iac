@@ -132,7 +132,7 @@ services:
   # ── Identity ──────────────────────────────────────
   # Time and timezone queries (Python, no API key required).
   time:
-    image: python:3.12
+    build: ./servers/time
     container_name: mcp-time
     env_file: *stack-env
 
