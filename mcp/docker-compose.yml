@@ -99,7 +99,7 @@ services:
     command:
       - sh
       - -c
-      - "npm install -g mcp@1.4.2 && npx mcp-proxy --pass-environment --host 127.0.0.1 --port 8486 -- node dist/index.js"
+      - "npm install -g --prefix /home/pwuser/.local mcp@1.4.2 && export PATH=/home/pwuser/.local/bin:$PATH && npx mcp-proxy --pass-environment --host 127.0.0.1 --port 8486 -- node dist/index.js"
 
     network_mode: service:tailscale   # borrow the sidecar's namespace; port 8486
 
