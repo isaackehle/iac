@@ -67,7 +67,7 @@ services:
     # implicitly via docker compose's default .env resolution; config does
     # not — it uses explicit env: lines with ${VAR:-} substitution which
     # falls back to empty when .env is absent.
-    env_file: /config/.env
+    env_file: /volume1/docker/stacks/openwebui/config/.env
 
     # ── Network ─────────────────────────────────────────────────────
     # Must be host: the tailscale service uses network_mode: host, so it
