@@ -1,17 +1,18 @@
 # Pi-hole — Docker Compose Stack
 #
-# Stack version: 2.0 (2026-09-26) -- openwebui pattern: TCPForward straight to :80, no Caddy
+# Stack version: 2.1 (2026-11-07) -- openwebui pattern: TCPForward straight to :80, no Caddy
 # Purpose: DNS sinkhole for ad blocking with DHCP server
 #
 # Services:
-#   - primary
-#   - tailscale (Tailscale sidecar)
+#   - primary (Pi-hole; DNS sinkhole + DHCP + web admin)
+#   - tailscale (Tailscale sidecar; owns the network namespace)
 #
 #   See .env.example for all required variables
 #
 # Deployment:
 #   docker compose -f pihole.yaml up -d
 #   docker compose -f pihole.yaml down
+#   Never restart the sidecar alone -- see INSTALLATION.md "Updates".
 #
 
 name: pihole
@@ -48,7 +49,7 @@ services:
 
   # ── Identity ──────────────────────────────────────────────
   tailscale:
-    image: tailscale/tailscale:unstable
+    image: tailscale/tailscale:latest
     container_name: pihole-tailscale
 
     # ── Lifecycle ─────────────────────────────────────────────
@@ -78,6 +79,8 @@ services:
       # DF-set WireGuard data packets carrying a multi-segment TLS ServerHello,
       # so :443 connects and then hangs forever at the handshake. Relaying costs
       # ~30ms and is irrelevant for an admin UI.
+      # Note: switched from tailscale:unstable to :latest (2026-11-07) after
+      # the unstable tag broke. See portainer/docker-compose.yml for rationale.
       TS_DEBUG_ALWAYS_USE_DERP: 1
       TS_CERT_DOMAIN: ${TS_CERT_DOMAIN}
 

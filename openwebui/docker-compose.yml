@@ -20,10 +20,15 @@
 
 name: openwebui
 
+x-stack-env: &stack-env
+  - /volume1/docker/stacks/openwebui/config/.env
+
+
 services:
   # ── Identity ──────────────────────────────────────────────
   primary:
     image: ghcr.io/open-webui/open-webui:latest
+    env_file: *stack-env
     container_name: openwebui
 
     # ── Lifecycle ─────────────────────────────────────────────
@@ -46,6 +51,7 @@ services:
   # ── Identity ──────────────────────────────────────────────
   config:
     image: alpine:3.20
+    env_file: *stack-env
     container_name: openwebui-config
 
     # ── Lifecycle ─────────────────────────────────────────────
@@ -60,15 +66,6 @@ services:
       # and Docker mounts an empty directory. deploy.sh copies the script here.
       - /volume1/docker/stacks/openwebui/configure-litellm.sh:/scripts/configure-litellm.sh:ro
 
-    # ── Environment ───────────────────────────────────────────
-    # Explicitly load .env so OPENWEBUI_API_KEY and LITELLM_ENGINES are
-    # available when `docker compose run --rm config` is invoked directly
-    # (not via `deploy.sh all`).  The primary/tailscale services load .env
-    # implicitly via docker compose's default .env resolution; config does
-    # not — it uses explicit env: lines with ${VAR:-} substitution which
-    # falls back to empty when .env is absent.
-    env_file: /volume1/docker/stacks/openwebui/config/.env
-
     # ── Network ─────────────────────────────────────────────────────
     # Must be host: the tailscale service uses network_mode: host, so it
     # has no IP on the Docker network and "tailscale" is unresolvable
@@ -79,7 +76,7 @@ services:
     # With network_mode: host, 127.0.0.1:8080 reaches the primary (which
     # shares the tailscale container's network namespace).
     environment:
-      OPENWEBUI_API_URL: http://127.0.0.1:8080
+      OPENWEBUI_API_URL: "http://127.0.0.1:8080"
 
     # ── Runtime ───────────────────────────────────────────────
     command: "sh -c \"apk add --no-cache bash python3 curl >/dev/null && timeout 180 /bin/sh -c 'until curl -sf $$OPENWEBUI_API_URL/health >/dev/null 2>&1; do sleep 2; done' && bash /scripts/configure-litellm.sh\""
@@ -87,6 +84,7 @@ services:
   # ── Identity ──────────────────────────────────────────────
   tailscale:
     image: tailscale/tailscale:latest
+    env_file: *stack-env
     container_name: openwebui-tailscale
 
     # ── Lifecycle ─────────────────────────────────────────────
