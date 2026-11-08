@@ -88,7 +88,7 @@ cmd_dirs() {
     ssh "$host" "cd '$remote' && mkdir -p $dirs"
   fi
 
-  ssh "$host" "sudo chown -R \"\$(id -u)\":\"\$(id -g)\" '$remote'"
+  ssh "$host" "sudo chown -R \"\$(id -u)\":\"\$(id -g)\" '$remote' 2>/dev/null || true"
 
   local overrides="${STACK_CHOWN_OVERRIDES[$stack]:-}"
   for pair in $overrides; do
@@ -104,6 +104,8 @@ cmd_dirs() {
 cmd_push() {
   local stack="$1" host="$2"
   require_stack "$stack"
+  cmd_dirs "$stack" "$host"
+
   local remote="${STACK_REMOTE_DIR[$stack]:-/volume1/docker/stacks/$stack}"
   local compose
   compose="$(compose_file_for "$stack")"
@@ -300,7 +302,7 @@ cmd_api() {
     exit 1
   fi
 
-  cmd_dirs "$stack" "$host"
+  cmd_push "$stack" "$host"
 
   local git_url="https://github.com/isaackehle/iac.git"
   local git_branch="main"
