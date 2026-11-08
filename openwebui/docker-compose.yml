@@ -21,7 +21,8 @@
 name: openwebui
 
 x-stack-env: &stack-env
-  - /volume1/docker/stacks/openwebui/config/.env
+  - /volume1/docker/stacks/config/global.env
+  - /volume1/docker/stacks/config/openwebui/service.env
 
 
 services:
