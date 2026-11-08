@@ -37,6 +37,7 @@ services:
     # ── Storage ───────────────────────────────────────────────
     volumes:
       - /volume1/docker/stacks/openwebui/data:/app/backend/data
+      - /volume1/docker/stacks/openwebui/config:/volume1/docker/stacks/openwebui/config:ro
 
     # ── Environment ───────────────────────────────────────────
     environment:
@@ -58,7 +59,6 @@ services:
       # relative bind source resolves to a path that doesn't exist on the NAS
       # and Docker mounts an empty directory. deploy.sh copies the script here.
       - /volume1/docker/stacks/openwebui/configure-litellm.sh:/scripts/configure-litellm.sh:ro
-      - /volume1/docker/stacks/openwebui/config:/volume1/docker/stacks/openwebui/config:ro
 
     # ── Environment ───────────────────────────────────────────
     # Explicitly load .env so OPENWEBUI_API_KEY and LITELLM_ENGINES are
