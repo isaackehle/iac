@@ -22,10 +22,15 @@
 
 name: portainer
 
+x-stack-env: &stack-env
+  - /volume1/docker/stacks/config/global.env
+  - /volume1/docker/stacks/config/portainer/service.env
+
 services:
   # ── Identity ──────────────────────────────────────────────
   primary:
     image: portainer/portainer-ce:2.45.2
+    env_file: *stack-env
     container_name: portainer
 
     # ── Lifecycle ─────────────────────────────────────────────
@@ -43,10 +48,12 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - /volume1/docker/stacks/portainer/data:/data
+      - /volume1/docker/stacks:/volume1/docker/stacks:ro  # GitOps stacks (read-only)
 
   # ── Identity ──────────────────────────────────────────────
   tailscale:
     image: tailscale/tailscale:latest
+    env_file: *stack-env
     container_name: portainer-tailscale
 
     # ── Lifecycle ─────────────────────────────────────────────
@@ -57,12 +64,11 @@ services:
       - /volume1/docker/stacks/portainer/ts-state:/var/lib/tailscale
       - /volume1/docker/stacks/portainer/ts-config:/config
 
-    # ── Environment ───────────────────────────────────────────
+    # ── Environment (sidecar-only overrides) ──────────────────
     environment:
       TS_HOSTNAME: portainer
       TS_STATE_DIR: /var/lib/tailscale
-      TS_AUTHKEY: ${TS_AUTHKEY}
-      TS_AUTH_ONCE: true
+      TS_AUTH_ONCE: "true"
       TS_SERVE_CONFIG: /config/serve.json
       # Force DERP relay — see pihole/docker-compose.yml for the full write-up.
       # This node can negotiate a bogus "direct" path via NAT hairpin off its

@@ -42,6 +42,10 @@
 
 name: mcp
 
+x-stack-env: &stack-env
+  - /volume1/docker/stacks/config/global.env
+  - /volume1/docker/stacks/config/mcp/service.env
+
 services:
   # ── Identity ──────────────────────────────────────────────
   # Synology DSM tools (health tier). Also still published on the NAS at
@@ -49,6 +53,7 @@ services:
   synology:
     image: ghcr.io/lefty3382/synology-mcp:latest
     container_name: mcp-synology
+    env_file: *stack-env
 
     # ── Lifecycle ─────────────────────────────────────────────
     restart: unless-stopped
@@ -58,19 +63,6 @@ services:
     # ── Network ───────────────────────────────────────────────
     network_mode: service:tailscale   # borrow the sidecar's namespace
 
-    # ── Environment ───────────────────────────────────────────
-    environment:
-    # DSM on the LAN, not the tailnet: the userspace sidecar gives this
-    # namespace no MagicDNS or tailnet routes, so "nas.<tailnet>" never
-    # resolved and every tool returned {}. The client skips TLS checks.
-    # Port: DSM's default 5001 unless DSM_HTTPS_PORT (in ~/.env) says otherwise.
-      SYNOLOGY_TANK_HOST: ${SYNOLOGY_HOST}
-      SYNOLOGY_TANK_PORT: ${SYNOLOGY_PORT:-5001}
-      SYNOLOGY_TANK_USERNAME: ${SYNOLOGY_USERNAME}
-      SYNOLOGY_TANK_PASSWORD: ${SYNOLOGY_PASSWORD}
-      MCP_PORT: 8485
-      MCP_PERMISSION_TIER: health
-
   # ── Identity ──────────────────────────────────────────────
   # Tailscale admin API, read-only (devices, users, policy file, settings).
   # Prefer an OAuth client limited to read scopes over a full API key. Starts
@@ -79,6 +71,7 @@ services:
     build: ./servers/tailscale
     image: mcp-tailscale-admin:local
     container_name: mcp-tailscale-admin
+    env_file: *stack-env
 
     # ── Lifecycle ─────────────────────────────────────────────
     restart: unless-stopped
@@ -88,19 +81,13 @@ services:
     # ── Network ───────────────────────────────────────────────
     network_mode: service:tailscale   # borrow the sidecar's namespace; port 8488
 
-    # ── Environment ───────────────────────────────────────────
-    environment:
-      TAILSCALE_OAUTH_CLIENT_ID: ${TAILSCALE_OAUTH_CLIENT_ID:-}
-      TAILSCALE_OAUTH_CLIENT_SECRET: ${TAILSCALE_OAUTH_CLIENT_SECRET:-}
-      TAILSCALE_API_KEY: ${TAILSCALE_API_KEY:-}
-      TAILSCALE_TAILNET: ${TAILSCALE_TAILNET:--}
-
   # ── Identity ──────────────────────────────────────────────
   # Web search via DuckDuckGo (free, no key needed). For better results:
   # set SEARXNG_URL or TAVILY_API_KEY in .env.
   one-search:
     image: zacma/one-search-mcp:latest
     container_name: mcp-one-search
+    env_file: *stack-env
 
     # ── Lifecycle ─────────────────────────────────────
     restart: unless-stopped
@@ -116,11 +103,6 @@ services:
 
     network_mode: service:tailscale   # borrow the sidecar's namespace; port 8486
 
-    environment:
-      SEARCH_ENGINE: ${SEARCH_ENGINE:-duckduckgo}
-      SEARXNG_URL: ${SEARXNG_URL:-}
-      TAVILY_API_KEY: ${TAVILY_API_KEY:-}
-
     volumes:
       - /volume1/docker/stacks/mcp/.env:/app/.env:ro
 
@@ -130,6 +112,7 @@ services:
   weather:
     image: node:22-slim
     container_name: mcp-weather
+    env_file: *stack-env
 
     # ── Lifecycle ─────────────────────────────────────
     restart: unless-stopped
@@ -146,12 +129,12 @@ services:
     # ── Network ───────────────────────────────
     network_mode: service:tailscale   # borrow the sidecar's namespace; port 8487
 
-
   # ── Identity ──────────────────────────────────────
   # Time and timezone queries (Python, no API key required).
   time:
-    image: python:3.12-slim
+    image: python:3.12
     container_name: mcp-time
+    env_file: *stack-env
 
     # ── Lifecycle ─────────────────────────────────────
     restart: unless-stopped
@@ -170,6 +153,7 @@ services:
   # Tailscale node "mcp": owns the namespace every MCP server shares.
   tailscale:
     image: tailscale/tailscale:latest
+    env_file: *stack-env
     container_name: mcp-tailscale
 
     # ── Lifecycle ─────────────────────────────────────────────
@@ -186,7 +170,7 @@ services:
       TS_HOSTNAME: mcp
       TS_STATE_DIR: /var/lib/tailscale
       TS_AUTHKEY: ${TS_AUTHKEY}
-      TS_AUTH_ONCE: true
+      TS_AUTH_ONCE: "true"
       TS_SERVE_CONFIG: /config/serve.json
 
     # ── Network ───────────────────────────────────────────────

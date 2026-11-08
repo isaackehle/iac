@@ -60,7 +60,7 @@ services:
       TS_HOSTNAME: _template
       TS_STATE_DIR: /var/lib/tailscale
       TS_AUTHKEY: ${TS_AUTHKEY}
-      TS_AUTH_ONCE: true
+      TS_AUTH_ONCE: "true"
       TS_SERVE_CONFIG: /config/serve.json
 
     # ── Runtime ───────────────────────────────────────────────

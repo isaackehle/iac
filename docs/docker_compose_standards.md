@@ -464,7 +464,7 @@ services:
       TS_HOSTNAME: ${HOSTNAME}
       TS_STATE_DIR: /var/lib/tailscale
       TS_AUTHKEY: ${TS_AUTHKEY}
-      TS_AUTH_ONCE: true
+      TS_AUTH_ONCE: "true"
       TS_SERVE_CONFIG: /config/serve.json
     volumes:
       - /volume1/docker/portainer-secrets/certs:/certs:ro

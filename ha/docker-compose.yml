@@ -55,10 +55,15 @@
 
 name: ha
 
+x-stack-env: &stack-env
+  - /volume1/docker/stacks/config/global.env
+  - /volume1/docker/stacks/config/ha/service.env
+
 services:
   # ── Identity ──────────────────────────────────────────────
   tailscale:
     image: tailscale/tailscale:latest
+    env_file: *stack-env
     container_name: ha-tailscale
 
     # ── Lifecycle ─────────────────────────────────────────────
@@ -69,12 +74,11 @@ services:
       - NET_ADMIN
       - NET_RAW
 
-    # ── Environment ───────────────────────────────────────────
+    # ── Environment (sidecar-only overrides) ──────────────────
     environment:
       TS_HOSTNAME: ha
       TS_STATE_DIR: /var/lib/tailscale
-      TS_AUTHKEY: ${TS_AUTHKEY}
-      TS_AUTH_ONCE: true
+      TS_AUTH_ONCE: "true"
       TS_SERVE_CONFIG: /config/serve.json
 
     # ── Storage ───────────────────────────────────────────────

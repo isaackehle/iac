@@ -44,10 +44,6 @@ services:
       - /volume1/docker/stacks/openwebui/data:/app/backend/data
       - /volume1/docker/stacks/openwebui/config:/volume1/docker/stacks/openwebui/config:ro
 
-    # ── Environment ───────────────────────────────────────────
-    environment:
-      TZ: ${TZ}
-
   # ── Identity ──────────────────────────────────────────────
   config:
     image: alpine:3.20
@@ -100,8 +96,7 @@ services:
     environment:
       TS_HOSTNAME: openwebui
       TS_STATE_DIR: /var/lib/tailscale
-      TS_AUTHKEY: ${TS_AUTHKEY}
-      TS_AUTH_ONCE: true
+      TS_AUTH_ONCE: "true"
       TS_SERVE_CONFIG: /config/serve.json
 
     # ── Runtime ───────────────────────────────────────────────

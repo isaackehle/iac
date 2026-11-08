@@ -16,10 +16,15 @@
 
 name: plex
 
+x-stack-env: &stack-env
+  - /volume1/docker/stacks/config/global.env
+  - /volume1/docker/stacks/config/plex/service.env
+
 services:
   # ── Identity ──────────────────────────────────────────────
   primary:
     image: lscr.io/linuxserver/plex:latest
+    env_file: *stack-env
     container_name: plex
 
     # ── Lifecycle ─────────────────────────────────────────────
@@ -35,16 +40,10 @@ services:
       - /volume1/docker/stacks/plex/config:/config      # Application config & metadata
       - /volume1/media:/media                           # Media libraries
 
-    # ── Environment ───────────────────────────────────────────
-    environment:
-      PUID: 1000                       # User ID for file ownership
-      PGID: 1000                       # Group ID for file ownership
-      VERSION: docker                  # Plex update channel
-      PLEX_CLAIM: ${PLEX_CLAIM}        # Claim token from https://plex.tv/claim
-
   # ── Identity ──────────────────────────────────────────────
   tailscale:
     image: tailscale/tailscale:latest
+    env_file: *stack-env
     container_name: plex-tailscale
 
     # ── Lifecycle ─────────────────────────────────────────────
@@ -55,12 +54,11 @@ services:
       - /volume1/docker/stacks/plex/ts-state:/var/lib/tailscale  # Tailscale state
       - /volume1/docker/stacks/plex/ts-config:/config            # Tailscale serve config
 
-    # ── Environment ───────────────────────────────────────────
+    # ── Environment (sidecar-only overrides) ──────────────────
     environment:
       TS_HOSTNAME: plex
       TS_STATE_DIR: /var/lib/tailscale       # State directory
-      TS_AUTHKEY: ${TS_AUTHKEY}              # Tailscale auth key
-      TS_AUTH_ONCE: true                     # Ephemeral node
+      TS_AUTH_ONCE: "true"                     # Ephemeral node
       TS_SERVE_CONFIG: /config/serve.json    # Serve config path
 
     # ── Runtime ───────────────────────────────────────────────

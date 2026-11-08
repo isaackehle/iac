@@ -26,11 +26,16 @@
 
 name: nextcloud
 
+x-stack-env: &stack-env
+  - /volume1/docker/stacks/config/global.env
+  - /volume1/docker/stacks/config/nextcloud/service.env
+
 services:
   # ── Identity ──────────────────────────────────────────────
   primary:
     image: nextcloud:apache
     container_name: nextcloud
+    env_file: *stack-env
 
     # ── Lifecycle ─────────────────────────────────────────────
     restart: unless-stopped
@@ -74,6 +79,7 @@ services:
   # ── Identity ──────────────────────────────────────────────
   tailscale:
     image: tailscale/tailscale:latest
+    env_file: *stack-env
     container_name: nextcloud-tailscale
 
     # ── Lifecycle ─────────────────────────────────────────────
@@ -94,7 +100,7 @@ services:
       TS_HOSTNAME: nextcloud
       TS_STATE_DIR: /var/lib/tailscale
       TS_AUTHKEY: ${TS_AUTHKEY}
-      TS_AUTH_ONCE: true
+      TS_AUTH_ONCE: "true"
       TS_SERVE_CONFIG: /config/serve.json
 
     # ── Runtime ───────────────────────────────────────────────
@@ -108,6 +114,7 @@ services:
   config:
     image: postgres:16
     container_name: nextcloud-db
+    env_file: *stack-env
 
     # ── Lifecycle ─────────────────────────────────────────────
     restart: unless-stopped
@@ -142,6 +149,7 @@ services:
   db-init:
     image: postgres:16
     container_name: nextcloud-db-init
+    env_file: *stack-env
 
     # ── Lifecycle ─────────────────────────────────────────────
     restart: "no"
@@ -169,6 +177,7 @@ services:
   cron:
     image: nextcloud:apache
     container_name: nextcloud-cron
+    env_file: *stack-env
 
     # ── Lifecycle ─────────────────────────────────────────────
     restart: unless-stopped

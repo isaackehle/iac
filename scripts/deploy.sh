@@ -50,7 +50,7 @@ usage() {
 Usage: scripts/deploy.sh <command> <stack> [ssh-host]
 
 Commands:
-  env    <stack>               generate <stack>/.env locally from the secrets file
+  env    <stack>               generate general/.env and <stack>/.env locally
   dirs   <stack> <ssh-host>    mkdir -p + chown the stack's directories on the NAS
   push   <stack> <ssh-host>    scp compose file, .env, and extra config into place
   extras <stack> <ssh-host>    scp ONLY the extra bind-mounted config (no compose, no
@@ -114,6 +114,23 @@ cmd_push() {
   if [[ -f "$stack/.env" ]]; then
     echo "==> $stack: pushing .env to $host:$remote/"
     scp -O "$stack/.env" "$host:$remote/.env"
+  fi
+
+  # Push centralized config: general/.env → config/global.env and
+  # <stack>/.env → config/<stack>/service.env on the NAS.
+  # These are referenced by x-stack-env anchors in docker-compose.yml.
+  if [[ -f "general/.env" ]]; then
+    local central="/volume1/docker/stacks/config"
+    echo "==> $stack: pushing general/.env to $host:$central/global.env"
+    ssh "$host" "mkdir -p '$central'"
+    scp -O "general/.env" "$host:$central/global.env"
+  fi
+
+  if [[ -f "$stack/.env" ]]; then
+    local central="/volume1/docker/stacks/config/$stack"
+    echo "==> $stack: pushing $stack/.env to $host:$central/service.env"
+    ssh "$host" "mkdir -p '$central'"
+    scp -O "$stack/.env" "$host:$central/service.env"
   fi
 
   cmd_extras "$stack" "$host"
@@ -636,6 +653,12 @@ cmd_info() {
   echo "3. Push files to the NAS:"
   echo "   scripts/deploy.sh push $stack <ssh-host>"
   echo "   → $compose"
+  if [[ -f "general/.env" ]]; then
+    echo "   → general/.env (global)"
+  fi
+  if [[ -f "$stack/.env" ]]; then
+    echo "   → $stack/.env (stack-specific)"
+  fi
   if [[ -n "$extras" ]]; then
     for pair in $extras; do
       local local_path="${pair%%:*}"

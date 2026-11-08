@@ -14,10 +14,15 @@
 #
 name: frigate
 
+x-stack-env: &stack-env
+  - /volume1/docker/stacks/config/global.env
+  - /volume1/docker/stacks/config/frigate/service.env
+
 services:
   # ── Identity ──────────────────────────────────────────────
   primary:
     image: ghcr.io/blakeblackshear/frigate:0.16.4
+    env_file: *stack-env
     # Pinned deliberately, not `:stable` — see CLAUDE.md re: floating tags on
     # fast-moving GitOps-deployed stacks. Check current release before you
     # pin: https://github.com/blakeblackshear/frigate/releases
@@ -44,15 +49,6 @@ services:
         tmpfs:
           size: 1000000000
 
-    # ── Environment ───────────────────────────────────────────
-    environment:
-      TS_HOSTNAME: frigate
-      FRIGATE_MQTT_HOST: ${FRIGATE_MQTT_HOST}
-      FRIGATE_MQTT_USER: ${FRIGATE_MQTT_USER}
-      FRIGATE_MQTT_PASSWORD: ${FRIGATE_MQTT_PASSWORD}
-      FRIGATE_RTSP_USER: ${FRIGATE_RTSP_USER}
-      FRIGATE_RTSP_PASSWORD: ${FRIGATE_RTSP_PASSWORD}
-
     # ── Runtime ───────────────────────────────────────────────
     shm_size: "1gb"         # Shared memory for camera streams
 
@@ -65,6 +61,7 @@ services:
   # Frigate's own TLS on 8971 is off (frigate-config.yml `tls:`), so Tailscale is the only TLS layer. RTSP 8554 and WebRTC 8555 stay published for LAN clients.
   tailscale:
     image: tailscale/tailscale:latest
+    env_file: *stack-env
     container_name: frigate-tailscale
 
     # ── Lifecycle ─────────────────────────────────────────────
@@ -83,7 +80,7 @@ services:
       TS_HOSTNAME: frigate
       TS_STATE_DIR: /var/lib/tailscale
       TS_AUTHKEY: ${TS_AUTHKEY}
-      TS_AUTH_ONCE: true
+      TS_AUTH_ONCE: "true"
       TS_SERVE_CONFIG: /config/serve.json
 
     # ── Network ───────────────────────────────────────────────

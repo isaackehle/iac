@@ -77,7 +77,7 @@ services:
       TS_HOSTNAME: syncthing
       TS_STATE_DIR: /var/lib/tailscale   # Persist identity across restarts
       TS_AUTHKEY: ${TS_AUTHKEY}          # Pre-auth key for auto-join
-      TS_AUTH_ONCE: true                 # Only authenticate once
+      TS_AUTH_ONCE: "true"                 # Only authenticate once
       TS_SERVE_CONFIG: /config/serve.json  # HTTPS / funnel config
 
     # ── Runtime ───────────────────────────────────────────────

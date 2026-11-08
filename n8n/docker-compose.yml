@@ -23,11 +23,16 @@
 
 name: n8n
 
+x-stack-env: &stack-env
+  - /volume1/docker/stacks/config/global.env
+  - /volume1/docker/stacks/config/n8n/service.env
+
 services:
   # ── Identity ──────────────────────────────────────────────
   primary:
     image: n8nio/n8n:latest
     container_name: n8n
+    env_file: *stack-env
 
     # ── Lifecycle ─────────────────────────────────────────────
     restart: unless-stopped
@@ -44,23 +49,11 @@ services:
       - /volume1/docker/stacks/n8n/config:/home/node/.n8n
       - /volume1/docker/stacks/n8n/files:/files
 
-    # ── Environment ───────────────────────────────────────────
-    environment:
-      TZ: ${TZ}
-      N8N_HOST: n8n
-      N8N_PORT: 5678
-      N8N_PROTOCOL: http
-      WEBHOOK_URL: https://n8n.${TS_TAILNET_DOMAIN}/
-      N8N_BASIC_AUTH_ACTIVE: true
-      N8N_BASIC_AUTH_USER: ${N8N_BASIC_AUTH_USER}
-      N8N_BASIC_AUTH_PASSWORD: ${N8N_BASIC_AUTH_PASSWORD}
-      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY}
-      BROWSERLESS_URL: http://browserless:3000
-
   # ── Identity ──────────────────────────────────────────────
   browserless:
     image: browserless/chrome:latest
     container_name: n8n-browserless
+    env_file: *stack-env
 
     # ── Lifecycle ─────────────────────────────────────────────
     restart: unless-stopped
@@ -69,15 +62,10 @@ services:
     networks:
       - n8n-net
 
-    # ── Environment ───────────────────────────────────────────
-    environment:
-      MAX_CONCURRENT_SESSIONS: 2
-      CONNECTION_TIMEOUT: 60000
-      TZ: ${TZ}
-
   # ── Identity ──────────────────────────────────────────────
   tailscale:
     image: tailscale/tailscale:latest
+    env_file: *stack-env
     container_name: n8n-tailscale
 
     # ── Lifecycle ─────────────────────────────────────────────
@@ -98,7 +86,7 @@ services:
       TS_HOSTNAME: n8n
       TS_STATE_DIR: /var/lib/tailscale
       TS_AUTHKEY: ${TS_AUTHKEY}
-      TS_AUTH_ONCE: true
+      TS_AUTH_ONCE: "true"
       TS_SERVE_CONFIG: /config/serve.json
 
     # ── Runtime ───────────────────────────────────────────────

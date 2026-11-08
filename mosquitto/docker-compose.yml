@@ -14,11 +14,16 @@
 #
 name: mosquitto
 
+x-stack-env: &stack-env
+  - /volume1/docker/stacks/config/global.env
+  - /volume1/docker/stacks/config/mosquitto/service.env
+
 services:
   # ── Identity ──────────────────────────────────────────────
   primary:
     image: eclipse-mosquitto:2.0
     container_name: mosquitto
+    env_file: *stack-env
 
     # ── Lifecycle ─────────────────────────────────────────────
     restart: unless-stopped
@@ -34,10 +39,6 @@ services:
       - /volume1/docker/stacks/mosquitto/data:/mosquitto/data          # Persistent data: retained messages, sessions
       - /volume1/docker/stacks/mosquitto/config/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro  # Broker config
 
-    # ── Environment ───────────────────────────────────────────
-    environment:
-      TZ: ${TZ}                        # Timezone for log timestamps
-
   # ── Identity ──────────────────────────────────────────────
   # Tailscale sidecar: joins the tailnet as "mosquitto" and owns the network
   # namespace. primary borrows it (network_mode: service:tailscale), so any
@@ -47,6 +48,7 @@ services:
   # MQTT isn't HTTP: serve.json forwards 1883 (plain MQTT, already WireGuard-encrypted on the tailnet), 8883 (MQTT over TLS with Tailscale's cert) and 443 (WebSocket over TLS, to 9001). 1883/9001 stay published for LAN devices.
   tailscale:
     image: tailscale/tailscale:latest
+    env_file: *stack-env
     container_name: mosquitto-tailscale
 
     # ── Lifecycle ─────────────────────────────────────────────
@@ -64,7 +66,7 @@ services:
       TS_HOSTNAME: mosquitto
       TS_STATE_DIR: /var/lib/tailscale
       TS_AUTHKEY: ${TS_AUTHKEY}
-      TS_AUTH_ONCE: true
+      TS_AUTH_ONCE: "true"
       TS_SERVE_CONFIG: /config/serve.json
 
     # ── Network ───────────────────────────────────────────────

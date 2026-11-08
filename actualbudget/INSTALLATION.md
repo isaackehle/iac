@@ -5,7 +5,7 @@ Actual Budget is a local-first budgeting app. The server stores your budget file
 
 ## Deploy
 
-Add `TS_AUTHKEY` (or `TS_AUTHKEY_ACTUALBUDGET`) to `iac-secrets.env`, then from the repo root:
+Use `TS_AUTHKEY` to `iac-secrets.env`, then from the repo root:
 
 ```shell
 scripts/deploy.sh api actualbudget

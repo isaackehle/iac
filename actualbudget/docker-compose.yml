@@ -17,10 +17,15 @@
 
 name: actualbudget
 
+x-stack-env: &stack-env
+  - /volume1/docker/stacks/config/global.env
+  - /volume1/docker/stacks/config/actualbudget/service.env
+
 services:
   # ── Identity ──────────────────────────────────────────────
   primary:
     image: actualbudget/actual-server:latest
+    env_file: *stack-env
     container_name: actualbudget
 
     # ── Lifecycle ─────────────────────────────────────────────
@@ -35,13 +40,10 @@ services:
     volumes:
       - /volume1/docker/stacks/actualbudget/data:/data
 
-    # ── Environment ───────────────────────────────────────────
-    environment:
-      TZ: ${TZ}
-
   # ── Identity ──────────────────────────────────────────────
   tailscale:
     image: tailscale/tailscale:latest
+    env_file: *stack-env
     container_name: actualbudget-tailscale
 
     # ── Lifecycle ─────────────────────────────────────────────
@@ -52,12 +54,11 @@ services:
       - /volume1/docker/stacks/actualbudget/ts-state:/var/lib/tailscale
       - /volume1/docker/stacks/actualbudget/ts-config:/config
 
-    # ── Environment ───────────────────────────────────────────
+    # ── Environment (sidecar-only overrides) ──────────────────
     environment:
       TS_HOSTNAME: actualbudget
       TS_STATE_DIR: /var/lib/tailscale
-      TS_AUTHKEY: ${TS_AUTHKEY}
-      TS_AUTH_ONCE: true
+      TS_AUTH_ONCE: "true"
       TS_SERVE_CONFIG: /config/serve.json
       # Force DERP relay — see portainer/docker-compose.yml for the full write-up.
       # Avoids a bogus "direct" path via NAT hairpin that hangs :443 at the TLS handshake.
