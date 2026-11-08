@@ -97,7 +97,7 @@ cmd_dirs() {
     uid="$(echo "$pair" | cut -d: -f2)"
     gid="$(echo "$pair" | cut -d: -f3)"
     echo "    chown $uid:$gid $remote/$dir"
-    ssh "$host" "sudo chown -R $uid:$gid '$remote/$dir'"
+    ssh "$host" "sudo chown -R $uid:$gid '$remote/$dir' 2>/dev/null || true"
   done
 }
 
@@ -335,7 +335,7 @@ cmd_api() {
     echo "   That is PUT /api/stacks/<Id>/git/redeploy?endpointId=$endpoint with body"
     echo '   {"env": <the stack'"'"'s Env, unchanged>, "prune": true, "pullImage": false,'
     echo '    "repositoryReferenceName": "refs/heads/main"}'
-    exit 1
+    return 1
   fi
   echo "   ✓ No existing stack, proceeding with creation"
   echo ""
@@ -695,7 +695,64 @@ cmd_info() {
   echo ""
 }
 
-[[ $# -ge 2 ]] || usage
+# cmd_migrate [HOST] — find all enabled stacks missing config/<stack>/service.env
+# on the NAS, and deploy them via the Portainer API.  Exits 0 when all stacks
+# already have their config files (nothing to do).
+cmd_migrate() {
+  local host="${1:-}"
+
+  if [[ -z "$host" ]]; then
+    echo "Usage: scripts/deploy.sh migrate <ssh-host>" >&2
+    exit 1
+  fi
+
+  local config_base="/volume1/docker/stacks/config"
+  local missing=()
+  local skipped=()
+
+  while IFS= read -r stack; do
+    # Skip container_manager stacks (managed by Synology Container Manager).
+    local st
+    st="$(stack_type "$stack" 2>/dev/null)" || true
+    if [[ "$st" == "container_manager" ]]; then
+      skipped+=("$stack (container_manager)")
+      continue
+    fi
+
+    # Check if config/<stack>/service.env exists on the NAS.
+    if ! ssh "$host" "test -f '$config_base/$stack/service.env'" </dev/null 2>/dev/null; then
+      missing+=("$stack")
+    fi
+  done < <(enabled_stacks)
+
+  if [[ ${#missing[@]} -eq 0 ]]; then
+    echo "==> All enabled stacks have config files on the NAS."
+    if [[ ${#skipped[@]} -gt 0 ]]; then
+      echo "   Skipped (container_manager): ${skipped[*]}"
+    fi
+    echo ""
+    echo "Nothing to do."
+    return 0
+  fi
+
+  echo "==> Found ${#missing[@]} stack(s) missing config files:"
+  for stack in "${missing[@]}"; do
+    echo "   - $stack"
+  done
+  if [[ ${#skipped[@]} -gt 0 ]]; then
+    echo "   Skipped (container_manager): ${skipped[*]}"
+  fi
+  echo ""
+
+  for stack in "${missing[@]}"; do
+    echo "=== $stack ==="
+    cmd_api "$stack" "$host" || true
+    echo ""
+  done
+
+  echo "==> Done."
+}
+
 command="$1"
 stack="$2"
 host="${3:-}"
@@ -707,15 +764,20 @@ case "$command" in
     cmd_"$command" "$stack"
     ;;
   dirs|push|extras|serve|up|down|all)
-    [[ -n "$host" ]] || usage
+    [[ $# -ge 2 ]] || usage
     "cmd_${command}" "$stack" "$host"
     ;;
   api)
-    [[ -n "$host" ]] || usage
+    [[ $# -ge 2 ]] || usage
     cmd_"$command" "$stack" "$host"
     ;;
   redeploy)
+    [[ $# -ge 2 ]] || usage
     cmd_redeploy "$stack" "$host"
+    ;;
+  migrate)
+    [[ $# -ge 2 ]] || usage
+    cmd_migrate "$2"
     ;;
   *)
     usage
