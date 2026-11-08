@@ -55,7 +55,7 @@ push() {
     local remote_env="$SSH_HOST:$NAS_BASE/$stack/.env"
 
     if [ ! -f "$local_env" ]; then
-        echo "✗ Error: $local_env not found. Run 'bash scripts/gen-env.sh $stack' first." >&2
+        echo "✗ Error: $local_env not found — create it with real values first." >&2
         exit 1
     fi
 

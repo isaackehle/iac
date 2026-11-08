@@ -40,7 +40,7 @@ Limitations:
   - Does NOT work with stacks deployed via Synology Container Manager UI
   - Those stacks are marked as "Limited" in Portainer
   - Use SSH deployment for Container Manager stacks:
-    ./scripts/gen-env.sh <stack> && ./scripts/deploy.sh all <stack> <host>
+    ./scripts/deploy.sh all <stack> <host>
 EOF
   exit 1
 }
@@ -53,11 +53,11 @@ deploy_stack() {
   
   echo "==> Deploying $stack to $host via Portainer API"
   
-  echo "1. Generating .env from secrets..."
+  echo "1. Rendering templates..."
   "$ROOT_DIR/scripts/gen-env.sh" "$stack"
   
-  if grep -qE '(^|[[:space:]])\*\*\*|^$' "$stack/.env" 2>/dev/null; then
-    echo "⚠ Warning: Some secrets are placeholders"
+  if [[ ! -f "$stack/.env" ]]; then
+    echo "⚠ Warning: $stack/.env not found — create it with real values first"
   fi
   
   echo "2. Creating GitOps stack in Portainer..."

@@ -25,7 +25,7 @@ deployed through Portainer where possible, and over SSH where not.
 _template/               starting point for a new stack
 scripts/                 deploy tooling; scripts/lib.sh holds every per-stack setting
 docs/                    cross-stack docs (patterns, ports, Portainer, runbooks)
-iac-secrets.env          every real value (gitignored); .example is committed
+<stack>/.env             per-stack secrets (gitignored); .example is committed
 ```
 
 On the NAS, each stack lives in `/volume1/docker/stacks/<stack>/`: its compose
@@ -130,21 +130,18 @@ covers the worst.
 
 ## Secrets and generated files
 
-- **`iac-secrets.env`** (repo root, gitignored) holds every real value: auth keys,
-  passwords, LAN IPs. Values can be 1Password `op://` references. Set
-  `IAC_SECRETS_FILE` to keep it elsewhere.
-- **`iac-secrets.env.example`** lists every key with generic placeholders
+- **`<stack>/.env`** (per-stack, gitignored) holds every real value: auth keys,
+  passwords, LAN IPs. Values can be 1Password `op://` references.
+- **`<stack>/.env.example`** lists every key with generic placeholders
   (`192.168.x.x`, `your-tailnet-name.ts.net`). Keep real IPs, hostnames and keys out
   of it and out of every stack's `.env.example`.
-- **`scripts/gen-env.sh <stack>`** (or `--all`) produces the per-stack files, both
-  gitignored:
-  - `<stack>/.env`, filled from the secrets file following the stack's `.env.example`;
-  - every `*.tmpl` rendered to its plain name (`serve.json.tmpl` → `serve.json`),
-    with `{{KEY}}` replaced from the secrets file.
+- **`scripts/gen-env.sh <stack>`** (or `--all`) renders every `*.tmpl` to its
+  plain name (`serve.json.tmpl` → `serve.json`), with `{{KEY}}` replaced from
+  `<stack>/.env`.
 - **`TS_CERT_DOMAIN`** is derived as `<stack>.<TS_TAILNET_DOMAIN>` unless set
   explicitly.
-- **Placeholders** still blank or unchanged after generation are printed as
-  warnings. Fill them in and re-run.
+- **Placeholders** still blank or unchanged after rendering are printed as
+  warnings. Fix them in `<stack>/.env` and re-run.
 
 ## Deploying
 
@@ -154,15 +151,15 @@ Portainer pulls the compose file from GitHub (`main`), so it can update and
 redeploy the stack itself, and the stack shows as "Total" control in Portainer.
 
 ```shell
-scripts/gen-env.sh <stack>              # .env + rendered templates
+scripts/gen-env.sh <stack>              # render *.tmpl templates
 git push                                 # Portainer reads the compose file from GitHub main
 scripts/deploy.sh dirs <stack> nas       # create the bind-mount folders (Portainer won't; the deploy fails without them)
 scripts/deploy.sh extras <stack> nas     # copy bind-mounted files (serve.json, scripts) to the NAS
 scripts/deploy.sh api <stack>            # create the stack in Portainer, with <stack>/.env as its variables
 ```
 
-- **Requires** `PORTAINER_URL` and `PORTAINER_API_KEY` in `iac-secrets.env` (or
-  `~/.env`). A per-stack `PORTAINER_API_KEY_<STACK>` (e.g. `PORTAINER_API_KEY_PIHOLE`)
+- **Requires** `PORTAINER_URL` and `PORTAINER_API_KEY` (set in `<stack>/.env` or
+  as environment variables). A per-stack `PORTAINER_API_KEY_<STACK>` (e.g. `PORTAINER_API_KEY_PIHOLE`)
   wins over `PORTAINER_API_KEY`; observability uses `PORTAINER_API_KEY_OBS`.
 - **`api` only creates.** It looks the stack up by name client-side and stops if it
   already exists. It never deletes a stack.
@@ -188,7 +185,7 @@ scripts/deploy.sh all <stack> nas        # env + dirs + push + serve + up
 
 | Command                 | Does                                                                      |
 | ----------------------- | ------------------------------------------------------------------------- |
-| `env <stack>`           | Generate `<stack>/.env` locally.                                          |
+| `env <stack>`           | Render <stack>/*.tmpl templates locally.                                  |
 | `dirs <stack> <host>`   | `mkdir -p` and `chown` the stack's directories on the NAS.                |
 | `push <stack> <host>`   | Copy the compose file, `.env` and extra config.                           |
 | `extras <stack> <host>` | Copy only the bind-mounted extra files (for Portainer-managed stacks).    |
@@ -235,8 +232,8 @@ General Docker commands: [docs/debug_docker_commands.md](docs/debug_docker_comma
 1. **Copy `_template/`** to `<stack>/` and follow its [README](_template/README.md).
    Keep the sidecar pattern, and pin the next free subnet (`172.20.35.0/24`).
 2. **Use absolute paths** for bind mounts.
-3. **Add its keys** to `iac-secrets.env.example` (placeholders) and
-   `iac-secrets.env` (real values).
+3. **Add its keys** to `<stack>/.env.example` (placeholders) and
+   `<stack>/.env` (real values).
 4. **Register it in [scripts/lib.sh](scripts/lib.sh):** `ALL_STACKS`,
    `STACK_REMOTE_DIR`, `STACK_DIRS` (include `ts-state ts-config`),
    `STACK_EXTRA_FILES` (`serve.json:ts-config/serve.json`).

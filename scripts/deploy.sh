@@ -7,7 +7,7 @@
 # is provisioned the same way instead of each having bespoke setup logic.
 #
 # Usage:
-#   scripts/deploy.sh env    <stack>                  # generate <stack>/.env locally
+#   scripts/deploy.sh env    <stack>                  # render <stack>/*.tmpl files
 #   scripts/deploy.sh dirs   <stack> <ssh-host>       # mkdir -p + chown on the NAS
 #   scripts/deploy.sh push   <stack> <ssh-host>       # scp compose/.env/extra files
 #   scripts/deploy.sh extras <stack> <ssh-host>       # scp ONLY the bind-mounted extra
@@ -50,7 +50,7 @@ usage() {
 Usage: scripts/deploy.sh <command> <stack> [ssh-host]
 
 Commands:
-  env    <stack>               generate general/.env and <stack>/.env locally
+  env    <stack>               render <stack>/*.tmpl templates
   dirs   <stack> <ssh-host>    mkdir -p + chown the stack's directories on the NAS
   push   <stack> <ssh-host>    scp compose file, .env, and extra config into place
   extras <stack> <ssh-host>    scp ONLY the extra bind-mounted config (no compose, no
@@ -116,14 +116,14 @@ cmd_push() {
     scp -O "$stack/.env" "$host:$remote/.env"
   fi
 
-  # Push centralized config: general/.env → config/global.env and
+  # Push centralized config: global/.env → config/global.env and
   # <stack>/.env → config/<stack>/service.env on the NAS.
   # These are referenced by x-stack-env anchors in docker-compose.yml.
-  if [[ -f "general/.env" ]]; then
+  if [[ -f "global/.env" ]]; then
     local central="/volume1/docker/stacks/config"
-    echo "==> $stack: pushing general/.env to $host:$central/global.env"
+    echo "==> $stack: pushing global/.env to $host:$central/global.env"
     ssh "$host" "mkdir -p '$central'"
-    scp -O "general/.env" "$host:$central/global.env"
+    scp -O "global/.env" "$host:$central/global.env"
   fi
 
   if [[ -f "$stack/.env" ]]; then
@@ -153,7 +153,7 @@ cmd_extras() {
     remote_rel="${pair#*:}"
     if [[ ! -f "$stack/$local_path" && -f "$stack/$local_path.tmpl" ]]; then
       echo "ERROR: $stack/$local_path not rendered yet — run 'scripts/gen-env.sh $stack' first" >&2
-      echo "       (it is generated from $stack/$local_path.tmpl)" >&2
+      echo "       (it is rendered from $stack/$local_path.tmpl)" >&2
       exit 1
     fi
     echo "==> $stack: pushing $local_path to $host:$remote/$remote_rel"
@@ -634,8 +634,8 @@ cmd_info() {
   echo "=== Deploy: $stack ==="
   echo ""
 
-  # Step 1: generate .env
-  echo "1. Generate .env:"
+  # Step 1: render templates
+  echo "1. Render templates:"
   echo "   scripts/deploy.sh env $stack"
   echo ""
 
@@ -653,8 +653,8 @@ cmd_info() {
   echo "3. Push files to the NAS:"
   echo "   scripts/deploy.sh push $stack <ssh-host>"
   echo "   → $compose"
-  if [[ -f "general/.env" ]]; then
-    echo "   → general/.env (global)"
+  if [[ -f "global/.env" ]]; then
+    echo "   → global/.env (global)"
   fi
   if [[ -f "$stack/.env" ]]; then
     echo "   → $stack/.env (stack-specific)"

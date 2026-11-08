@@ -40,19 +40,15 @@ deploy_stack() {
   echo "Deploying $stack..."
   echo "=========================================="
 
-  # Step 1: Generate .env locally
-  echo "Step 1: Generating .env..."
+  # Step 1: Render templates and verify .env exists
+  echo "Step 1: Rendering templates..."
   cd "$SCRIPT_DIR"
-  if [[ ! -f "scripts/gen-env.sh" ]]; then
-    echo "❌ gen-env.sh not found in $SCRIPT_DIR"
-    exit 1
-  fi
   bash scripts/gen-env.sh "$stack"
   if [[ ! -f "${stack}/.env" ]]; then
-    echo "❌ Failed to generate .env for $stack"
+    echo "❌ ${stack}/.env not found — create it with real values first"
     exit 1
   fi
-  echo "✅ Generated ${stack}/.env"
+  echo "✅ ${stack}/.env present"
 
   # Step 2: Create directories on NAS
   echo "Step 2: Creating directories on NAS..."

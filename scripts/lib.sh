@@ -244,6 +244,9 @@ IAC_SECRETS_FILE="${IAC_SECRETS_FILE:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." &
 # IAC_USER_ENV_FILE=/path, or IAC_USER_ENV_FILE= to disable.
 IAC_USER_ENV_FILE="${IAC_USER_ENV_FILE-$HOME/.env}"
 
+# Set by render_templates to enable per-stack .env fallback.
+CURRENT_STACK="${CURRENT_STACK:-}"
+
 compose_file_for() {
   local stack="$1"
   if [[ -f "$stack/docker-compose.yml" ]]; then
@@ -293,6 +296,10 @@ get_secret_value() {
     value="$(grep -m1 -E "^(export[[:space:]]+)?${key}=" "$IAC_USER_ENV_FILE" | cut -d= -f2- || true)"
     value="${value%\"}"; value="${value#\"}"; value="${value%\'}"; value="${value#\'}"
   fi
+  # When there's no central secrets file, read from <stack>/.env.
+  if [[ -z "$value" && -n "$CURRENT_STACK" && -f "$CURRENT_STACK/.env" ]]; then
+    value="$(grep -m1 -E "^${key}=" "$CURRENT_STACK/.env" | cut -d= -f2- || true)"
+  fi
   [[ -n "$value" ]] || return 0
 
   if [[ "$value" == op://* ]]; then
@@ -334,6 +341,7 @@ get_secret_value() {
 # *different* tailnet node's hostname, not this node's own domain).
 render_templates() {
   local stack="$1"
+  CURRENT_STACK="$stack"
   local tmpl
   for tmpl in "$stack"/*.tmpl; do
     [[ -e "$tmpl" ]] || continue
@@ -356,7 +364,7 @@ render_templates() {
       fi
       
       if [[ -z "$value" ]]; then
-        echo "    ⚠ $tmpl: {{$token}} has no value in $IAC_SECRETS_FILE, leaving as-is"
+        echo "    ⚠ $tmpl: {{$token}} has no value, leaving as-is"
         break
       fi
       content="${content//\{\{$token\}\}/$value}"

@@ -10,7 +10,7 @@ deploy time. For most stacks Tailscale's own `${TS_CERT_DOMAIN}` runtime
 substitution (already in the file) is all you need — the render step just
 copies it through. If your `serve.json` needs a value Tailscale can't
 substitute (e.g. a backend on a *different* tailnet node), put a `{{KEY}}`
-token in the `.tmpl` and that key in `./iac-secrets.env (repo root, gitignored)`; see
+token in the `.tmpl` and that key in `<stack>/.env`; see
 `portainer/serve.json.tmpl` for a real example. Remember to add the
 rendered `serve.json` path to `.gitignore` for your new stack.
 
