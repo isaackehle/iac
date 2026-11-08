@@ -12,7 +12,7 @@ NAS_USER="${NAS_USER:-your-username}"
 
 # Default values (can be overridden by environment variables)
 TS_TAILNET_DOMAIN="${TS_TAILNET_DOMAIN:-your-tailnet-name.ts.net}"
-TS_HOSTNAME="${TS_HOSTNAME:-portainer}"
+TS_HOSTNAME="portainer"
 ADMIN_EMAIL="${ADMIN_EMAIL:-user@email.net}"
 TZ="${TZ:-America/New_York}"
 NAS_LAN_IP="${NAS_LAN_IP:-192.168.x.x}"
@@ -100,35 +100,35 @@ cmd_env() {
 cmd_dirs() {
   local ssh_host="$1"
   echo "Creating stack directories on $ssh_host..."
-  
+
   # Create secure secrets directory
   ssh "$ssh_host" "sudo mkdir -p /volume1/docker/portainer-secrets/{certs,chisel}"
   ssh "$ssh_host" "sudo chmod 700 /volume1/docker/portainer-secrets"
   ssh "$ssh_host" "sudo chown root:root /volume1/docker/portainer-secrets"
-  
+
   # Create stacks directory
   ssh "$ssh_host" "mkdir -p /volume1/docker/stacks/$STACK_NAME"
-  
+
   echo "Done."
 }
 
 cmd_push() {
   local ssh_host="$1"
   echo "Pushing stack files to $ssh_host..."
-  
+
   # Copy compose.yaml
   scp "$STACK_DIR/old/compose.yaml" "$ssh_host:/volume1/docker/stacks/$STACK_NAME/docker-compose.yml"
-  
+
   # Generate and push .env file
   echo "Generating .env file..."
   local env_content
   env_content=$(generate_env)
   echo "$env_content" | ssh "$ssh_host" "cat > /volume1/docker/stacks/$STACK_NAME/.env"
-  
+
   # Set secure permissions on .env
   ssh "$ssh_host" "sudo chmod 600 /volume1/docker/stacks/$STACK_NAME/.env"
   ssh "$ssh_host" "sudo chown root:root /volume1/docker/stacks/$STACK_NAME/.env"
-  
+
   echo "Done."
   echo ""
   echo "=== Next Steps ==="
@@ -142,7 +142,7 @@ cmd_push() {
 cmd_up() {
   local ssh_host="$1"
   echo "Attempting to deploy stack on $ssh_host..."
-  
+
   # Try docker compose (may not work on Synology)
   if ssh "$ssh_host" "sudo /var/packages/ContainerManager/target/tool/docker compose version 2>&1" | grep -q "Docker Compose"; then
     ssh "$ssh_host" "cd /volume1/docker/stacks/$STACK_NAME && sudo /var/packages/ContainerManager/target/tool/docker compose up -d"
@@ -158,27 +158,27 @@ cmd_all() {
   local ssh_host="$1"
   echo "=== Full Deployment ==="
   echo ""
-  
+
   # Generate env (will prompt for TS_AUTHKEY if needed)
   echo "1. Generating .env..."
   cmd_env "$ssh_host"
   echo ""
-  
+
   # Create directories
   echo "2. Creating directories..."
   cmd_dirs "$ssh_host"
   echo ""
-  
+
   # Push files
   echo "3. Pushing files..."
   cmd_push "$ssh_host"
   echo ""
-  
+
   # Try to deploy via CLI
   echo "4. Attempting CLI deployment..."
   cmd_up "$ssh_host"
   echo ""
-  
+
   echo "=== Complete ==="
   echo ""
   echo "Portainer will be available at:"
