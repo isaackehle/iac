@@ -302,12 +302,43 @@ depends_on:
 Use `condition: service_completed_successfully` for one-shot migration jobs
 (see affine). Bare list form is fine only for genuinely order-insensitive deps.
 
-### 8. Absolute volume paths
+### 8. Volume paths: `/volume1/docker/stacks` and `/volume1/docker/stacks/${HOSTNAME}`
 
-Use `/volume1/docker/stacks/<stack>/...`, not `./...`. Relative paths resolve
-against whatever directory Compose was invoked from, which differs between CLI,
-Container Manager, and Portainer — so the same file mounts different things
-depending on who ran it.
+Every bind-mount volume path uses the `/volume1/docker/stacks` variable, resolved to a per-stack subdirectory via `/volume1/docker/stacks/${HOSTNAME}`:
+
+```yaml
+volumes:
+  - /volume1/docker/stacks/<stack>/data:/data
+  - /volume1/docker/stacks/<stack>/ts-state:/var/lib/tailscale
+```
+
+`STACK_ROOT` is defined in each stack's `.env.example` (default:
+`/volume1/docker/stacks`). Portainer's "Load variables from .env file" button
+substitutes it automatically. When deploying via `docker compose` on the NAS,
+pass `--env-file .env` and `STACK_ROOT` resolves from the local `.env`.
+
+`/volume1/docker/stacks/${HOSTNAME}` is a derived variable: `/volume1/docker/stacks/${TS_HOSTNAME}`. It
+resolves to the per-stack directory at compose-parse time. Every service that
+mounts `/volume1/docker/stacks/${HOSTNAME}/...` in a volume must declare `STACK_DIR=/volume1/docker/stacks/${TS_HOSTNAME}`
+in its `environment: *env` block. (Tailscale sidecars also need `TS_HOSTNAME=<stackname>`.)
+
+**Never use relative paths** (`./...`) in volume mounts — they resolve against
+whatever directory Compose was invoked from, which differs between CLI, Container
+Manager, and Portainer. **Never hardcode `/volume1/docker/stacks/...`** — it
+bakes the NAS path into the repo and prevents anyone from overriding it.
+
+Portainer's free/essential edition does **not** support relative path volumes
+natively — that feature is gated behind the **Business Edition**. This means
+stacks deployed through the Portainer UI on the free edition *must* have their
+bind-mount directories pre-created on the NAS, or the stack creation fails.
+
+This is why `cmd_dirs` in `scripts/deploy.sh` exists: it runs `mkdir -p` on the
+NAS before the stack is created, so the bind mounts have a target. If/when we
+upgrade to Business Edition, `cmd_dirs` can be removed (the script will still
+work — `mkdir -p` is idempotent — but the NAS SSH calls become unnecessary).
+
+Until then: **always run `scripts/deploy.sh` rather than creating stacks
+manually in the Portainer UI**, because the script handles directory creation.
 
 ### 9. No `version:` key
 
@@ -370,6 +401,11 @@ Container names (`container_name:`) should be unique and descriptive:
 ### Example: Standardized Naming
 
 ```yaml
+
+x-common-env: &common-env:
+  HOSTNAME: portainer
+  STACK_DIR: /volume1/docker/stacks/${HOSTNAME}
+
 services:
   # Main application
   primary:
@@ -417,7 +453,7 @@ services:
       - primary
     network_mode: service:tailscale
     volumes:
-      - /volume1/docker/stacks/portainer/caddy-config:/etc/caddy:ro
+      - /volume1/docker/stacks/${HOSTNAME}/caddy-config:/etc/caddy:ro
 
   # Tailscale sidecar (network tunnel)
   tailscale:
@@ -425,16 +461,16 @@ services:
     container_name: portainer-tailscale
     restart: unless-stopped
     environment:
-      - TS_HOSTNAME=${TS_HOSTNAME:-portainer}
-      - TS_AUTHKEY=${TS_AUTHKEY}
-      - TS_STATE_DIR=/var/lib/tailscale
-      - TS_AUTH_ONCE=true
-      - TS_SERVE_CONFIG=/config/serve.json
+      TS_HOSTNAME: ${HOSTNAME}
+      TS_STATE_DIR: /var/lib/tailscale
+      TS_AUTHKEY: ${TS_AUTHKEY}
+      TS_AUTH_ONCE: true
+      TS_SERVE_CONFIG: /config/serve.json
     volumes:
       - /volume1/docker/portainer-secrets/certs:/certs:ro
       - /volume1/docker/portainer-secrets/chisel:/chisel:ro
-      - /volume1/docker/stacks/portainer/ts-state:/var/lib/tailscale
-      - /volume1/docker/stacks/portainer/ts-config:/config
+      - /volume1/docker/stacks/${HOSTNAME}/ts-state:/var/lib/tailscale
+      - /volume1/docker/stacks/${HOSTNAME}/ts-config:/config
     devices:
       - /dev/net/tun:/dev/net/tun
     cap_add:
@@ -465,7 +501,7 @@ Before committing a new or updated compose file:
 - [ ] Published ports match the port the containerized process actually listens on
 - [ ] No literal secrets and no redactions (`***`) — all secrets via `${VAR}`
 - [ ] Stateful dependencies have a `healthcheck` and are depended on with `condition: service_healthy`
-- [ ] Volume paths are absolute
+- [ ] Volume paths use `/volume1/docker/stacks/${HOSTNAME}` (not hardcoded `/volume1/docker/stacks/...` or `./...`)
 - [ ] No `version:` key
 - [ ] Stack's entry in `scripts/lib.sh` matches what the compose file actually consumes
 - [ ] Every top-level `networks:` / `volumes:` entry is referenced by a service

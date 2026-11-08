@@ -8,10 +8,6 @@
 #   - primary (actual-server, listens on 5006)
 #   - tailscale (Tailscale sidecar; owns the network namespace)
 #
-# Environment variables:
-#   - STACK_NAME=ActualBudget
-#   - TZ=${TZ}
-#   - TS_AUTHKEY=${TS_AUTHKEY}
 #   See .env.example for all required variables
 #
 # Deployment:
@@ -41,7 +37,7 @@ services:
 
     # ── Environment ───────────────────────────────────────────
     environment:
-      - TZ=${TZ}
+      TZ: ${TZ}
 
   # ── Identity ──────────────────────────────────────────────
   tailscale:
@@ -58,14 +54,14 @@ services:
 
     # ── Environment ───────────────────────────────────────────
     environment:
-      - TS_HOSTNAME=actualbudget
-      - TS_AUTHKEY=${TS_AUTHKEY}
-      - TS_STATE_DIR=/var/lib/tailscale
-      - TS_AUTH_ONCE=true
-      - TS_SERVE_CONFIG=/config/serve.json
+      TS_HOSTNAME: actualbudget
+      TS_STATE_DIR: /var/lib/tailscale
+      TS_AUTHKEY: ${TS_AUTHKEY}
+      TS_AUTH_ONCE: true
+      TS_SERVE_CONFIG: /config/serve.json
       # Force DERP relay — see portainer/docker-compose.yml for the full write-up.
       # Avoids a bogus "direct" path via NAT hairpin that hangs :443 at the TLS handshake.
-      - TS_DEBUG_ALWAYS_USE_DERP=1
+      TS_DEBUG_ALWAYS_USE_DERP: 1
 
     # ── Runtime ───────────────────────────────────────────────
     cap_add:

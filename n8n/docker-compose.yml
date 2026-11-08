@@ -8,13 +8,6 @@
 #   - browserless
 #   - tailscale (Tailscale sidecar)
 #
-# Environment variables:
-#   - STACK_NAME=n8n
-#   - TZ=${TZ}
-#   - N8N_BASIC_AUTH_USER=${N8N_BASIC_AUTH_USER}
-#   - N8N_BASIC_AUTH_PASSWORD=${N8N_BASIC_AUTH_PASSWORD}
-#   - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
-#   - TS_AUTHKEY=${TS_AUTHKEY}
 #   See .env.example for all required variables
 #
 # Deployment:
@@ -53,16 +46,16 @@ services:
 
     # ── Environment ───────────────────────────────────────────
     environment:
-      - TZ=${TZ}
-      - N8N_HOST=n8n
-      - N8N_PORT=5678
-      - N8N_PROTOCOL=http
-      - WEBHOOK_URL=https://n8n.${TS_TAILNET_DOMAIN}/
-      - N8N_BASIC_AUTH_ACTIVE=true
-      - N8N_BASIC_AUTH_USER=${N8N_BASIC_AUTH_USER}
-      - N8N_BASIC_AUTH_PASSWORD=${N8N_BASIC_AUTH_PASSWORD}
-      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
-      - BROWSERLESS_URL=http://browserless:3000
+      TZ: ${TZ}
+      N8N_HOST: n8n
+      N8N_PORT: 5678
+      N8N_PROTOCOL: http
+      WEBHOOK_URL: https://n8n.${TS_TAILNET_DOMAIN}/
+      N8N_BASIC_AUTH_ACTIVE: true
+      N8N_BASIC_AUTH_USER: ${N8N_BASIC_AUTH_USER}
+      N8N_BASIC_AUTH_PASSWORD: ${N8N_BASIC_AUTH_PASSWORD}
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY}
+      BROWSERLESS_URL: http://browserless:3000
 
   # ── Identity ──────────────────────────────────────────────
   browserless:
@@ -78,9 +71,9 @@ services:
 
     # ── Environment ───────────────────────────────────────────
     environment:
-      - MAX_CONCURRENT_SESSIONS=2
-      - CONNECTION_TIMEOUT=60000
-      - TZ=${TZ}
+      MAX_CONCURRENT_SESSIONS: 2
+      CONNECTION_TIMEOUT: 60000
+      TZ: ${TZ}
 
   # ── Identity ──────────────────────────────────────────────
   tailscale:
@@ -102,11 +95,11 @@ services:
 
     # ── Environment ───────────────────────────────────────────
     environment:
-      - TS_HOSTNAME=n8n
-      - TS_AUTHKEY=${TS_AUTHKEY}
-      - TS_STATE_DIR=/var/lib/tailscale
-      - TS_AUTH_ONCE=true
-      - TS_SERVE_CONFIG=/config/serve.json
+      TS_HOSTNAME: n8n
+      TS_STATE_DIR: /var/lib/tailscale
+      TS_AUTHKEY: ${TS_AUTHKEY}
+      TS_AUTH_ONCE: true
+      TS_SERVE_CONFIG: /config/serve.json
 
     # ── Runtime ───────────────────────────────────────────────
     cap_add:

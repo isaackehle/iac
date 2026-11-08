@@ -144,9 +144,9 @@ gen_one() {
 cd "$ROOT_DIR"
 
 if [[ "$1" == "--all" ]]; then
-  for s in "${ALL_STACKS[@]}"; do
+  while IFS= read -r s; do
     gen_one "$s"
-  done
+  done < <(enabled_stacks)
 else
   gen_one "$1"
 fi

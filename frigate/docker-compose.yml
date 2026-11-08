@@ -6,13 +6,6 @@
 # Services:
 #   - primary
 #
-# Environment variables:
-#   - STACK_NAME=Frigate
-#   - FRIGATE_MQTT_HOST=${FRIGATE_MQTT_HOST}
-#   - FRIGATE_MQTT_USER=${FRIGATE_MQTT_USER}
-#   - FRIGATE_MQTT_PASSWORD=${FRIGATE_MQTT_PASSWORD}
-#   - FRIGATE_RTSP_USER=${FRIGATE_RTSP_USER}
-#   - FRIGATE_RTSP_PASSWORD=${FRIGATE_RTSP_PASSWORD}
 #   See .env.example for all required variables
 #
 # Deployment:
@@ -53,11 +46,12 @@ services:
 
     # ── Environment ───────────────────────────────────────────
     environment:
-      - FRIGATE_MQTT_HOST=${FRIGATE_MQTT_HOST}
-      - FRIGATE_MQTT_USER=${FRIGATE_MQTT_USER}
-      - FRIGATE_MQTT_PASSWORD=${FRIGATE_MQTT_PASSWORD}
-      - FRIGATE_RTSP_USER=${FRIGATE_RTSP_USER}
-      - FRIGATE_RTSP_PASSWORD=${FRIGATE_RTSP_PASSWORD}
+      TS_HOSTNAME: frigate
+      FRIGATE_MQTT_HOST: ${FRIGATE_MQTT_HOST}
+      FRIGATE_MQTT_USER: ${FRIGATE_MQTT_USER}
+      FRIGATE_MQTT_PASSWORD: ${FRIGATE_MQTT_PASSWORD}
+      FRIGATE_RTSP_USER: ${FRIGATE_RTSP_USER}
+      FRIGATE_RTSP_PASSWORD: ${FRIGATE_RTSP_PASSWORD}
 
     # ── Runtime ───────────────────────────────────────────────
     shm_size: "1gb"         # Shared memory for camera streams
@@ -85,11 +79,12 @@ services:
 
     # ── Environment ───────────────────────────────────────────
     environment:
-      - TS_HOSTNAME=frigate
-      - TS_AUTHKEY=${TS_AUTHKEY}
-      - TS_STATE_DIR=/var/lib/tailscale
-      - TS_AUTH_ONCE=true
-      - TS_SERVE_CONFIG=/config/serve.json
+      HOSTNAME: frigate
+      TS_HOSTNAME: frigate
+      TS_STATE_DIR: /var/lib/tailscale
+      TS_AUTHKEY: ${TS_AUTHKEY}
+      TS_AUTH_ONCE: true
+      TS_SERVE_CONFIG: /config/serve.json
 
     # ── Network ───────────────────────────────────────────────
     ports:

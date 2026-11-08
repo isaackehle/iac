@@ -10,16 +10,6 @@
 #   - cache (Redis cache)
 #   - tailscale (sidecar; https://affine.<tailnet>.ts.net)
 #
-# Environment variables:
-#   - STACK_NAME=Affine
-#   - AFFINE_REVISION=${AFFINE_REVISION:-stable}
-#   - PORT=${PORT:-3010}
-#   - UPLOAD_LOCATION=${UPLOAD_LOCATION}
-#   - CONFIG_LOCATION=${CONFIG_LOCATION}
-#   - DB_USERNAME=${DB_USERNAME}
-#   - DB_PASSWORD=${DB_PASSWORD}
-#   - DB_DATABASE=${DB_DATABASE:-affine}
-#   - DB_DATA_LOCATION=${DB_DATA_LOCATION}
 #   See .env.example for all required variables
 #
 # Deployment:
@@ -32,7 +22,7 @@ services:
   # ── Identity ──────────────────────────────────────────────
   primary:
     image: ghcr.io/toeverything/affine:${AFFINE_REVISION:-stable}
-    container_name: affine_server
+    container_name: affine
 
     # ── Lifecycle ─────────────────────────────────────────────
     restart: unless-stopped
@@ -56,9 +46,9 @@ services:
 
     # ── Environment ───────────────────────────────────────────
     environment:
-      - REDIS_SERVER_HOST=cache
-      - DATABASE_URL=postgresql://${DB_USERNAME}:${DB_PASSWORD}@config:5432/${DB_DATABASE:-affine}
-      - AFFINE_INDEXER_ENABLED=false
+      REDIS_SERVER_HOST: cache
+      DATABASE_URL: postgresql://${DB_USERNAME}:${DB_PASSWORD}@config:5432/${DB_DATABASE:-affine}
+      INDEXER_ENABLED:false
 
   # ── Identity ──────────────────────────────────────────────
   migration:
@@ -79,9 +69,9 @@ services:
 
     # ── Environment ───────────────────────────────────────────
     environment:
-      - REDIS_SERVER_HOST=cache
-      - DATABASE_URL=postgresql://${DB_USERNAME}:${DB_PASSWORD}@config:5432/${DB_DATABASE:-affine}
-      - AFFINE_INDEXER_ENABLED=false
+      REDIS_SERVER_HOST: cache
+      DATABASE_URL: postgresql://${DB_USERNAME}:${DB_PASSWORD}@config:5432/${DB_DATABASE:-affine}
+      INDEXER_ENABLED: false
 
     # ── Runtime ───────────────────────────────────────────────
     command:
@@ -96,6 +86,7 @@ services:
 
     # ── Lifecycle ─────────────────────────────────────────────
     restart: unless-stopped
+    user: "1026:100"
 
     # ── Storage ───────────────────────────────────────────────
     volumes:
@@ -103,14 +94,14 @@ services:
 
     # ── Environment ───────────────────────────────────────────
     environment:
-      - POSTGRES_USER=${DB_USERNAME}
-      - POSTGRES_PASSWORD=${DB_PASSWORD}
-      - POSTGRES_DB=${DB_DATABASE:-affine}
-      - POSTGRES_INITDB_ARGS=--data-checksums
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_DATABASE:-affine}
+      POSTGRES_INITDB_ARGS: --data-checksums
 
     # ── Runtime ───────────────────────────────────────────────
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d ${DB_DATABASE:-affine}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d ${DB_PASSWORD:-affine}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -153,11 +144,11 @@ services:
 
     # ── Environment ───────────────────────────────────────────
     environment:
-      - TS_HOSTNAME=affine
-      - TS_AUTHKEY=${TS_AUTHKEY}
-      - TS_STATE_DIR=/var/lib/tailscale
-      - TS_AUTH_ONCE=true
-      - TS_SERVE_CONFIG=/config/serve.json
+      TS_HOSTNAME: affine
+      TS_STATE_DIR: /var/lib/tailscale
+      TS_AUTHKEY: ${TS_AUTHKEY}
+      TS_AUTH_ONCE: true
+      TS_SERVE_CONFIG: /config/serve.json
 
     # ── Network ───────────────────────────────────────────────
     ports:

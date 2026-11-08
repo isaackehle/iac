@@ -7,12 +7,6 @@
 #   - primary
 #   - tailscale (Tailscale sidecar)
 #
-# Environment variables:
-#   - STACK_NAME=Syncthing
-#   - TZ=${TZ}
-#   - SYNC_PUID=${SYNC_PUID}
-#   - SYNC_PGID=${SYNC_PGID}
-#   - TS_AUTHKEY=${TS_AUTHKEY}
 #   See .env.example for all required variables
 #
 # Deployment:
@@ -48,10 +42,10 @@ services:
 
     # ── Environment ───────────────────────────────────────────
     environment:
-      - TZ=${TZ}                      # Container timezone
-      - PUID=${SYNC_PUID}             # Host UID for file ownership
-      - PGID=${SYNC_PGID}             # Host GID for file ownership
-      - STGUIADDRESS=0.0.0.0:8384     # Bind Web UI to all interfaces
+      TZ: ${TZ}                      # Container timezone
+      PUID: ${SYNC_PUID}             # Host UID for file ownership
+      PGID: ${SYNC_PGID}             # Host GID for file ownership
+      STGUIADDRESS: 0.0.0.0:8384     # Bind Web UI to all interfaces
 
     # ── Runtime ───────────────────────────────────────────────
     healthcheck:
@@ -80,11 +74,11 @@ services:
 
     # ── Environment ───────────────────────────────────────────
     environment:
-      - TS_HOSTNAME=syncthing             # Name on the tailnet
-      - TS_AUTHKEY=${TS_AUTHKEY}          # Pre-auth key for auto-join
-      - TS_STATE_DIR=/var/lib/tailscale   # Persist identity across restarts
-      - TS_AUTH_ONCE=true                 # Only authenticate once
-      - TS_SERVE_CONFIG=/config/serve.json  # HTTPS / funnel config
+      TS_HOSTNAME: syncthing
+      TS_STATE_DIR: /var/lib/tailscale   # Persist identity across restarts
+      TS_AUTHKEY: ${TS_AUTHKEY}          # Pre-auth key for auto-join
+      TS_AUTH_ONCE: true                 # Only authenticate once
+      TS_SERVE_CONFIG: /config/serve.json  # HTTPS / funnel config
 
     # ── Runtime ───────────────────────────────────────────────
     cap_add:

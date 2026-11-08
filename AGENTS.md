@@ -212,11 +212,10 @@ manually migrates it first — don't do it as a drive-by cleanup.
 
 ## Compose correctness rules — read before editing any compose file
 
-`docs/006_docker_compose_standards.md` is mostly a *style* guide (ordering,
-naming). Its **Correctness Rules** section is not — those are the rules where
-getting it wrong means the stack won't start, or starts and silently does the
-wrong thing. Every one of them has broken a stack in this repo. Read that
-section before editing compose files; the short version:
+`docs/docker_compose_standards.md` is the source of truth for all compose files
+— it covers style (ordering, naming), correctness rules (broken stacks), and
+deployment conventions. Read it before editing any compose file; the short
+version:
 
 1. **`depends_on` follows namespace ownership, one direction only.** Exactly
    one service owns the netns; borrowers (`network_mode: service:<owner>`)
@@ -238,9 +237,15 @@ section before editing compose files; the short version:
    belongs is a silent auth failure, not a placeholder.
 7. **Stateful deps get a `healthcheck` + `condition: service_healthy`.** Bare
    `depends_on` waits for *start*, not *ready*.
-8. **Absolute volume paths** — relative paths resolve against whatever
-   directory Compose was invoked from, which differs between CLI, Container
-   Manager, and Portainer.
+8. **Volume paths use `/volume1/docker/stacks`** — never hardcode
+   `/volume1/docker/stacks/...` and never use relative `./...` paths.
+   `STACK_ROOT` is defined in every stack's `.env.example` (default:
+   `/volume1/docker/stacks`). Portainer's "Load variables from .env file"
+   substitutes it automatically. Relative path volumes are a **Business Edition**
+   feature — the free/essential edition does not support it, so directories must
+   exist on the NAS before the stack is created. `cmd_dirs` in
+   `scripts/deploy.sh` handles this; do not remove it. See
+   `docs/docker_compose_standards.md` for the full explanation.
 9. **No `version:` key** (obsolete in Compose v2), and no unreferenced
    top-level `networks:`/`volumes:`.
 

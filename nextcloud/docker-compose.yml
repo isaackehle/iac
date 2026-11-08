@@ -11,12 +11,6 @@
 #   - db-init (one-shot: lets Nextcloud's own DB user create tables)
 #   - cron (runs Nextcloud background jobs every 5 minutes)
 #
-# Environment variables:
-#   - STACK_NAME=Nextcloud
-#   - NC_DB_PASSWORD=${NC_DB_PASSWORD}
-#   - NC_ADMIN_PASSWORD=${NC_ADMIN_PASSWORD}
-#   - TS_AUTHKEY=${TS_AUTHKEY}
-#   - TS_CERT_DOMAIN=${TS_CERT_DOMAIN}
 #   See .env.example for all required variables
 #
 # Deployment:
@@ -64,18 +58,18 @@ services:
     # Anchored: cron needs the same values (the image's redis and
     # reverse-proxy config files read them at runtime).
     environment: &nextcloud-env
-      - POSTGRES_HOST=config
-      - POSTGRES_DB=nextcloud
-      - POSTGRES_USER=nextcloud
-      - POSTGRES_PASSWORD=${NC_DB_PASSWORD}
-      - REDIS_HOST=cache
-      - NEXTCLOUD_ADMIN_USER=admin   # fixed; people get their own accounts
-      - NEXTCLOUD_ADMIN_PASSWORD=${NC_ADMIN_PASSWORD}
-      - NEXTCLOUD_TRUSTED_DOMAINS=${TS_CERT_DOMAIN}
-      - OVERWRITEPROTOCOL=https
-      - OVERWRITECLIURL=https://${TS_CERT_DOMAIN}
-      - PHP_MEMORY_LIMIT=1G
-      - PHP_UPLOAD_LIMIT=10G
+       POSTGRES_HOST: config
+       POSTGRES_DB: nextcloud
+       POSTGRES_USER: nextcloud
+       POSTGRES_PASSWORD: ${NC_DB_PASSWORD}
+       REDIS_HOST: cache
+       NEXTCLOUD_ADMIN_USER: admin   # fixed; people get their own accounts
+       NEXTCLOUD_ADMIN_PASSWORD: ${NC_ADMIN_PASSWORD}
+       NEXTCLOUD_TRUSTED_DOMAINS: ${TS_CERT_DOMAIN}
+       OVERWRITEPROTOCOL: https
+       OVERWRITECLIURL: https://${TS_CERT_DOMAIN}
+       PHP_MEMORY_LIMIT: 1G
+       PHP_UPLOAD_LIMIT: 10G
 
   # ── Identity ──────────────────────────────────────────────
   tailscale:
@@ -97,11 +91,11 @@ services:
 
     # ── Environment ───────────────────────────────────────────
     environment:
-      - TS_HOSTNAME=nextcloud
-      - TS_AUTHKEY=${TS_AUTHKEY}
-      - TS_STATE_DIR=/var/lib/tailscale
-      - TS_AUTH_ONCE=true
-      - TS_SERVE_CONFIG=/config/serve.json
+      TS_HOSTNAME: nextcloud
+      TS_STATE_DIR: /var/lib/tailscale
+      TS_AUTHKEY: ${TS_AUTHKEY}
+      TS_AUTH_ONCE: true
+      TS_SERVE_CONFIG: /config/serve.json
 
     # ── Runtime ───────────────────────────────────────────────
     cap_add:
@@ -128,9 +122,9 @@ services:
 
     # ── Environment ───────────────────────────────────────────
     environment:
-      - POSTGRES_DB=nextcloud
-      - POSTGRES_USER=nextcloud
-      - POSTGRES_PASSWORD=${NC_DB_PASSWORD}
+      POSTGRES_DB: nextcloud
+      POSTGRES_USER: nextcloud
+      POSTGRES_PASSWORD: ${NC_DB_PASSWORD}
 
     # ── Health ────────────────────────────────────────────────
     healthcheck:
@@ -161,10 +155,10 @@ services:
 
     # ── Environment ───────────────────────────────────────────
     environment:
-      - PGHOST=config
-      - PGUSER=nextcloud
-      - PGDATABASE=nextcloud
-      - PGPASSWORD=${NC_DB_PASSWORD}
+      PGHOST: config
+      PGUSER: nextcloud
+      PGDATABASE: nextcloud
+      PGPASSWORD: ${NC_DB_PASSWORD}
 
     # ── Runtime ───────────────────────────────────────────────
     command: ["psql", "-v", "ON_ERROR_STOP=1", "-c", "GRANT USAGE, CREATE ON SCHEMA public TO PUBLIC"]

@@ -111,9 +111,9 @@ Deploy or redeploy a Syncthing stack on Synology using Docker Compose, with Tail
 
   ```yaml
   environment:
-    - TZ=${TZ}
-    - PUID=${SYNC_PUID}
-    - PGID=${SYNC_PGID}
+    TZ: ${TZ}
+    PUID: ${SYNC_PUID}
+    PGID: ${SYNC_PGID}
     - STGUIADDRESS=0.0.0.0:8384
   ```
 

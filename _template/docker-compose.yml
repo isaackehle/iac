@@ -7,8 +7,6 @@
 #   - primary
 #   - tailscale (Tailscale sidecar)
 #
-# Environment variables:
-#   - STACK_NAME=Template
 #   See .env.example for all required variables
 #
 # Deployment:
@@ -54,16 +52,16 @@ services:
 
     # ── Storage ───────────────────────────────────────────────
     volumes:
-      - ./ts-state:/var/lib/tailscale
-      - ./ts-config:/config
+      - /volume1/docker/stacks/_template/ts-state:/var/lib/tailscale
+      - /volume1/docker/stacks/_template/ts-config:/config
 
     # ── Environment ───────────────────────────────────────────
     environment:
-      - TS_HOSTNAME=template
-      - TS_AUTHKEY=${TS_AUTHKEY}
-      - TS_STATE_DIR=/var/lib/tailscale
-      - TS_AUTH_ONCE=true
-      - TS_SERVE_CONFIG=/config/serve.json
+      TS_HOSTNAME: _template
+      TS_STATE_DIR: /var/lib/tailscale
+      TS_AUTHKEY: ${TS_AUTHKEY}
+      TS_AUTH_ONCE: true
+      TS_SERVE_CONFIG: /config/serve.json
 
     # ── Runtime ───────────────────────────────────────────────
     cap_add:

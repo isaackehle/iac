@@ -82,7 +82,7 @@ ssh nas "cd /volume1/docker/stacks/affine && docker compose up -d"
 ssh nas "docker ps | grep affine"
 
 # Check logs
-ssh nas "docker logs --tail 50 affine_server"
+ssh nas "docker logs --tail 50 affine"
 ssh nas "docker logs affine_migration_job"
 
 # Verify Affine is accessible
@@ -95,7 +95,7 @@ curl -v https://nas.<tailnet>.ts.net:3010
 
 | Container              | Image                                | Role                                    |
 | ---------------------- | ------------------------------------ | --------------------------------------- |
-| `affine_server`        | `ghcr.io/toeverything/affine:stable` | Affine web application                  |
+| `affine`               | `ghcr.io/toeverything/affine:stable` | Affine web application                  |
 | `affine_migration_job` | `ghcr.io/toeverything/affine:stable` | Database migration runner (one-time)    |
 | `affine_postgres`      | `pgvector/pgvector:pg16`             | PostgreSQL database with vector support |
 | `affine_redis`         | `redis`                              | Redis cache                             |
@@ -139,7 +139,7 @@ The stack includes an embedded PostgreSQL database and Redis cache — it's self
 
 ```shell
 # Application logs:
-docker logs affine_server
+docker logs affine
 
 # Migration logs (one-time):
 docker logs affine_migration_job
@@ -222,7 +222,7 @@ Include `$STACK_PATH/data` in your Synology backup task (Hyper Backup, Syncthing
 2. Check the container is running:
 
    ```shell
-   docker ps | grep affine_server
+   docker ps | grep affine
    ```
 
 3. Test from the NAS shell:

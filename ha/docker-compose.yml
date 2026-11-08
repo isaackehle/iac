@@ -47,9 +47,7 @@
 # Services:
 #   - tailscale (the ha node; no app container)
 #
-# Environment variables:
-#   - TS_AUTHKEY=${TS_AUTHKEY}
-#   See .env.example
+#   See .env.example for all required variables
 #
 # Deployment:
 #   scripts/deploy.sh all ha nas     (or scripts/deploy.sh api ha for a Portainer-managed stack)
@@ -73,11 +71,11 @@ services:
 
     # ── Environment ───────────────────────────────────────────
     environment:
-      - TS_HOSTNAME=ha
-      - TS_AUTHKEY=${TS_AUTHKEY}
-      - TS_STATE_DIR=/var/lib/tailscale
-      - TS_AUTH_ONCE=true
-      - TS_SERVE_CONFIG=/config/serve.json
+      TS_HOSTNAME: ha
+      TS_STATE_DIR: /var/lib/tailscale
+      TS_AUTHKEY: ${TS_AUTHKEY}
+      TS_AUTH_ONCE: true
+      TS_SERVE_CONFIG: /config/serve.json
 
     # ── Storage ───────────────────────────────────────────────
     volumes:

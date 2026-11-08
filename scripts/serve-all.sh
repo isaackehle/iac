@@ -29,11 +29,11 @@ if [[ "$reset" == "--reset" ]]; then
 fi
 
 failed=0
-for stack in "${ALL_STACKS[@]}"; do
+while IFS= read -r stack; do
   if [[ -n "${STACK_SERVE_PORTS[$stack]:-}" ]]; then
     "$ROOT_DIR/scripts/deploy.sh" serve "$stack" "$host" || failed=1
   fi
-done
+done < <(enabled_stacks)
 
 echo
 echo "Current tailscale serve status on $host:"

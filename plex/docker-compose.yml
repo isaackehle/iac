@@ -7,10 +7,6 @@
 #   - primary
 #   - tailscale (Tailscale sidecar)
 #
-# Environment variables:
-#   - STACK_NAME=Plex
-#   - PLEX_CLAIM=${PLEX_CLAIM}
-#   - TS_AUTHKEY=${TS_AUTHKEY}
 #   See .env.example for all required variables
 #
 # Deployment:
@@ -41,10 +37,10 @@ services:
 
     # ── Environment ───────────────────────────────────────────
     environment:
-      - PUID=1000                       # User ID for file ownership
-      - PGID=1000                       # Group ID for file ownership
-      - VERSION=docker                  # Plex update channel
-      - PLEX_CLAIM=${PLEX_CLAIM}        # Claim token from https://plex.tv/claim
+      PUID: 1000                       # User ID for file ownership
+      PGID: 1000                       # Group ID for file ownership
+      VERSION: docker                  # Plex update channel
+      PLEX_CLAIM: ${PLEX_CLAIM}        # Claim token from https://plex.tv/claim
 
   # ── Identity ──────────────────────────────────────────────
   tailscale:
@@ -61,11 +57,11 @@ services:
 
     # ── Environment ───────────────────────────────────────────
     environment:
-      - TS_HOSTNAME=plex                      # Tailnet-facing hostname
-      - TS_AUTHKEY=${TS_AUTHKEY}              # Tailscale auth key
-      - TS_STATE_DIR=/var/lib/tailscale       # State directory
-      - TS_AUTH_ONCE=true                     # Ephemeral node
-      - TS_SERVE_CONFIG=/config/serve.json    # Serve config path
+      TS_HOSTNAME: plex
+      TS_STATE_DIR: /var/lib/tailscale       # State directory
+      TS_AUTHKEY: ${TS_AUTHKEY}              # Tailscale auth key
+      TS_AUTH_ONCE: true                     # Ephemeral node
+      TS_SERVE_CONFIG: /config/serve.json    # Serve config path
 
     # ── Runtime ───────────────────────────────────────────────
     cap_add:

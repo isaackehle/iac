@@ -42,9 +42,9 @@ In Portainer:
        container_name: syncthing
        hostname: syncthing
        environment:
-       - PUID=1000        # your user id
-       - PGID=1000        # your group id
-       - TZ=America/New_York
+         PUID: 1000        # your user id
+         PGID: 1000        # your group id
+         TZ: "America/New_York"
        volumes:
        - /volume1/docker/stacks/syncthing/config:/config
        - /volume1/docker/stacks/syncthing/sync:/data1

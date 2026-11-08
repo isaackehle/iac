@@ -19,12 +19,10 @@
 # Servers (one service each; add a row, a service and a serve.json handler):
 #   | Path          | Service         | Port | Image                                  |
 #   | /synology     | synology        | 8485 | ghcr.io/lefty3382/synology-mcp:latest  |
-#   | /search       | one-search      | 8486 | ghcr.io/yokingma/one-search-mcp:latest |
-#   | /weather      | weather         | 8487 | ghcr.io/dangahagan/weather-mcp:latest  |
+#   | /search       | one-search      | 8486 | zacma/one-search-mcp:latest            |
+#   | /weather      | weather         | 8487 | node:22-slim + mcp-proxy + weather-mcp |
 #   | /tailscale    | tailscale-admin | 8488 | built from servers/tailscale (read-only) |
-#   | /amazon-prod  | amazon-scraper  | 8489 | ghcr.io/pullapi/amazon-scraper-mcp:latest |
-#   | /time         | time            | 8490 | python:3.12-slim + mcp-server-time     |
-#   | /brave        | brave-search    | 8491 | ghcr.io/brave/brave-search-mcp-server:latest |
+#   | /time         | time            | 8490 | python:3.12-slim + mcp-proxy + mcp-server-time |
 #
 # Adding a server: catalog and per-server recipes in ~/code/isaackehle/mcp-servers/README.md
 #   (docs/plugin-recipe.md there). In short:
@@ -36,7 +34,7 @@
 #   - Not everything called "tools" is an MCP server: LM Studio plugins (e.g.
 #     Beledarians_LM_Studio_Toolbox) run inside LM Studio, not here.
 #
-# Environment variables: see .env.example (SYNOLOGY_*, TAILSCALE_*, TS_AUTHKEY).
+#   See .env.example for all required variables
 #
 # Deployment: scripts/deploy.sh api mcp (Portainer-managed), or
 #   scripts/deploy.sh all mcp nas. See INSTALLATION.md.
@@ -62,16 +60,16 @@ services:
 
     # ── Environment ───────────────────────────────────────────
     environment:
-      # DSM on the LAN, not the tailnet: the userspace sidecar gives this
-      # namespace no MagicDNS or tailnet routes, so "nas.<tailnet>" never
-      # resolved and every tool returned {}. The client skips TLS checks.
-      # Port: DSM's default 5001 unless DSM_HTTPS_PORT (in ~/.env) says otherwise.
-      - SYNOLOGY_TANK_HOST=${SYNOLOGY_HOST}
-      - SYNOLOGY_TANK_PORT=${SYNOLOGY_PORT:-5001}
-      - SYNOLOGY_TANK_USERNAME=${SYNOLOGY_USERNAME}
-      - SYNOLOGY_TANK_PASSWORD=${SYNOLOGY_PASSWORD}
-      - MCP_PORT=8485
-      - MCP_PERMISSION_TIER=health
+    # DSM on the LAN, not the tailnet: the userspace sidecar gives this
+    # namespace no MagicDNS or tailnet routes, so "nas.<tailnet>" never
+    # resolved and every tool returned {}. The client skips TLS checks.
+    # Port: DSM's default 5001 unless DSM_HTTPS_PORT (in ~/.env) says otherwise.
+      SYNOLOGY_TANK_HOST: ${SYNOLOGY_HOST}
+      SYNOLOGY_TANK_PORT: ${SYNOLOGY_PORT:-5001}
+      SYNOLOGY_TANK_USERNAME: ${SYNOLOGY_USERNAME}
+      SYNOLOGY_TANK_PASSWORD: ${SYNOLOGY_PASSWORD}
+      MCP_PORT: 8485
+      MCP_PERMISSION_TIER: health
 
   # ── Identity ──────────────────────────────────────────────
   # Tailscale admin API, read-only (devices, users, policy file, settings).
@@ -92,16 +90,16 @@ services:
 
     # ── Environment ───────────────────────────────────────────
     environment:
-      - TAILSCALE_OAUTH_CLIENT_ID=${TAILSCALE_OAUTH_CLIENT_ID:-}
-      - TAILSCALE_OAUTH_CLIENT_SECRET=${TAILSCALE_OAUTH_CLIENT_SECRET:-}
-      - TAILSCALE_API_KEY=${TAILSCALE_API_KEY:-}
-      - TAILSCALE_TAILNET=${TAILSCALE_TAILNET:--}
+      TAILSCALE_OAUTH_CLIENT_ID: ${TAILSCALE_OAUTH_CLIENT_ID:-}
+      TAILSCALE_OAUTH_CLIENT_SECRET: ${TAILSCALE_OAUTH_CLIENT_SECRET:-}
+      TAILSCALE_API_KEY: ${TAILSCALE_API_KEY:-}
+      TAILSCALE_TAILNET: ${TAILSCALE_TAILNET:--}
 
   # ── Identity ──────────────────────────────────────────────
   # Web search via DuckDuckGo (free, no key needed). For better results:
   # set SEARXNG_URL or TAVILY_API_KEY in .env.
   one-search:
-    image: ghcr.io/yokingma/one-search-mcp:latest
+    image: zacma/one-search-mcp:latest
     container_name: mcp-one-search
 
     # ── Lifecycle ─────────────────────────────────────
@@ -109,20 +107,28 @@ services:
     depends_on:
       - tailscale
 
-    # ── Network ───────────────────────────────────────
+    # ── Runtime ───────────────────────────────────────
+    working_dir: /app
+    command:
+      - sh
+      - -c
+      - "npm install -g mcp@1.4.2 && npx mcp-proxy --pass-environment --host 127.0.0.1 --port 8486 -- node dist/index.js"
+
     network_mode: service:tailscale   # borrow the sidecar's namespace; port 8486
 
-    # ── Environment ───────────────────────────────────
     environment:
-      - MCP_PORT=8486
-      - SEARCH_ENGINE=${SEARCH_ENGINE:-duckduckgo}
-      - SEARXNG_URL=${SEARXNG_URL:-}
-      - TAVILY_API_KEY=${TAVILY_API_KEY:-}
+      SEARCH_ENGINE: ${SEARCH_ENGINE:-duckduckgo}
+      SEARXNG_URL: ${SEARXNG_URL:-}
+      TAVILY_API_KEY: ${TAVILY_API_KEY:-}
+
+    volumes:
+      - /volume1/docker/stacks/mcp/.env:/app/.env:ro
 
   # ── Identity ──────────────────────────────────────
   # Weather data (no API key required).
+  # Wrapped with mcp-proxy (stdio → HTTP) so it survives container restart.
   weather:
-    image: ghcr.io/dangahagan/weather-mcp:latest
+    image: node:22-slim
     container_name: mcp-weather
 
     # ── Lifecycle ─────────────────────────────────────
@@ -130,12 +136,16 @@ services:
     depends_on:
       - tailscale
 
-    # ── Network ───────────────────────────────────────
+    # ── Runtime ───────────────────────────────
+    working_dir: /app
+    command:
+      - sh
+      - -c
+      - "npm install -g mcp@1.4.2 && npx mcp-proxy --pass-environment --host 127.0.0.1 --port 8487 -- npx @dangahagan/weather-mcp"
+
+    # ── Network ───────────────────────────────
     network_mode: service:tailscale   # borrow the sidecar's namespace; port 8487
 
-    # ── Environment ───────────────────────────────────
-    environment:
-      - MCP_PORT=8487
 
   # ── Identity ──────────────────────────────────────
   # Time and timezone queries (Python, no API key required).
@@ -150,31 +160,13 @@ services:
 
     # ── Runtime ───────────────────────────────────────
     working_dir: /app
-    command: ["sh", "-c", "pip install mcp-server-time && python -m mcp_server_time --port 8490"]
+    command:
+      - sh
+      - -c
+      - "pip install mcp-server-time && npx mcp-proxy --pass-environment --host 127.0.0.1 --port 8490 -- python -m mcp_server_time"
 
-    # ── Network ───────────────────────────────────────
     network_mode: service:tailscale   # borrow the sidecar's namespace; port 8490
 
-  # ── Identity ──────────────────────────────────────
-  # Brave Search (free tier available). Overlaps with one-search; pick one.
-  brave-search:
-    image: ghcr.io/brave/brave-search-mcp-server:latest
-    container_name: mcp-brave-search
-
-    # ── Lifecycle ─────────────────────────────────────
-    restart: unless-stopped
-    depends_on:
-      - tailscale
-
-    # ── Network ───────────────────────────────────────
-    network_mode: service:tailscale   # borrow the sidecar's namespace; port 8491
-
-    # ── Environment ───────────────────────────────────
-    environment:
-      - BRAVE_API_KEY=${BRAVE_API_KEY:-}
-      - PORT=8491
-
-  # ── Identity ──────────────────────────────────────
   # Tailscale node "mcp": owns the namespace every MCP server shares.
   tailscale:
     image: tailscale/tailscale:latest
@@ -190,13 +182,12 @@ services:
     devices:
       - /dev/net/tun:/dev/net/tun
 
-    # ── Environment ───────────────────────────────────────────
     environment:
-      - TS_HOSTNAME=mcp
-      - TS_AUTHKEY=${TS_AUTHKEY}
-      - TS_STATE_DIR=/var/lib/tailscale
-      - TS_AUTH_ONCE=true
-      - TS_SERVE_CONFIG=/config/serve.json
+      TS_HOSTNAME: mcp
+      TS_STATE_DIR: /var/lib/tailscale
+      TS_AUTHKEY: ${TS_AUTHKEY}
+      TS_AUTH_ONCE: true
+      TS_SERVE_CONFIG: /config/serve.json
 
     # ── Network ───────────────────────────────────────────────
     ports:

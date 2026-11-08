@@ -41,7 +41,7 @@
 # files it owns, and deploy.sh pushes config files as the SSH user. Running as
 # that user keeps every pushed file readable without STACK_CHOWN_OVERRIDES.
 #
-# Environment variables: see .env.example
+#   See .env.example for all required variables
 #
 # Deployment: see INSTALLATION.md (config files are pushed by deploy.sh; the
 #   stack itself is a Portainer git stack).
@@ -65,14 +65,14 @@ services:
 
     # ── Environment ───────────────────────────────────────────
     environment:
-      - TS_HOSTNAME=obs
-      - TS_AUTHKEY=${TS_AUTHKEY}
-      - TS_STATE_DIR=/var/lib/tailscale
-      - TS_AUTH_ONCE=true
-      - TS_SERVE_CONFIG=/config/serve.json
-      - TS_OUTBOUND_HTTP_PROXY_LISTEN=127.0.0.1:1055
+      TS_HOSTNAME: obs
+      TS_STATE_DIR: /var/lib/tailscale
+      TS_AUTHKEY: ${TS_AUTHKEY}
+      TS_AUTH_ONCE: true
+      TS_SERVE_CONFIG: /config/serve.json
+      TS_OUTBOUND_HTTP_PROXY_LISTEN: 127.0.0.1:1055
       # Force DERP relay — see portainer/docker-compose.yml for the full write-up.
-      - TS_DEBUG_ALWAYS_USE_DERP=1
+      TS_DEBUG_ALWAYS_USE_DERP: 1
 
     # ── Runtime ───────────────────────────────────────────────
     cap_add:
@@ -194,18 +194,18 @@ services:
 
     # ── Environment ───────────────────────────────────────────
     environment:
-      - TZ=${TZ}
-      - GF_SERVER_HTTP_ADDR=127.0.0.1
-      - GF_SERVER_HTTP_PORT=3000
-      - GF_SERVER_ROOT_URL=https://${OBS_HOST}/
-      - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
-      - GF_SECURITY_COOKIE_SECURE=true
-      - GF_USERS_ALLOW_SIGN_UP=false
-      - GF_AUTH_ANONYMOUS_ENABLED=false
-      - GF_ANALYTICS_REPORTING_ENABLED=false
-      - GF_ANALYTICS_CHECK_FOR_UPDATES=false
-      - GF_ANALYTICS_CHECK_FOR_PLUGIN_UPDATES=false
+      TZ: ${TZ}
+      GF_SERVER_HTTP_ADDR: 127.0.0.1
+      GF_SERVER_HTTP_PORT: "3000"
+      GF_SERVER_ROOT_URL: https://${OBS_HOST}/
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
+      GF_SECURITY_COOKIE_SECURE: "true"
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+      GF_ANALYTICS_CHECK_FOR_PLUGIN_UPDATES: "false"
 
     # ── Runtime ───────────────────────────────────────────────
     user: "${OBS_PUID}:${OBS_PGID}"
@@ -394,11 +394,11 @@ services:
       - /volume1/docker/stacks/observability/textfile:/textfile
 
     # ── Environment ───────────────────────────────────────────
-    # The tailnet domain comes from config/laptop-probe/laptop-probe.conf
-    # (rendered from laptop-probe.conf.tmpl, pushed by deploy.sh extras), not
-    # from a stack variable, so a git redeploy needs no new Portainer variable.
+      # The tailnet domain comes from config/laptop-probe/laptop-probe.conf
+      # (rendered from laptop-probe.conf.tmpl, pushed by deploy.sh extras), not
+      # from a stack variable, so a git redeploy needs no new Portainer variable.
     environment:
-      - LAPTOPS=discovery enterprise
+      LAPTOPS: discovery enterprise ds9
 
     # ── Runtime ───────────────────────────────────────────────
     user: "${OBS_PUID}:${OBS_PGID}"

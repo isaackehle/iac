@@ -6,8 +6,6 @@
 # Services:
 #   - dsm-tailscale
 #
-# Environment variables:
-#   - TS_AUTHKEY=<Tailscale auth key>
 #   See .env.example for all required variables
 #
 
@@ -21,14 +19,14 @@ services:
     hostname: dsm                      # → https://dsm.tail303fda.ts.net
     restart: always                    # survives DSM updates (see tonight)
     environment:
-      - TS_AUTHKEY=${TS_AUTHKEY}       # same pattern as your other sidecars
-      - TS_STATE_DIR=/var/lib/tailscale
-      - TS_SERVE_CONFIG=/config/serve.json
-      - TS_USERSPACE=true
+      TS_HOSTNAME: dsm
+      TS_AUTHKEY: ${TS_AUTHKEY}       # same pattern as your other sidecars
+      TS_STATE_DIR: /var/lib/tailscale
+      TS_SERVE_CONFIG: /config/serve.json
+      TS_USERSPACE: "true"
     volumes:
       # mirror however mcp-tailscale mounts its state + serve config
       - /volume1/docker/stacks/dsm/state:/var/lib/tailscale
       - /volume1/docker/stacks/dsm/ts-config:/config
     extra_hosts:
       - "host.docker.internal:host-gateway"   # reach DSM on the host
-    # NOTE: no network_mode: service:..., this one stands alone on the bridge

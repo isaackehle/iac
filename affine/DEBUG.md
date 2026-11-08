@@ -5,7 +5,7 @@ Quick reference for troubleshooting the Affine stack.
 ## Container Access
 
 ```shell
-docker exec -it affine_server sh
+docker exec -it affine sh
 docker exec -it affine_redis sh
 docker exec -it affine_postgres sh
 docker exec -it affine_migration_job sh
@@ -14,8 +14,8 @@ docker exec -it affine_migration_job sh
 ## Container Logs
 
 ```shell
-docker logs affine_server
-docker logs -f affine_server
+docker logs affine
+docker logs -f affine
 
 # Sibling containers
 docker logs affine_redis
@@ -41,7 +41,7 @@ docker exec affine_postgres pg_isready -U root -d affine
 
 ```shell
 docker compose -f /volume1/docker/stacks/affine/docker-compose.yaml restart
-docker compose -f /volume1/docker/stacks/affine/docker-compose.yaml restart affine_server
+docker compose -f /volume1/docker/stacks/affine/docker-compose.yaml restart affine
 ```
 
 ## Config Files

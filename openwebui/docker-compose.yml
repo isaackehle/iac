@@ -11,14 +11,6 @@
 #     no-ops with instructions if OPENWEBUI_API_KEY isn't set yet)
 #   - tailscale (Tailscale sidecar)
 #
-# Environment variables:
-#   - STACK_NAME=OpenWebUI
-#   - TZ=${TZ}
-#   - OPENWEBUI_API_KEY=${OPENWEBUI_API_KEY}  (optional at first deploy -- see
-#     configure-litellm.sh; required only to actually register connections)
-#   - LITELLM_ENGINES=${LITELLM_ENGINES}  (JSON array of fleet hosts' LiteLLM
-#     URLs -- see homelab repo fleet/registry/hosts.yaml for the current list)
-#   - TS_AUTHKEY=${TS_AUTHKEY}
 #   See .env.example for all required variables
 #
 # Deployment:
@@ -48,7 +40,7 @@ services:
 
     # ── Environment ───────────────────────────────────────────
     environment:
-      - TZ=${TZ}
+      TZ: ${TZ}
 
   # ── Identity ──────────────────────────────────────────────
   config:
@@ -86,7 +78,7 @@ services:
     # With network_mode: host, 127.0.0.1:8080 reaches the primary (which
     # shares the tailscale container's network namespace).
     environment:
-      - OPENWEBUI_API_URL=http://127.0.0.1:8080
+      OPENWEBUI_API_URL: http://127.0.0.1:8080
 
     # ── Runtime ───────────────────────────────────────────────
     command: "sh -c \"apk add --no-cache bash python3 curl >/dev/null && timeout 180 /bin/sh -c 'until curl -sf $$OPENWEBUI_API_URL/health >/dev/null 2>&1; do sleep 2; done' && bash /scripts/configure-litellm.sh\""
@@ -107,11 +99,11 @@ services:
 
     # ── Environment ───────────────────────────────────────────
     environment:
-      - TS_HOSTNAME=openwebui
-      - TS_AUTHKEY=${TS_AUTHKEY}
-      - TS_STATE_DIR=/var/lib/tailscale
-      - TS_AUTH_ONCE=true
-      - TS_SERVE_CONFIG=/config/serve.json
+      TS_HOSTNAME: openwebui
+      TS_STATE_DIR: /var/lib/tailscale
+      TS_AUTHKEY: ${TS_AUTHKEY}
+      TS_AUTH_ONCE: true
+      TS_SERVE_CONFIG: /config/serve.json
 
     # ── Runtime ───────────────────────────────────────────────
     cap_add:

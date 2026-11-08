@@ -5,5 +5,5 @@ WORKDIR /app
 COPY requirements.txt server.py ./
 RUN pip install --no-cache-dir -r requirements.txt
 USER nobody
-# --pass-environment: mcp-proxy doesn't pass env vars to the server otherwise.
+# --pass-environment: *env mcp-proxy doesn't pass env vars to the server otherwise.
 ENTRYPOINT ["mcp-proxy", "--pass-environment", "--host", "127.0.0.1", "--port", "8488", "--", "python", "/app/server.py"]
