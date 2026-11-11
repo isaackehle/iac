@@ -12,7 +12,7 @@
 #   - admin (pgAdmin web interface)
 #   - tailscale (Tailscale sidecar — owns the netns for primary/admin)
 #
-#   See .env.example for all required variables
+#   See .env.sample for all required variables
 #
 # Deployment:
 #   docker compose -f postgresql.yaml up -d
@@ -42,7 +42,7 @@ services:
 
     # ── Storage ───────────────────────────────────────────────
     volumes:
-      - /volume1/docker/stacks/postgresql: /var/lib/postgresql:rw
+      - /volume1/docker/stacks/postgresql:/var/lib/postgresql:rw
 
     # ── Runtime ───────────────────────────────────────────────
     healthcheck:

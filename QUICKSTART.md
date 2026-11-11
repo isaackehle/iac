@@ -5,15 +5,22 @@ secrets/deploy model and Tailscale pattern details.
 
 ---
 
-## One-time: set up the secrets file
+## One-time: set up the shared values
 
 ```shell
-cp iac-secrets.env.example iac-secrets.env
-$EDITOR iac-secrets.env   # fill in real values
+cp global/.env.sample global/.env
+$EDITOR global/.env   # TS_TAILNET_DOMAIN, NAS_LAN_IP, TZ, ...
 ```
 
-This file lives at the repo root, gitignored and never committed. Every
-stack's real `.env` is generated from it.
+## Per stack: create its `.env`
+
+```shell
+cp <stack>/.env.sample <stack>/.env
+$EDITOR <stack>/.env   # fill in real values
+```
+
+Both files are gitignored and never committed. Nothing generates them: the
+`.env.sample` next to each one documents every key.
 
 ---
 
@@ -31,7 +38,7 @@ Run the full deploy in one command:
 scripts/deploy.sh all <stack> <ssh-host>
 ```
 
-This generates the stack's `.env`, creates its directories on the NAS,
+This renders the stack's `*.tmpl` files, creates its directories on the NAS,
 pushes the compose file + `.env` + any extra config, applies host-level
 `tailscale serve` mappings if the stack needs them, and runs
 `docker compose up -d` — in one command. `<ssh-host>` is anything

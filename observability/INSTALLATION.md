@@ -43,10 +43,12 @@ Silence anything from Alertmanager's UI (`:9093` → Silences).
 
 ## Secrets
 
-In `iac-secrets.env` (names only; see `iac-secrets.env.example`):
+In `observability/.env` (names only; see `observability/.env.sample`):
 
 - `TS_AUTHKEY_OBSERVABILITY`: reusable, pre-authorized
 - `TELEGRAM_BOT_TOKEN`, `TELEGRAM_HOME_CHANNEL`
+- `DISCORD_ALERTS_WEBHOOK_URL`: the webhook for the Discord server's alerts channel (Channel settings → Integrations →
+  Webhooks → New Webhook → Copy Webhook URL)
 - `GRAFANA_ADMIN_PASSWORD`
 - `SNMP_V3_USERNAME`, `SNMP_V3_PASSWORD` (auth), `SNMP_V3_PRIV_PASSWORD`: the DSM SNMPv3 user with SNMP privacy on
   (Control Panel → Terminal & SNMP → SNMPv3). The protocols in `snmp-auth.yml.tmpl` must match what DSM saved: today MD5
@@ -54,8 +56,9 @@ In `iac-secrets.env` (names only; see `iac-secrets.env.example`):
   the Synology alerts have no data; `SnmpDown` shows that in Grafana only.
 - `DSM_HTTPS_PORT` comes from `~/.env` (personal, never in the repo), for the DSM probe.
 
-The bot token is rendered into its own file (`telegram_bot_token`, used as Alertmanager's `bot_token_file`), never into
-`alertmanager.yml`.
+The bot token and the Discord webhook URL are each rendered into their own file (`telegram_bot_token` →
+`bot_token_file`, `discord_webhook_url` → `webhook_url_file`), never into `alertmanager.yml`. Every routed alert goes
+to both Telegram and Discord.
 
 ## Deploy
 
@@ -69,7 +72,7 @@ stack in the list (syncthing, stack 33), so do not run an older copy of the scri
 Config files (everything except the compose file) are pushed with deploy.sh, then the stack is redeployed:
 
 ```shell
-scripts/gen-env.sh observability                 # .env + rendered templates (all gitignored)
+scripts/deploy.sh env observability                 # .env + rendered templates (all gitignored)
 scripts/deploy.sh dirs observability nas         # first time only: directories under /volume1/docker/stacks/observability
 scripts/deploy.sh extras observability nas       # config files: serve.json, Prometheus, Alertmanager, Loki, ...
 ```
@@ -92,7 +95,7 @@ readable without any chown. Since the 2026-10-17 docker share ACL change a non-r
 
 ## Changing config
 
-Edit the file in the repo, then `scripts/gen-env.sh observability && scripts/deploy.sh extras observability nas`, then:
+Edit the file in the repo, then `scripts/deploy.sh env observability && scripts/deploy.sh extras observability nas`, then:
 
 - Prometheus rules or scrape config: `curl -X POST https://obs.${TS_TAILNET_DOMAIN}:9090/-/reload`
 - Alertmanager: `curl -X POST https://obs.${TS_TAILNET_DOMAIN}:9093/-/reload`

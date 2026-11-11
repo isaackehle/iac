@@ -124,7 +124,7 @@ docker run --rm \
 2. **Copy files to the stack directory:**
 
    ```shell
-   cp docker-compose.yml init.sh serve.json .env.example configure-ollama.sh example-engines.json /volume1/docker/stacks/openwebui/
+   cp docker-compose.yml init.sh serve.json .env.sample configure-ollama.sh example-engines.json /volume1/docker/stacks/openwebui/
    cd /volume1/docker/stacks/openwebui
    ```
 
@@ -132,7 +132,7 @@ docker run --rm \
 
    ```shell
    export TS_AUTHKEY=${TS_AUTHKEY}  # From https://login.tailscale.com/admin/key/new
-   cp .env.example .env
+   cp .env.sample .env
    nano .env  # Add your auth key
    ```
 

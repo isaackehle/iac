@@ -24,7 +24,7 @@ Tailscale sidecar and applied via `TS_SERVE_CONFIG` on container start.
    - **Repository URL:** `https://github.com/isaackehle/iac.git`
    - **Repository reference:** `refs/heads/main`
    - **Compose path:** `plex/docker-compose.yml`
-4. Under **Environment variables**, paste the contents of `.env.example` with
+4. Under **Environment variables**, paste the contents of `.env.sample` with
    real values filled in:
    - `PLEX_CLAIM` — from <https://www.plex.tv/claim> (only needed on first run)
    - `TS_AUTHKEY` — from <https://login.tailscale.com/admin/settings/keys>

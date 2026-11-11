@@ -26,7 +26,7 @@ running, remove it first, in Portainer (Stacks → `synology-mcp` → Delete) or
 keep.
 
 ```shell
-scripts/gen-env.sh mcp                  # .env (SYNOLOGY_*, TS_AUTHKEY) + serve.json
+scripts/deploy.sh env mcp                  # .env (SYNOLOGY_*, TS_AUTHKEY) + serve.json
 git push                                 # Portainer reads the compose file from GitHub
 scripts/deploy.sh dirs mcp nas           # ts-state/ and ts-config/ on the NAS (Portainer won't create them)
 scripts/deploy.sh extras mcp nas         # serve.json to /volume1/docker/stacks/mcp/ts-config/
@@ -114,6 +114,6 @@ Short version:
    reads financial or password data stays local.
 3. **Add** a Dockerfile under `servers/<name>/`, a service on the next free port
    (table in `docker-compose.yml`), a `"/<name>"` handler in `serve.json.tmpl`, and
-   its secrets in `.env.example` and `iac-secrets.env`.
-4. **Redeploy:** `scripts/gen-env.sh mcp`, `scripts/deploy.sh extras mcp nas`, then
+   its secrets in `.env.sample` and `iac-secrets.env`.
+4. **Redeploy:** `scripts/deploy.sh env mcp`, `scripts/deploy.sh extras mcp nas`, then
    Pull and redeploy in Portainer.

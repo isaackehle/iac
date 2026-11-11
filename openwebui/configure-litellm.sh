@@ -12,6 +12,10 @@ set -euo pipefail
 # Environment variables (required):
 #   OPENWEBUI_API_URL    - e.g., http://localhost:8080 or https://openwebui.ts.net
 #   LITELLM_ENGINES       - JSON array of {"name": "<host>", "url": "<litellm /v1 base>"}
+#                        Optional "prefix" overrides the model-id prefix (default: name;
+#                        "" for none). Normal value since 2026-11-10 is the single
+#                        in-stack gateway:
+#                        '[{"name":"fleet","url":"http://127.0.0.1:4000/v1","prefix":""}]'
 #                        Example: '[{"name":"discovery","url":"http://discovery.tailnet.ts.net:4000/v1"},{"name":"ds9","url":"http://ds9.tailnet.ts.net:4000/v1"}]'
 #   OPENWEBUI_API_KEY    - Admin API key from OpenWebUI settings (Settings ->
 #                          Account -> API keys). Does not exist until an admin
@@ -34,7 +38,7 @@ if [ -z "${OPENWEBUI_API_KEY:-}" ]; then
     echo "  1. Open https://openwebui.\${TS_TAILNET_DOMAIN} and sign up (first"
     echo "     account created becomes admin)."
     echo "  2. Settings -> Account -> API keys -> create one."
-    echo "  3. Put it in iac-secrets.env as OPENWEBUI_API_KEY=..."
+    echo "  3. Put it in openwebui/.env as OPENWEBUI_API_KEY=..."
     echo "  4. Re-run: scripts/deploy.sh up openwebui nas   (or: docker compose run --rm config)"
     echo "Skipping connection registration for now; OpenWebUI itself is still up."
     exit 0
@@ -85,7 +89,9 @@ for i, eng in enumerate(engines):
     url   = eng.get('url', '').rstrip('/')
     base_urls.append(url)
     api_keys.append(sys.argv[2])
-    configs[str(i)] = {'enable': True, 'tags': [], 'prefix_id': name}
+    # Optional "prefix": the fleet gateway already namespaces models as
+    # <host>/<model>, so its entry sets "prefix": "" to avoid a second prefix.
+    configs[str(i)] = {'enable': True, 'tags': [], 'prefix_id': eng.get('prefix', name)}
     print(f'  Adding: {name} -> {url}')
 
 print(json.dumps(base_urls))

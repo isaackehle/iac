@@ -220,24 +220,11 @@ exist on the server since the reset; create one in the UI before pushing.
 
 ---
 
-## Known pre-existing issue: `gen-env.sh` needs bash 5
+## Resolved: template rendering needed bash 5
 
-```bash
-/opt/homebrew/bin/bash scripts/gen-env.sh actualbudget
-```
-
-macOS ships bash 3.2, which lacks associative arrays. `scripts/lib.sh` declares
-`declare -A STACK_REMOTE_DIR=( [actualbudget]=... )`, and under `set -u` bash 3.2
-evaluates `[actualbudget]` as arithmetic, dying with:
-
-```text
-scripts/lib.sh: line 18: actualbudget: unbound variable
-```
-
-This fails for **every** stack, not just this one, and is unrelated to any
-stack's config. Every other script in the repo already uses
-`#!/opt/homebrew/bin/bash`; `gen-env.sh` is the odd one out and should be fixed
-the same way.
+`gen-env.sh` had a `#!/usr/bin/env bash` shebang and died under macOS's bash 3.2
+(no associative arrays). It was removed on 2026-11-10; rendering is now
+`scripts/deploy.sh env <stack>`, which already uses `#!/opt/homebrew/bin/bash`.
 
 ---
 

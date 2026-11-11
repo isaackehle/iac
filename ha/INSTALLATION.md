@@ -71,7 +71,7 @@ repo change cannot bring it back.
 ## 4. Deploy
 
 ```shell
-scripts/gen-env.sh ha              # .env (TS_AUTHKEY) + serve.json from serve.json.tmpl
+scripts/deploy.sh env ha              # .env (TS_AUTHKEY) + serve.json from serve.json.tmpl
 scripts/deploy.sh all ha nas       # dirs, files, docker compose up -d
 # or, Portainer-managed: push the repo, then
 #   scripts/deploy.sh dirs ha nas && scripts/deploy.sh extras ha nas && scripts/deploy.sh api ha

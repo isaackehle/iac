@@ -1,6 +1,6 @@
 #!/opt/homebrew/bin/bash
 # scripts/lib.sh — shared config for the deploy tooling in this repo.
-# Sourced by gen-env.sh / deploy.sh, not executed directly.
+# Sourced by deploy.sh and the other scripts here, not executed directly.
 #
 # This file is the single source of truth for "what directories does each
 # stack need on the NAS" and "where does each stack live on the NAS" — it
@@ -162,7 +162,7 @@ declare -A STACK_DIRS=(
   [affine]="data/storage data/config data/postgres ts-state ts-config"
   [dsm]="state ts-config"
   [frigate]="config storage ts-state ts-config"
-  [ha]="ts-state ts-config"   # Tailscale front door for HA (HA_LAN_IP in iac-secrets.env), no app container
+  [ha]="ts-state ts-config"   # Tailscale front door for HA (HA_LAN_IP in ha/.env), no app container
   [langfuse]="ts-state ts-config clickhouse-data clickhouse-logs minio-data redis-data"
   [mosquitto]="config data certs ts-state ts-config"
   [mcp]="ts-state ts-config"
@@ -194,7 +194,7 @@ declare -A STACK_EXTRA_FILES=(
   [mcp]="serve.json:ts-config/serve.json servers/time/Dockerfile:servers/time/Dockerfile"
   [n8n]="serve.json:ts-config/serve.json"
   [nextcloud]="serve.json:ts-config/serve.json"
-  [openwebui]="serve.json:ts-config/serve.json configure-litellm.sh:configure-litellm.sh"
+  [openwebui]="serve.json:ts-config/serve.json configure-litellm.sh:configure-litellm.sh litellm.yaml:config/litellm.yaml"
   [pihole]="serve.json:ts-config/serve.json"
   [plex]="serve.json:ts-config/serve.json"
   [portainer]="serve.json:ts-config/serve.json"
@@ -202,8 +202,8 @@ declare -A STACK_EXTRA_FILES=(
   [syncthing]="serve.json:ts-config/serve.json"
   [esphome]="serve.json:ts-config/serve.json"
   # observability: rendered templates (serve.json, prometheus.yml, alertmanager.yml,
-  # telegram_bot_token, snmp-auth.yml) plus the plain config files under config/.
-  [observability]="serve.json:ts-config/serve.json prometheus.yml:config/prometheus/prometheus.yml prometheus/rules/containers.yml:config/prometheus/rules/containers.yml prometheus/rules/nas.yml:config/prometheus/rules/nas.yml prometheus/rules/endpoints.yml:config/prometheus/rules/endpoints.yml prometheus/rules/self.yml:config/prometheus/rules/self.yml prometheus/rules/laptops.yml:config/prometheus/rules/laptops.yml alertmanager.yml:config/alertmanager/alertmanager.yml telegram_bot_token:config/alertmanager/telegram_bot_token loki/loki.yml:config/loki/loki.yml loki/rules/fake/nas.yml:config/loki/rules/fake/nas.yml alloy/config.alloy:config/alloy/config.alloy blackbox/blackbox.yml:config/blackbox/blackbox.yml snmp-auth.yml:config/snmp/auth.yml docker-state/docker-state.sh:config/docker-state/docker-state.sh laptop-probe/laptop-probe.sh:config/laptop-probe/laptop-probe.sh laptop-probe.conf:config/laptop-probe/laptop-probe.conf grafana/provisioning/datasources/datasources.yml:config/grafana/provisioning/datasources/datasources.yml grafana/provisioning/dashboards/dashboards.yml:config/grafana/provisioning/dashboards/dashboards.yml grafana/dashboards/homelab-overview.json:config/grafana/dashboards/homelab-overview.json"
+  # telegram_bot_token, discord_webhook_url, snmp-auth.yml) plus the plain config files under config/.
+  [observability]="serve.json:ts-config/serve.json prometheus.yml:config/prometheus/prometheus.yml prometheus/rules/containers.yml:config/prometheus/rules/containers.yml prometheus/rules/nas.yml:config/prometheus/rules/nas.yml prometheus/rules/endpoints.yml:config/prometheus/rules/endpoints.yml prometheus/rules/self.yml:config/prometheus/rules/self.yml prometheus/rules/laptops.yml:config/prometheus/rules/laptops.yml alertmanager.yml:config/alertmanager/alertmanager.yml telegram_bot_token:config/alertmanager/telegram_bot_token discord_webhook_url:config/alertmanager/discord_webhook_url loki/loki.yml:config/loki/loki.yml loki/rules/fake/nas.yml:config/loki/rules/fake/nas.yml alloy/config.alloy:config/alloy/config.alloy blackbox/blackbox.yml:config/blackbox/blackbox.yml snmp-auth.yml:config/snmp/auth.yml docker-state/docker-state.sh:config/docker-state/docker-state.sh laptop-probe/laptop-probe.sh:config/laptop-probe/laptop-probe.sh laptop-probe.conf:config/laptop-probe/laptop-probe.conf grafana/provisioning/datasources/datasources.yml:config/grafana/provisioning/datasources/datasources.yml grafana/provisioning/dashboards/dashboards.yml:config/grafana/provisioning/dashboards/dashboards.yml grafana/dashboards/homelab-overview.json:config/grafana/dashboards/homelab-overview.json"
 )
 
 # uid:gid chown overrides for specific subdirectories, as "dir:uid:gid" pairs
@@ -233,14 +233,19 @@ declare -A STACK_CHOWN_OVERRIDES=(
 declare -A STACK_SERVE_PORTS=(
 )
 
-# Default location of the central secrets file. Override with
-# IAC_SECRETS_FILE=/some/other/path. Lives at the repo root, gitignored —
-# see iac-secrets.env.example for the format and AGENTS.md for the rationale.
+# Shared, non-stack-specific values (TS_TAILNET_DOMAIN, NAS_LAN_IP, TZ, ...).
+# Gitignored; copy global/.env.sample to global/.env and fill it in.
+IAC_GLOBAL_ENV_FILE="${IAC_GLOBAL_ENV_FILE:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/global/.env}"
+
+# LEGACY: the old central secrets file at the repo root. No longer the source
+# of truth (2026-11-10). get_secret_value still falls back to it, with a
+# warning, for keys that have not been moved into <stack>/.env or global/.env
+# yet. Delete the file once nothing warns. Override with IAC_SECRETS_FILE=/path.
 IAC_SECRETS_FILE="${IAC_SECRETS_FILE:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/iac-secrets.env}"
 
 # Personal settings that must never be committed (e.g. DSM ports changed on the
 # Security Advisor's advice) can live in ~/.env instead: get_secret_value falls
-# back to it for keys that aren't in IAC_SECRETS_FILE. Override with
+# back to it for keys that aren't in a stack's .env or global/.env. Override with
 # IAC_USER_ENV_FILE=/path, or IAC_USER_ENV_FILE= to disable.
 IAC_USER_ENV_FILE="${IAC_USER_ENV_FILE-$HOME/.env}"
 
@@ -278,50 +283,68 @@ require_stack() {
 
 
 
-# get_secret_value KEY — look up KEY in $IAC_SECRETS_FILE, empty if unset/missing.
+# get_secret_value KEY — look up KEY, empty if unset everywhere. Order:
+#   1. <stack>/.env        (only while render_templates has set CURRENT_STACK)
+#   2. global/.env         (shared values: TS_TAILNET_DOMAIN, NAS_LAN_IP, ...)
+#   3. ~/.env              (personal settings that must never be committed)
+#   4. iac-secrets.env     (LEGACY fallback, warns; see IAC_SECRETS_FILE above)
 # Values that are op:// references (official 1Password protocol) are resolved
-# via `op read`; plain values pass through unchanged. This lets secrets move
-# from the plaintext file into the 1Password secrets vault one at a time —
-# convert a value to KEY=op://<vault>/<item>/<field> and the official CLI
-# resolves it, with the file remaining the single source of truth for the
-# key list.
+# via `op read`; plain values pass through unchanged.
 get_secret_value() {
   local key="$1"
   local value=""
-  if [[ -f "$IAC_SECRETS_FILE" ]]; then
-    value="$(grep -m1 -E "^${key}=" "$IAC_SECRETS_FILE" | cut -d= -f2- || true)"
+  if [[ -n "$CURRENT_STACK" && -f "$CURRENT_STACK/.env" ]]; then
+    value="$(grep -m1 -E "^${key}=" "$CURRENT_STACK/.env" | cut -d= -f2- || true)"
   fi
-  # Fallback: ~/.env (optionally "export KEY=..."; surrounding quotes stripped).
+  if [[ -z "$value" && -f "$IAC_GLOBAL_ENV_FILE" ]]; then
+    value="$(grep -m1 -E "^${key}=" "$IAC_GLOBAL_ENV_FILE" | cut -d= -f2- || true)"
+  fi
+  # ~/.env (optionally "export KEY=..."; surrounding quotes stripped).
   if [[ -z "$value" && -n "$IAC_USER_ENV_FILE" && -f "$IAC_USER_ENV_FILE" ]]; then
     value="$(grep -m1 -E "^(export[[:space:]]+)?${key}=" "$IAC_USER_ENV_FILE" | cut -d= -f2- || true)"
     value="${value%\"}"; value="${value#\"}"; value="${value%\'}"; value="${value#\'}"
   fi
-  # When there's no central secrets file, read from <stack>/.env.
-  if [[ -z "$value" && -n "$CURRENT_STACK" && -f "$CURRENT_STACK/.env" ]]; then
-    value="$(grep -m1 -E "^${key}=" "$CURRENT_STACK/.env" | cut -d= -f2- || true)"
+  if [[ -z "$value" && -f "$IAC_SECRETS_FILE" ]]; then
+    value="$(grep -m1 -E "^${key}=" "$IAC_SECRETS_FILE" | cut -d= -f2- || true)"
+    if [[ -n "$value" ]]; then
+      echo "WARN: $key came from the legacy $(basename "$IAC_SECRETS_FILE"); move it to ${CURRENT_STACK:+$CURRENT_STACK/.env or }global/.env" >&2
+    fi
   fi
   [[ -n "$value" ]] || return 0
 
   if [[ "$value" == op://* ]]; then
-    # Service account FIRST: reads and writes on the secrets vault were verified 2026-10-11, and it never prompts.
-    # (The old advice to unset it came from an August 403 and from a variable named OP_SERVICE_ACCOUNT, without
-    # _TOKEN, holding an unresolved op:// reference. Unset THAT one, not the token.) The desktop app is only a
-    # fallback, because it can raise a Touch ID prompt on every call.
-    local resolved="" sa_token="${OP_SERVICE_ACCOUNT_TOKEN:-}"
+    # Service account ONLY. It never prompts; the 1Password desktop app raises a
+    # Touch ID prompt per read, so it is not used unless IAC_OP_ALLOW_DESKTOP=1.
+    # The token comes from the environment, else ~/.env. (A variable named
+    # OP_SERVICE_ACCOUNT, without _TOKEN, breaks op; it is always unset here.)
+    # On failure this prints op's own error instead of hiding it.
+    local resolved="" err="" sa_token="${OP_SERVICE_ACCOUNT_TOKEN:-}" sa_src="the environment"
     if [[ -z "$sa_token" && -n "$IAC_USER_ENV_FILE" && -f "$IAC_USER_ENV_FILE" ]]; then
       sa_token="$(grep -m1 -E '^(export[[:space:]]+)?OP_SERVICE_ACCOUNT_TOKEN=' "$IAC_USER_ENV_FILE" | cut -d= -f2- || true)"
       sa_token="${sa_token%\"}"; sa_token="${sa_token#\"}"; sa_token="${sa_token%\'}"; sa_token="${sa_token#\'}"
+      sa_src="$IAC_USER_ENV_FILE"
     fi
-    if [[ -n "$sa_token" && "$sa_token" != op://* ]]; then
-      resolved="$(env -u OP_SERVICE_ACCOUNT OP_SERVICE_ACCOUNT_TOKEN="$sa_token" OP_BIOMETRIC_UNLOCK_ENABLED=false \
-                  op read "$value" 2>/dev/null)" || resolved=""
+    if [[ -z "$sa_token" ]]; then
+      err="OP_SERVICE_ACCOUNT_TOKEN is not set in the environment or ${IAC_USER_ENV_FILE:-~/.env}"
+    elif [[ "$sa_token" == op://* ]]; then
+      err="OP_SERVICE_ACCOUNT_TOKEN in $sa_src is itself an op:// reference; it must be the literal ops_... token"
+    else
+      local errfile
+      errfile="$(mktemp)"
+      resolved="$(env -u OP_SERVICE_ACCOUNT -u OP_CONNECT_HOST -u OP_CONNECT_TOKEN \
+                  OP_SERVICE_ACCOUNT_TOKEN="$sa_token" OP_BIOMETRIC_UNLOCK_ENABLED=false \
+                  op read "$value" 2>"$errfile")" || resolved=""
+      [[ -n "$resolved" ]] || err="$(tr '\n' ' ' <"$errfile")"
+      rm -f "$errfile"
+    fi
+    if [[ -z "$resolved" && "${IAC_OP_ALLOW_DESKTOP:-}" == "1" ]]; then
+      echo "WARN: service-account read failed for $key ($err); IAC_OP_ALLOW_DESKTOP=1, trying the desktop app (Touch ID)" >&2
+      resolved="$(env -u OP_SERVICE_ACCOUNT -u OP_SERVICE_ACCOUNT_TOKEN -u OP_TOKEN op read "$value" 2>/dev/null)" || resolved=""
     fi
     if [[ -z "$resolved" ]]; then
-      echo "WARN: service-account read failed for $key; falling back to the 1Password desktop app (may prompt Touch ID)" >&2
-      resolved="$(env -u OP_SERVICE_ACCOUNT -u OP_SERVICE_ACCOUNT_TOKEN -u OP_TOKEN op read "$value" 2>/dev/null)" || {
-        echo "WARN: op read failed for $key ($value): treating as unset" >&2
-        return 0
-      }
+      echo "ERROR: could not read $key ($value) with the 1Password service account: ${err:-empty value}" >&2
+      echo "       Treating $key as unset. (Desktop-app fallback is off; IAC_OP_ALLOW_DESKTOP=1 enables it.)" >&2
+      return 0
     fi
     echo "$resolved"
     return 0
@@ -349,7 +372,7 @@ render_templates() {
     local content
     content="$(cat "$tmpl")"
 
-    local token
+    local token unresolved=""
     while [[ "$content" =~ \{\{([A-Za-z_][A-Za-z0-9_]*)\}\} ]]; do
       token="${BASH_REMATCH[1]}"
       local value
@@ -364,11 +387,18 @@ render_templates() {
       fi
       
       if [[ -z "$value" ]]; then
-        echo "    ⚠ $tmpl: {{$token}} has no value, leaving as-is"
+        unresolved="$token"
         break
       fi
       content="${content//\{\{$token\}\}/$value}"
     done
+
+    # Never write a half-rendered file: a literal {{KEY}} pushed to the NAS
+    # breaks the service that reads it. Keep whatever was rendered before.
+    if [[ -n "$unresolved" ]]; then
+      echo "    ✗ $tmpl: {{$unresolved}} has no value; NOT writing $out (previous render, if any, left untouched)" >&2
+      continue
+    fi
 
     printf '%s\n' "$content" >"$out"
     echo "==> $stack: rendered $tmpl -> $out"

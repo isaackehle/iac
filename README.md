@@ -19,7 +19,7 @@ deployed through Portainer where possible, and over SSH where not.
 ```text
 <stack>/                 one directory per stack
   docker-compose.yml     the stack (the only file Portainer reads)
-  .env.example           the variables it needs, with generic placeholders
+  .env.sample           the variables it needs, with generic placeholders
   serve.json.tmpl        its Tailscale serve config, rendered to serve.json
   INSTALLATION.md        how to deploy it; DEBUG.md: how to troubleshoot it
 _template/               starting point for a new stack
@@ -119,7 +119,7 @@ covers the worst.
   namespace and gets "connection refused". `down` then `up -d` the whole stack.
 - **Never put a literal `${TS_CERT_DOMAIN}` in `serve.json`.** Nothing expands it,
   and the node fails with "connection refused". Use `{{TS_TAILNET_DOMAIN}}` in
-  `serve.json.tmpl`, which `gen-env.sh` renders.
+  `serve.json.tmpl`, which `deploy.sh env` renders.
 - **Use absolute bind-mount paths** (`/volume1/docker/stacks/<stack>/...`).
   Portainer CE runs compose inside its own container, so `./file` resolves to a path
   that doesn't exist on the NAS, and Docker mounts an empty directory instead.
@@ -132,12 +132,16 @@ covers the worst.
 
 - **`<stack>/.env`** (per-stack, gitignored) holds every real value: auth keys,
   passwords, LAN IPs. Values can be 1Password `op://` references.
-- **`<stack>/.env.example`** lists every key with generic placeholders
+- **`<stack>/.env.sample`** lists every key with generic placeholders
   (`192.168.x.x`, `your-tailnet-name.ts.net`). Keep real IPs, hostnames and keys out
-  of it and out of every stack's `.env.example`.
-- **`scripts/gen-env.sh <stack>`** (or `--all`) renders every `*.tmpl` to its
+  of it and out of every stack's `.env.sample`.
+- **`scripts/deploy.sh env <stack>`** (or `--all`) renders every `*.tmpl` to its
   plain name (`serve.json.tmpl` → `serve.json`), with `{{KEY}}` replaced from
-  `<stack>/.env`.
+  `<stack>/.env`, then `global/.env`. There is no separate generator script.
+- **`global/.env`** (gitignored; copy `global/.env.sample`) holds the values every
+  stack shares: `TS_TAILNET_DOMAIN`, `NAS_LAN_IP`, `TZ`. It is pushed to the NAS as
+  `config/global.env`.
+- **Creating a `.env`**: copy the `.env.sample` beside it and fill it in by hand.
 - **`TS_CERT_DOMAIN`** is derived as `<stack>.<TS_TAILNET_DOMAIN>` unless set
   explicitly.
 - **Placeholders** still blank or unchanged after rendering are printed as
@@ -151,7 +155,7 @@ Portainer pulls the compose file from GitHub (`main`), so it can update and
 redeploy the stack itself, and the stack shows as "Total" control in Portainer.
 
 ```shell
-scripts/gen-env.sh <stack>              # render *.tmpl templates
+scripts/deploy.sh env <stack>              # render *.tmpl templates
 git push                                 # Portainer reads the compose file from GitHub main
 scripts/deploy.sh dirs <stack> nas       # create the bind-mount folders (Portainer won't; the deploy fails without them)
 scripts/deploy.sh extras <stack> nas     # copy bind-mounted files (serve.json, scripts) to the NAS
@@ -232,7 +236,7 @@ General Docker commands: [docs/debug_docker_commands.md](docs/debug_docker_comma
 1. **Copy `_template/`** to `<stack>/` and follow its [README](_template/README.md).
    Keep the sidecar pattern, and pin the next free subnet (`172.20.35.0/24`).
 2. **Use absolute paths** for bind mounts.
-3. **Add its keys** to `<stack>/.env.example` (placeholders) and
+3. **Add its keys** to `<stack>/.env.sample` (placeholders) and
    `<stack>/.env` (real values).
 4. **Register it in [scripts/lib.sh](scripts/lib.sh):** `ALL_STACKS`,
    `STACK_REMOTE_DIR`, `STACK_DIRS` (include `ts-state ts-config`),

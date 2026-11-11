@@ -49,7 +49,7 @@ docker exec langfuse-tailscale tailscale serve status
 docker exec -it PostgreSQL psql -U root -d langfuse
 
 # Confirm the langfuse database/user exist (one-time setup step, see
-# .env.example) — if this errors, that setup step hasn't been done yet:
+# .env.sample) — if this errors, that setup step hasn't been done yet:
 docker exec PostgreSQL psql -U root -c "\l" | grep langfuse
 ```
 

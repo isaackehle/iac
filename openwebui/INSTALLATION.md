@@ -37,8 +37,8 @@ Copy `serve.json` into `$STACK_PATH/ts-config/` — the sidecar mounts the whole
 ### Prerequisites
 
 - SSH access to the NAS (e.g., `nas` alias in `~/.ssh/config`)
-- The `scripts/deploy.sh` and `scripts/gen-env.sh` tools available on your laptop
-- The central secrets file `iac-secrets.env` with `OPENWEBUI_API_KEY` and `TS_AUTHKEY` set
+- The `scripts/deploy.sh` tool available on your laptop
+- `openwebui/.env` (copied from `openwebui/.env.sample`) with `OPENWEBUI_API_KEY` and `TS_AUTHKEY` set
 
 ### One-Line Deployment
 
@@ -49,7 +49,7 @@ scripts/deploy.sh all openwebui nas
 
 This single command does:
 
-1. Generates `openwebui/.env` from `iac-secrets.env`
+1. Renders `openwebui/*.tmpl` (e.g. `serve.json`) from `openwebui/.env` and `global/.env`
 2. Creates `/volume1/docker/stacks/openwebui/{data,ts-state,ts-config}` on the NAS
 3. Copies `docker-compose.yml`, `.env`, and `serve.json` via SCP
 4. Runs `docker compose up -d` on the NAS
@@ -58,7 +58,7 @@ This single command does:
 
 ```shell
 # 1. Generate .env locally
-scripts/gen-env.sh openwebui
+scripts/deploy.sh env openwebui
 
 # 2. Create directories on the NAS
 ssh nas "mkdir -p /volume1/docker/stacks/openwebui/{data,ts-state,ts-config}"

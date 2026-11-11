@@ -72,8 +72,8 @@ Copy `serve.json` into `$STACK_PATH/ts-config/` — the sidecar mounts the whole
 ### Prerequisites
 
 - SSH access to the NAS (e.g., `nas` alias in `~/.ssh/config`)
-- The `scripts/deploy.sh` and `scripts/gen-env.sh` tools available on your laptop
-- The central secrets file `iac-secrets.env` with all required Langfuse secrets set
+- The `scripts/deploy.sh` tool available on your laptop
+- `langfuse/.env` (copied from `langfuse/.env.sample`) with all required Langfuse secrets set
 - **Important:** Create the `langfuse` database in PostgreSQL first (see Prerequisites section above)
 
 ### One-Line Deployment
@@ -85,7 +85,7 @@ scripts/deploy.sh all langfuse nas
 
 This single command does:
 
-1. Generates `langfuse/.env` from `iac-secrets.env`
+1. Renders `langfuse/*.tmpl` (e.g. `serve.json`) from `langfuse/.env` and `global/.env`
 2. Creates `/volume1/docker/stacks/langfuse/{clickhouse-data,clickhouse-logs,redis-data,minio-data,ts-state,ts-config}` on the NAS
 3. Copies `docker-compose.yml`, `.env`, and `serve.json` via SCP
 4. Runs `docker compose up -d` on the NAS
@@ -101,7 +101,7 @@ GRANT ALL PRIVILEGES ON DATABASE langfuse TO langfuse;
 EOF
 
 # 2. Generate .env locally
-scripts/gen-env.sh langfuse
+scripts/deploy.sh env langfuse
 
 # 3. Create directories on the NAS
 ssh nas "mkdir -p /volume1/docker/stacks/langfuse/{clickhouse-data,clickhouse-logs,redis-data,minio-data,ts-state,ts-config}"

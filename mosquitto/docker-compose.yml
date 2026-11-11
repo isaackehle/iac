@@ -6,7 +6,7 @@
 # Services:
 #   - primary
 #
-#   See .env.example for all required variables
+#   See .env.sample for all required variables
 #
 # Deployment:
 #   docker compose -f mosquitto.yaml up -d
@@ -43,7 +43,7 @@ services:
   # Tailscale sidecar: joins the tailnet as "mosquitto" and owns the network
   # namespace. primary borrows it (network_mode: service:tailscale), so any
   # LAN ports are published here, not on primary. serve.json (rendered from
-  # serve.json.tmpl by scripts/gen-env.sh) terminates TLS with Tailscale's
+  # serve.json.tmpl by scripts/deploy.sh env) terminates TLS with Tailscale's
   # cert and forwards raw TCP (the openwebui pattern, docs/tailscale_patterns.md).
   # MQTT isn't HTTP: serve.json forwards 1883 (plain MQTT, already WireGuard-encrypted on the tailnet), 8883 (MQTT over TLS with Tailscale's cert) and 443 (WebSocket over TLS, to 9001). 1883/9001 stay published for LAN devices.
   tailscale:

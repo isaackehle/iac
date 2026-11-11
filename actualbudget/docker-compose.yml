@@ -8,7 +8,7 @@
 #   - primary (actual-server, listens on 5006)
 #   - tailscale (Tailscale sidecar; owns the network namespace)
 #
-#   See .env.example for all required variables
+#   See .env.sample for all required variables
 #
 # Deployment:
 #   docker compose --env-file .env -f docker-compose.yml up -d

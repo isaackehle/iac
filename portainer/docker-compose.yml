@@ -12,7 +12,7 @@
 # Same shape as openwebui. TCPForward is a raw TCP relay, not tailscaled's
 # Web/Proxy HTTP code path (tailscale/tailscale#18307), so no Caddy hop needed.
 #
-#   See .env.example for all required variables
+#   See .env.sample for all required variables
 #
 # Deployment:
 #   docker compose -f docker-compose.yml up -d

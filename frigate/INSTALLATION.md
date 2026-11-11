@@ -41,7 +41,7 @@ mkdir -p $STACK_PATH/{config,storage}
 ### Prerequisites
 
 - SSH access to the NAS (e.g., `nas` alias in `~/.ssh/config`)
-- The `scripts/deploy.sh` and `scripts/gen-env.sh` tools available on your laptop
+- The `scripts/deploy.sh` tool available on your laptop
 - The central secrets file `iac-secrets.env` with `FRIGATE_MQTT_HOST`, `FRIGATE_MQTT_USER`, `FRIGATE_MQTT_PASSWORD`, `FRIGATE_RTSP_USER`, and `FRIGATE_RTSP_PASSWORD`
 
 ### One-Line Deployment
@@ -53,7 +53,7 @@ scripts/deploy.sh all frigate nas
 
 This single command does:
 
-1. Generates `frigate/.env` from `iac-secrets.env`
+1. Renders `frigate/*.tmpl` (e.g. `serve.json`) from `frigate/.env` and `global/.env`
 2. Creates `/volume1/docker/stacks/frigate/{config,storage}` on the NAS
 3. Copies `docker-compose.yml` and `.env` via SCP
 4. Runs `docker compose up -d` on the NAS
@@ -62,7 +62,7 @@ This single command does:
 
 ```shell
 # 1. Generate .env locally
-scripts/gen-env.sh frigate
+scripts/deploy.sh env frigate
 
 # 2. Create directories on the NAS
 ssh nas "mkdir -p /volume1/docker/stacks/frigate/{config,storage}"

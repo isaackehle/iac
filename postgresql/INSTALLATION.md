@@ -36,8 +36,8 @@ mkdir -p $STACK_PATH/{data,pgadmin,ts-state,ts-config}
 ### Prerequisites
 
 - SSH access to the NAS (e.g., `nas` alias in `~/.ssh/config`)
-- The `scripts/deploy.sh` and `scripts/gen-env.sh` tools available on your laptop
-- The central secrets file `iac-secrets.env` with `POSTGRES_PASSWORD`, `PGADMIN_DEFAULT_EMAIL`, and `PGADMIN_DEFAULT_PASSWORD` set
+- The `scripts/deploy.sh` tool available on your laptop
+- `postgresql/.env` (copied from `postgresql/.env.sample`) with `POSTGRES_PASSWORD`, `PGADMIN_DEFAULT_EMAIL`, and `PGADMIN_DEFAULT_PASSWORD` set
 
 ### One-Line Deployment
 
@@ -48,7 +48,7 @@ scripts/deploy.sh all postgresql nas
 
 This single command does:
 
-1. Generates `postgresql/.env` from `iac-secrets.env`
+1. Renders `postgresql/*.tmpl` (e.g. `serve.json`) from `postgresql/.env` and `global/.env`
 2. Creates `/volume1/docker/stacks/postgresql/{data,pgadmin,ts-state,ts-config}` on the NAS
 3. Copies `docker-compose.yml`, `.env`, and any extra files via SCP
 4. Runs `docker compose up -d` on the NAS
@@ -57,7 +57,7 @@ This single command does:
 
 ```shell
 # 1. Generate .env locally
-scripts/gen-env.sh postgresql
+scripts/deploy.sh env postgresql
 
 # 2. Create directories on the NAS
 ssh nas "mkdir -p /volume1/docker/stacks/postgresql/{data,pgadmin,ts-state,ts-config}"

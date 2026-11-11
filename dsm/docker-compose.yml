@@ -6,7 +6,7 @@
 # Services:
 #   - dsm-tailscale
 #
-#   See .env.example for all required variables
+#   See .env.sample for all required variables
 #
 
 name: dsm

@@ -41,7 +41,7 @@
 # files it owns, and deploy.sh pushes config files as the SSH user. Running as
 # that user keeps every pushed file readable without STACK_CHOWN_OVERRIDES.
 #
-#   See .env.example for all required variables
+#   See .env.sample for all required variables
 #
 # Deployment: see INSTALLATION.md (config files are pushed by deploy.sh; the
 #   stack itself is a Portainer git stack).

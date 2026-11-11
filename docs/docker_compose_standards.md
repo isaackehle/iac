@@ -22,7 +22,7 @@ Each stack lives in its own directory under the IAC repo root:
 ```text
 iac/<stack-name>/
 ├── docker-compose.yml
-├── .env.example
+├── .env.sample
 ├── DEBUG.md
 ├── INSTALLATION.md
 └── serve.json.tmpl (if applicable)
@@ -312,7 +312,7 @@ volumes:
   - /volume1/docker/stacks/<stack>/ts-state:/var/lib/tailscale
 ```
 
-`STACK_ROOT` is defined in each stack's `.env.example` (default:
+`STACK_ROOT` is defined in each stack's `.env.sample` (default:
 `/volume1/docker/stacks`). Portainer's "Load variables from .env file" button
 substitutes it automatically. When deploying via `docker compose` on the NAS,
 pass `--env-file .env` and `STACK_ROOT` resolves from the local `.env`.

@@ -29,7 +29,7 @@ cat serve.json
 
 #### DSM unreachable from tailnet
 
-Check `scripts/gen-env.sh dsm` to ensure `TS_AUTHKEY` is set, then:
+Check `scripts/deploy.sh env dsm` to ensure `TS_AUTHKEY` is set, then:
 
 ```bash
 # Check if DSM is running on the host

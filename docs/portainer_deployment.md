@@ -44,7 +44,7 @@ export PORTAINER_API_KEY="pt-your-api-key-here"
 
 This will:
 
-1. Generate `.env` from `iac-secrets.env`
+1. Render the stack's `*.tmpl` files from its `.env` and `global/.env`
 2. Create a GitOps stack in Portainer
 3. Inject environment variables
 4. Start the stack
@@ -184,7 +184,7 @@ If Portainer API is unavailable:
 
 ```bash
 cd ~/code/isaackehle/iac
-./scripts/gen-env.sh langfuse
+./scripts/deploy.sh env langfuse
 ./scripts/deploy.sh all langfuse nas
 ```
 

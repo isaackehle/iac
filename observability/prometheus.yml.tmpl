@@ -1,6 +1,6 @@
 # Prometheus config for the observability stack.
-# Rendered by scripts/gen-env.sh to prometheus.yml (gitignored), pushed to
-# config/prometheus/prometheus.yml. Double-brace tokens come from iac-secrets.env
+# Rendered by scripts/deploy.sh env to prometheus.yml (gitignored), pushed to
+# config/prometheus/prometheus.yml. Double-brace tokens come from observability/.env and global/.env
 # (DSM_HTTPS_PORT from ~/.env). Everything in the stack's namespace listens on
 # 127.0.0.1; cadvisor and node-exporter are reached over the stack bridge.
 

@@ -5,7 +5,7 @@ stack (Pattern B — see root `README.md`). Replace every `app` / `APP` with
 the real stack name, then delete the comment block at the top of
 `docker-compose.yml`.
 
-`serve.json.tmpl` is rendered to `serve.json` by `scripts/gen-env.sh` at
+`serve.json.tmpl` is rendered to `serve.json` by `scripts/deploy.sh env` at
 deploy time. For most stacks Tailscale's own `${TS_CERT_DOMAIN}` runtime
 substitution (already in the file) is all you need — the render step just
 copies it through. If your `serve.json` needs a value Tailscale can't
@@ -21,9 +21,8 @@ Run `scripts/deploy.sh info <stack>` anytime to see step-by-step deploy instruct
 
 ## After scaffolding
 
-1. Add any secrets the new stack needs to `iac-secrets.env.example` (repo)
-   and to your real `./iac-secrets.env (repo root, gitignored)` (or wherever
-   `IAC_SECRETS_FILE` points).
+1. Add every variable the new stack needs to its `.env.sample` (placeholders,
+   committed), then copy that to `.env` (gitignored) and fill in real values.
 2. Add the stack to `ALL_STACKS`, `STACK_REMOTE_DIR`, and `STACK_DIRS` in
    `scripts/lib.sh`. Add an entry to `STACK_EXTRA_FILES` if it has a
    `serve.json` or other config to copy into place.

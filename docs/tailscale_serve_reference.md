@@ -64,7 +64,7 @@ shape and the old Caddy hop are no longer used.
 ## Templated files (`*.tmpl`)
 
 Every sidecar stack keeps its committed `serve.json` source as
-`serve.json.tmpl`; `scripts/gen-env.sh` renders it to `serve.json`
+`serve.json.tmpl`; `scripts/deploy.sh env` renders it to `serve.json`
 (gitignored, like `.env`) at deploy time. For most stacks the render just
 copies the file through, since Tailscale's own `${TS_CERT_DOMAIN}`
 substitution covers the node's own domain. `{{KEY}}` tokens (filled from

@@ -7,7 +7,7 @@ Plans directory: `PLANS_DIR` (all new plans, `YYYY-MM-DD-<slug>.md`; older ones 
 Infrastructure-as-code for a single self-hosted Synology NAS ("NAS") on a
 Tailscale tailnet (`${TS_TAILNET_DOMAIN}`). There is no application code,
 build step, package manager, or test suite — every stack is a
-`docker-compose.yml` plus a `.env.example`, optional Tailscale `serve.json`,
+`docker-compose.yml` plus a `.env.sample`, optional Tailscale `serve.json`,
 and a `PORTAINER.md`/`README.md`. "Testing" a change means validating
 compose syntax (`docker compose config`) and, where possible, actually
 deploying and checking `docker compose ps` / logs / `tailscale serve
@@ -31,7 +31,7 @@ Typical files in a stack directory (not all stacks have all of these):
 
 - `docker-compose.yml` (or `.yaml` — inconsistent extension across stacks,
   `scripts/lib.sh compose_file_for()` auto-detects either)
-- `.env.example` — template listing what env vars that stack needs; real
+- `.env.sample` — template listing what env vars that stack needs; real
   values come from the central secrets file (see below), not from editing
   this file directly
 - `serve.json` — Tailscale sidecar serve config (sidecar-pattern stacks only)
@@ -44,37 +44,40 @@ Real secrets (Tailscale auth keys, DB passwords, API keys) live in each
 stack's own `.env` file at `<stack>/.env` — gitignored, never committed.
 Values can be 1Password `op://` references.
 
-`<stack>/.env.example` (per-stack, committed, no real values) documents
+`<stack>/.env.sample` (per-stack, committed, no real values) documents
 every key that stack needs, with generic placeholders.
 
-**`scripts/gen-env.sh <stack>`** (or `--all`) renders every `*.tmpl` to
-its plain name, with `{{KEY}}` replaced from `<stack>/.env`. It does not
-generate or modify `.env` files. Named `.env`, not `.env` — dotfiles are
+**`scripts/deploy.sh env <stack>`** (or `--all`) renders every `*.tmpl` to
+its plain name, with `{{KEY}}` replaced from `<stack>/.env`, then
+`global/.env` (shared values such as `TS_TAILNET_DOMAIN`). It does not
+generate or modify `.env` files: a `.env` is created by copying the
+`.env.sample` beside it and filling it in by hand. There is no `gen-env.sh`
+any more (removed 2026-11-10); `iac-secrets.env` is a legacy fallback only. Named `.env`, not `.env` — dotfiles are
 hidden by default in most OS file pickers, which makes Portainer's "Load
 variables from .env file" button annoying to use with a literal `.env`;
 `docker compose` therefore needs `--env-file .env` passed explicitly (it
 only auto-loads a file literally named `.env`) — `scripts/deploy.sh up`
-already does this. Resolution per key: `<stack>/.env` → derived value
+already does this. Resolution per key: `<stack>/.env` → `global/.env` →
+`~/.env` → legacy `iac-secrets.env` (warns) → derived value
 (only for `TS_CERT_DOMAIN`, computed as `<stack>.<TS_TAILNET_DOMAIN>` if
-`TS_TAILNET_DOMAIN` is set in the stack's `.env`) → the `.env.example`
-default. Anything left as an empty string or an obvious placeholder
+`TS_TAILNET_DOMAIN` is set). Anything left as an empty string or an obvious placeholder
 (`changeme`, `tskey-auth-xxxx`, `${TS_TAILNET_DOMAIN}`, ...) is printed as a warning at
 the end — that's the todo list for that stack's secrets.
 
 If you're asked to add a new env var to a stack: add it to that stack's
-`.env.example` (with a safe placeholder/comment) *and* to the stack's
-`.env` (with a real value). Don't add real values to `.env.example` —
+`.env.sample` (with a safe placeholder/comment) *and* to the stack's
+`.env` (with a real value). Don't add real values to `.env.sample` —
 those only ever go in the user's real `<stack>/.env`, which you should
 never print or exfiltrate the contents of.
 
-Generated `<stack>/.env` files are persistent — they hold real values and
+`<stack>/.env` files are persistent — they hold real values and
 are the source of truth for deployment. `scripts/deploy.sh env` renders
 templates from them.
 
 ### Templated files (`*.tmpl`)
 
 Every sidecar stack keeps its committed `serve.json` source as
-`serve.json.tmpl`; `scripts/gen-env.sh` (via `render_templates` in
+`serve.json.tmpl`; `scripts/deploy.sh env` (via `render_templates` in
 `scripts/lib.sh`) renders it to `serve.json` (gitignored, like `.env`) at
 deploy time. For most stacks the render just copies the file through —
 Tailscale's own `${TS_CERT_DOMAIN}` runtime substitution covers the node's
@@ -110,8 +113,8 @@ This replaces what used to be bespoke per-stack `init.sh` / `apply-serve.sh`
 are in this sandbox's banned-commands list, so these scripts are meant to
 be run by the user on their own machine, not executed by an agent in this
 environment — don't try to actually run `scripts/deploy.sh dirs/push/serve/up`
-here; `scripts/gen-env.sh` and `scripts/deploy.sh env` are safe to run
-locally since they don't touch the network.
+here; `scripts/deploy.sh env` is safe to run
+locally since it doesn't touch the network.
 
 `scripts/serve-all.sh <ssh-host>` loops `STACK_SERVE_PORTS` for every stack
 (replaces the old root-level `apply-serve.sh` that scanned for per-stack
@@ -235,7 +238,7 @@ version:
    `depends_on` waits for *start*, not *ready*.
 8. **Volume paths use `/volume1/docker/stacks`** — never hardcode
    `/volume1/docker/stacks/...` and never use relative `./...` paths.
-   `STACK_ROOT` is defined in every stack's `.env.example` (default:
+   `STACK_ROOT` is defined in every stack's `.env.sample` (default:
    `/volume1/docker/stacks`). Portainer's "Load variables from .env file"
    substitutes it automatically. Relative path volumes are a **Business Edition**
    feature — the free/essential edition does not support it, so directories must
@@ -257,7 +260,7 @@ longer exists. Always `docker compose down && docker compose up -d`.
   already committed to git history before the fix — rotating the actual
   NAS credentials is a manual follow-up, not something fixable by editing
   files here.
-- `postgresql/.env.example` used to contain Plex's variables (copy-paste
+- `postgresql/.env.sample` used to contain Plex's variables (copy-paste
   bug) instead of Postgres/pgAdmin ones.
 - `postgresql/docker-compose.yml` published `2665:5454`, but Postgres listens
   on 5432 — nothing could connect. Now `2665:5432`.
@@ -300,7 +303,7 @@ longer exists. Always `docker compose down && docker compose up -d`.
 
 ## Working on a stack
 
-1. `cd <stack>` and read its `docker-compose.yml`, `.env.example`, and
+1. `cd <stack>` and read its `docker-compose.yml`, `.env.sample`, and
    `PORTAINER.md`/`README.md` if present — conventions vary per stack,
    don't assume `_template/` is followed exactly everywhere.
 2. Validate compose changes with `docker compose --env-file .env config`
@@ -309,7 +312,7 @@ longer exists. Always `docker compose down && docker compose up -d`.
    a referenced var, so make sure `<stack>/.env` exists first; note the
    explicit `--env-file` — compose only auto-loads a file literally named
    `.env`, see "Secrets" above).
-3. If adding a new env var, update that stack's `.env.example` and
+3. If adding a new env var, update that stack's `.env.sample` and
    `<stack>/.env` (see "Secrets" above).
 4. If adding a new sidecar-pattern stack, start from `_template/` and
    follow `_template/README.md`, which lists everything to wire up in
@@ -326,8 +329,8 @@ longer exists. Always `docker compose down && docker compose up -d`.
 
 ```shell
 # Render a stack's *.tmpl templates from its .env
-scripts/gen-env.sh <stack>
-scripts/gen-env.sh --all
+scripts/deploy.sh env <stack>
+scripts/deploy.sh env --all
 
 # Validate a stack's compose file without deploying (needs .env to exist)
 cd <stack> && docker compose --env-file .env config
@@ -403,7 +406,7 @@ All commits must follow Conventional Commits format:
 
 - Never write to `~/.hermes/skills/` directly — use the git repo pattern
 - Never write secrets to files — use environment variables or 1Password
-- Never commit `.env` files — only `.env.example` templates
+- Never commit `.env` files — only `.env.sample` templates
 - Keep stack directories self-contained
 - Use `docs/` for cross-stack documentation
 

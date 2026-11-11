@@ -47,7 +47,7 @@
 # Services:
 #   - tailscale (the ha node; no app container)
 #
-#   See .env.example for all required variables
+#   See .env.sample for all required variables
 #
 # Deployment:
 #   scripts/deploy.sh all ha nas     (or scripts/deploy.sh api ha for a Portainer-managed stack)

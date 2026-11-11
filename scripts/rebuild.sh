@@ -43,7 +43,7 @@ deploy_stack() {
   # Step 1: Render templates and verify .env exists
   echo "Step 1: Rendering templates..."
   cd "$SCRIPT_DIR"
-  bash scripts/gen-env.sh "$stack"
+  /opt/homebrew/bin/bash scripts/deploy.sh env "$stack"
   if [[ ! -f "${stack}/.env" ]]; then
     echo "❌ ${stack}/.env not found — create it with real values first"
     exit 1

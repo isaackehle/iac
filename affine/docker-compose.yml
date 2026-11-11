@@ -10,7 +10,7 @@
 #   - cache (Redis cache)
 #   - tailscale (sidecar; https://affine.<tailnet>.ts.net)
 #
-#   See .env.example for all required variables
+#   See .env.sample for all required variables
 #
 # Deployment:
 #   docker compose -f affine.yaml up -d
@@ -42,7 +42,13 @@ services:
       migration:
         condition: service_completed_successfully
 
-    # ── Network ───────────────────────────────────────────────
+    # ── Environment (overrides / additions) ───────────────────
+    # Not secrets, so they live here, not in .env. Without REDIS_SERVER_HOST
+    # AFFiNE dials 127.0.0.1:6379, which is nothing in this namespace
+    # (ECONNREFUSED on every queue worker). Dropped by mistake in 52a76a1.
+    environment:
+      REDIS_SERVER_HOST: cache
+      INDEXER_ENABLED: "false"
 
     # ── Storage ───────────────────────────────────────────────
     volumes:
@@ -61,6 +67,11 @@ services:
         condition: service_healthy
       cache:
         condition: service_healthy
+
+    # ── Environment (overrides / additions) ───────────────────
+    environment:
+      REDIS_SERVER_HOST: cache
+      INDEXER_ENABLED: "false"
 
     # ── Storage ───────────────────────────────────────────────
     volumes:
@@ -82,6 +93,15 @@ services:
     # ── Lifecycle ─────────────────────────────────────────────
     restart: unless-stopped
     user: "1026:100"
+
+    # ── Environment (overrides / additions) ───────────────────
+    # Only read when the data directory is empty (first init); restored after
+    # 52a76a1 dropped them, so a rebuild from scratch still creates the database.
+    environment:
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_DATABASE:-affine}
+      POSTGRES_INITDB_ARGS: --data-checksums
 
     # ── Storage ───────────────────────────────────────────────
     volumes:
@@ -113,7 +133,7 @@ services:
   # Tailscale sidecar: joins the tailnet as "affine" and owns the network
   # namespace. primary borrows it (network_mode: service:tailscale), so any
   # LAN ports are published here, not on primary. serve.json (rendered from
-  # serve.json.tmpl by scripts/gen-env.sh) terminates TLS with Tailscale's
+  # serve.json.tmpl by scripts/deploy.sh env) terminates TLS with Tailscale's
   # cert and forwards raw TCP (the openwebui pattern, docs/tailscale_patterns.md).
   # primary still reaches cache/config by service name: the sidecar joins the default network.
   tailscale:

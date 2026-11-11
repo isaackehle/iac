@@ -6,7 +6,7 @@
 - ✅ combine init.sh and apply-serve.sh — replaced by `scripts/deploy.sh`
   (`dirs`/`push`/`serve`/`up`) driven by config in `scripts/lib.sh`
 - ✅ secrets consolidated into `iac-secrets.env` at the repo root (gitignored),
-  generated per-stack `.env` via `scripts/gen-env.sh`
+  generated per-stack `.env` via `scripts/deploy.sh env`
 
 ## Update template
 
@@ -16,7 +16,7 @@
   plaintext before being parameterized; changing `.env` going forward does
   not undo that exposure
 - fill in real values for stacks with placeholder secrets — see
-  `scripts/gen-env.sh --all` output for the current list
+  `scripts/deploy.sh env --all` output for the current list
 - decide whether to migrate the 4 legacy-path stacks (`homeassistant`,
   `pihole`, `plex`, `postgresql`) to the standard
   `/volume1/docker/stacks/<name>` layout — requires manually moving real

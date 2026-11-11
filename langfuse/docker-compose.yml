@@ -13,7 +13,7 @@
 #
 # Postgres is NOT part of this stack — it reuses the existing `postgresql`
 # stack on the NAS. There is a one-time manual CREATE DATABASE / CREATE USER
-# step before first deploy; see .env.example and postgresql/DEBUG.md.
+# step before first deploy; see .env.sample and postgresql/DEBUG.md.
 #
 # Pattern B (Tailscale sidecar) with siblings: `primary` runs
 # `network_mode: service:tailscale` and has no ports/networks of its
@@ -30,7 +30,7 @@
 # storage's S3 API is published directly on the `storage` sibling (host 9090),
 # deliberately not routed through the sidecar — see README.md's port registry.
 #
-#   See .env.example for all required variables
+#   See .env.sample for all required variables
 #
 # Deployment:
 #   docker compose up -d

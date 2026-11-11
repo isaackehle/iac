@@ -27,7 +27,7 @@
    - **Repository URL:** `https://github.com/isaackehle/iac.git`
    - **Repository reference:** `refs/heads/main`
    - **Compose path:** `pihole/docker-compose.yml`
-1. Under **Environment variables**, paste the contents of `.env.example` with
+1. Under **Environment variables**, paste the contents of `.env.sample` with
    real values filled in:
    - `PIHOLE_PASSWORD` — Pi-hole web admin password
    - `PIHOLE_UPSTREAMS` — upstream DNS servers (e.g. `1.1.1.1;8.8.8.8`)

@@ -9,7 +9,7 @@ This document provides the commands to sync `.env` files between your local mach
 ```bash
 # Generate .env for a stack
 cd ~/code/isaackehle/iac
-bash scripts/gen-env.sh portainer
+bash scripts/deploy.sh env portainer
 
 # Push to NAS
 ./scripts/sync-env.sh push portainer
@@ -32,7 +32,7 @@ bash scripts/gen-env.sh portainer
 The IAC repo uses `.env` files for stack configuration, but these are gitignored to prevent secrets from being committed. Instead:
 
 - **Local**: Edit `iac-secrets.env` (or create `iac-secrets.env.local`)
-- **NAS**: Run `scripts/gen-env.sh <stack>` to generate `.env` in the stack directory
+- **NAS**: Run `scripts/deploy.sh env <stack>` to generate `.env` in the stack directory
 - **Sync**: Use `scp` to push generated `.env` files to the NAS
 
 ## SSH Configuration
@@ -56,7 +56,7 @@ Generate the `.env` file locally, then push it:
 ```bash
 # Generate .env for a stack
 cd ~/code/isaackehle/iac
-bash scripts/gen-env.sh portainer
+bash scripts/deploy.sh env portainer
 
 # Push to NAS (replace portainer with your stack name)
 scp -O ~/code/isaackehle/iac/portainer/.env isaac@nas.<tailnet>.ts.net:/volume1/docker/stacks/portainer/.env
@@ -140,7 +140,7 @@ scp -O nas:/volume1/docker/stacks/portainer/.env ~/code/isaackehle/iac/portainer
 ## Workflow
 
 1. **Edit secrets**: Modify `iac-secrets.env` or `iac-secrets.env.local`
-2. **Generate .env**: Run `bash scripts/gen-env.sh <stack>`
+2. **Generate .env**: Run `bash scripts/deploy.sh env <stack>`
 3. **Push to NAS**: Run the `scp -O` command for that stack
 4. **Deploy**: Run `bash scripts/deploy.sh <stack>` on the NAS
 

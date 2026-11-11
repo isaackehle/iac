@@ -3,7 +3,7 @@ iac-secrets.env
 .kilo
 .DS_Store
 
-# Rendered output of *.tmpl files (see scripts/gen-env.sh render_templates).
+# Rendered output of *.tmpl files (scripts/deploy.sh env; render_templates in scripts/lib.sh).
 # Every sidecar stack keeps its committed source as serve.json.tmpl; the
 # rendered serve.json is generated at deploy time.
 */serve.json
@@ -13,6 +13,7 @@ iac-secrets.env.backup
 observability/prometheus.yml
 observability/alertmanager.yml
 observability/telegram_bot_token
+observability/discord_webhook_url
 observability/snmp-auth.yml
 observability/laptop-probe.conf
 

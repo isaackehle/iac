@@ -42,7 +42,7 @@ export PORTAINER_API_KEY="pt-your-api-key-here"
 
 This will:
 
-1. Generate `.env` from `iac-secrets.env`
+1. Render the stack's `*.tmpl` files from its `.env` and `global/.env`
 2. Create a GitOps stack in Portainer
 3. Configure Portainer to pull from GitHub
 4. Start the stack
@@ -135,7 +135,7 @@ it will be marked as **"Limited"** in Portainer. The Portainer API
 
 ```bash
 cd ~/code/isaackehle/iac
-./scripts/gen-env.sh synology-mcp
+./scripts/deploy.sh env synology-mcp
 ./scripts/deploy.sh all synology-mcp nas
 ```
 
@@ -193,7 +193,7 @@ If Portainer API is unavailable, use SSH:
 
 ```bash
 cd ~/code/isaackehle/iac
-./scripts/gen-env.sh langfuse
+./scripts/deploy.sh env langfuse
 ./scripts/deploy.sh all langfuse nas
 ```
 

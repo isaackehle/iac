@@ -27,7 +27,7 @@ MQTT_USER=zigbee MQTT_PASSWORD=<strong-password> ./init.sh
 
 Add `MQTT_USER` / `MQTT_PASSWORD` / `TZ` to `iac-secrets.env.example`'s
 mosquitto section and your real `./iac-secrets.env (repo root, gitignored)`, then
-`scripts/gen-env.sh mosquitto` before deploying.
+`scripts/deploy.sh env mosquitto` before deploying.
 
 ### 3. Configure Zigbee2MQTT in Home Assistant
 
@@ -125,7 +125,7 @@ Deploy again via Portainer to pull new image and restart container.
 ### Reset password
 
 ```shell
-# Get username from environment variable or .env.example
+# Get username from environment variable or .env.sample
 MQTT_USER="${MQTT_USER:-zigbee}"
 
 docker run --rm \
@@ -140,7 +140,7 @@ docker run --rm \
 - `config/mosquitto.conf` - Broker configuration (read-only bind mount)
 - `data/` - Persistent storage for password file and messages
 - `init.sh` - Setup script for initial deployment
-- `.env.example` - Environment variable template
+- `.env.sample` - Environment variable template
 
 ## Resources
 

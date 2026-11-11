@@ -27,7 +27,7 @@ whole `ts-config` directory at `/config`, so the file lands at
    - **Repository URL:** `https://github.com/isaackehle/iac.git`
    - **Repository reference:** `refs/heads/main`
    - **Compose path:** `n8n/docker-compose.yml`
-4. Under **Environment variables**, paste the contents of `.env.example` with
+4. Under **Environment variables**, paste the contents of `.env.sample` with
    real values filled in (or create a `.env` file alongside the compose file and
    Portainer will pick it up).
 5. Click **Deploy the stack**

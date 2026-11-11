@@ -7,7 +7,7 @@
 #   - primary (Pi-hole; DNS sinkhole + DHCP + web admin)
 #   - tailscale (Tailscale sidecar; owns the network namespace)
 #
-#   See .env.example for all required variables
+#   See .env.sample for all required variables
 #
 # Deployment:
 #   docker compose -f pihole.yaml up -d

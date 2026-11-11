@@ -27,7 +27,7 @@ whole `ts-config` directory at `/config`, so the file lands at
    - **Repository URL:** `https://github.com/isaackehle/iac.git`
    - **Repository reference:** `refs/heads/main`
    - **Compose path:** `nextcloud/docker-compose.yml`
-4. Under **Environment variables**, fill in the values from `.env.example`:
+4. Under **Environment variables**, fill in the values from `.env.sample`:
    - `NC_DB_PASSWORD` — PostgreSQL password for the `nextcloud` user
    - `NC_ADMIN_PASSWORD` — password for the Nextcloud admin account, `admin` (used only by the first install)
    - `TS_AUTHKEY` — Tailscale auth key (reusable, pre-authorized)

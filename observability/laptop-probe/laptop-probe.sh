@@ -104,7 +104,7 @@ write_metrics() {
   } > "$OUT.tmp" && chmod 0644 "$OUT.tmp" && mv "$OUT.tmp" "$OUT"
 }
 
-# TS_TAILNET_DOMAIN, rendered from laptop-probe.conf.tmpl by gen-env.sh.
+# TS_TAILNET_DOMAIN, rendered from laptop-probe.conf.tmpl by deploy.sh env.
 # shellcheck source=/dev/null
 [ -r "$CONF" ] && . "$CONF"
 if [ -z "$TS_TAILNET_DOMAIN" ] || [ "$TS_TAILNET_DOMAIN" = "{{TS_TAILNET_DOMAIN}}" ]; then

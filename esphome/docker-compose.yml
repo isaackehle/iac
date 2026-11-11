@@ -17,7 +17,7 @@
 #   The Tailscale sidecar is also on host networking so its serve.json
 #   forwarding reaches the primary without an extra bridge hop.
 #
-#   See .env.example for all required variables
+#   See .env.sample for all required variables
 #
 # Deployment:
 #   docker compose -f docker-compose.yml up -d

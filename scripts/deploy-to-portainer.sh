@@ -54,7 +54,7 @@ deploy_stack() {
   echo "==> Deploying $stack to $host via Portainer API"
   
   echo "1. Rendering templates..."
-  "$ROOT_DIR/scripts/gen-env.sh" "$stack"
+  render_templates "$stack"
   
   if [[ ! -f "$stack/.env" ]]; then
     echo "⚠ Warning: $stack/.env not found — create it with real values first"

@@ -49,6 +49,8 @@ the exceptions are listed.
 Containers sharing a sidecar's namespace share `127.0.0.1`, so ports must be
 unique within a stack. The one stack where this matters is `mcp`: its port table
 is in `mcp/docker-compose.yml` (8485 and 8488 in use; 8486, 8487 and 8489 reserved).
+`openwebui` has three: 8080 (OpenWebUI), 4000 (the LiteLLM fleet gateway) and 1055
+(tailscaled's outbound HTTP proxy).
 
 ## Not covered
 

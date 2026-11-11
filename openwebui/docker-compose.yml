@@ -1,17 +1,25 @@
 # OpenWebUI — Docker Compose Stack
 #
-# Stack version: 2.0 (2026-09-25) -- LiteLLM backends, no Ollama (homelab DEC-180/185)
-# Purpose: Web UI for LLM interaction. Backends are each fleet host's LiteLLM
-#   gateway, registered as OpenAI-compatible connections by configure-litellm.sh
-#   (never Ollama -- see that repo's DEC-180/185).
+# Stack version: 2.1 (2026-11-10) -- single LiteLLM fleet gateway in front of the hosts
+# Purpose: Web UI for LLM interaction. OpenWebUI has ONE OpenAI-compatible
+#   connection: the `litellm` service in this stack (127.0.0.1:4000), registered
+#   by configure-litellm.sh. That gateway fans out to each fleet host's own
+#   LiteLLM as <host>/<model> (litellm.yaml; never Ollama -- homelab DEC-180/185).
+#
+# Tailnet egress: the sidecar is userspace (containerboot's default), so this
+#   namespace has no route to 100.x and no MagicDNS. Only `litellm` talks to
+#   the tailnet, through tailscaled's outbound HTTP proxy on 127.0.0.1:1055
+#   (same mechanism as observability), which also resolves the hosts'
+#   *.ts.net names.
 #
 # Services:
 #   - primary
+#   - litellm (fleet gateway; config/litellm.yaml)
 #   - config (runs configure-litellm.sh once; safe/idempotent to re-run;
 #     no-ops with instructions if OPENWEBUI_API_KEY isn't set yet)
 #   - tailscale (Tailscale sidecar)
 #
-#   See .env.example for all required variables
+#   See .env.sample for all required variables
 #
 # Deployment:
 #   docker compose -f docker-compose.yml up -d
@@ -36,6 +44,7 @@ services:
     restart: unless-stopped
     depends_on:
       - tailscale
+      - litellm
 
     # ── Network ───────────────────────────────────────────────
     network_mode: service:tailscale
@@ -44,6 +53,49 @@ services:
     volumes:
       - /volume1/docker/stacks/openwebui/data:/app/backend/data
       - /volume1/docker/stacks/openwebui/config:/volume1/docker/stacks/openwebui/config:ro
+
+  # ── Identity ──────────────────────────────────────────────
+  # Fleet gateway: one endpoint for every host's LiteLLM. See litellm.yaml.
+  litellm:
+    image: ghcr.io/berriai/litellm:main-stable
+    env_file: *stack-env
+    container_name: openwebui-litellm
+
+    # ── Lifecycle ─────────────────────────────────────────────
+    restart: unless-stopped
+    depends_on:
+      - tailscale
+
+    # ── Network ───────────────────────────────────────────────
+    # Shares the sidecar's namespace: OpenWebUI reaches it on 127.0.0.1:4000,
+    # and it reaches tailscaled's outbound proxy on 127.0.0.1:1055.
+    network_mode: service:tailscale
+
+    # ── Storage ───────────────────────────────────────────────
+    volumes:
+      - /volume1/docker/stacks/openwebui/config/litellm.yaml:/app/config.yaml:ro
+
+    # ── Environment (overrides / additions) ───────────────────
+    # The fleet hosts are plain http://<host>.<tailnet>:4000, so only http_proxy is
+    # set; HTTPS (LiteLLM's model-cost map, etc.) uses the bridge directly.
+    # LITELLM_SHARED_KEY comes from service.env.
+    #
+    # Fleet hosts by MagicDNS name. The namespace itself has no MagicDNS, but
+    # these are plain-HTTP requests sent to the proxy with the hostname intact,
+    # and tailscaled resolves *.ts.net itself. Referenced from litellm.yaml.
+    environment:
+      LITELLM_DISCOVERY_API_BASE: "http://discovery.tail303fda.ts.net:4000/v1"
+      LITELLM_DS9_API_BASE: "http://ds9.tail303fda.ts.net:4000/v1"
+      LITELLM_ENTERPRISE_API_BASE: "http://enterprise.tail303fda.ts.net:4000/v1"
+      http_proxy: "http://127.0.0.1:1055"
+      HTTP_PROXY: "http://127.0.0.1:1055"
+      no_proxy: "localhost,127.0.0.1"
+      NO_PROXY: "localhost,127.0.0.1"
+
+    # ── Runtime ───────────────────────────────────────────────
+    # 127.0.0.1 only: nothing outside this namespace can reach the gateway
+    # unless a serve.json listener is added for it.
+    command: ["--config", "/app/config.yaml", "--host", "127.0.0.1", "--port", "4000"]
 
   # ── Identity ──────────────────────────────────────────────
   config:
@@ -63,15 +115,13 @@ services:
       # and Docker mounts an empty directory. deploy.sh copies the script here.
       - /volume1/docker/stacks/openwebui/configure-litellm.sh:/scripts/configure-litellm.sh:ro
 
-    # ── Network ─────────────────────────────────────────────────────
-    # Must be host: the tailscale service uses network_mode: host, so it
-    # has no IP on the Docker network and "tailscale" is unresolvable
-    # from any other container. Host mode lets us reach 127.0.0.1:8080.
-    network_mode: host
+    # ── Network ───────────────────────────────────────────────
+    # Borrows the sidecar's namespace, like primary, so 127.0.0.1:8080 is
+    # OpenWebUI itself. ("tailscale"/"openwebui" are not resolvable names from
+    # a separate container: primary has no network of its own.)
+    network_mode: service:tailscale
 
     # ── Environment (overrides / additions) ───────────────────
-    # With network_mode: host, 127.0.0.1:8080 reaches the primary (which
-    # shares the tailscale container's network namespace).
     environment:
       OPENWEBUI_API_URL: "http://127.0.0.1:8080"
 
@@ -86,7 +136,9 @@ services:
 
     # ── Lifecycle ─────────────────────────────────────────────
     restart: unless-stopped
-    network_mode: host
+    # No network_mode: host. The sidecar owns its own namespace on the pinned
+    # bridge below (Pattern B, docs/tailscale_patterns.md); host mode put
+    # OpenWebUI in the NAS's namespace and published :8080 on the LAN.
 
     # ── Storage ───────────────────────────────────────────────
     volumes:
@@ -99,6 +151,10 @@ services:
       TS_STATE_DIR: /var/lib/tailscale
       TS_AUTH_ONCE: "true"
       TS_SERVE_CONFIG: /config/serve.json
+      # Outbound to the tailnet for the borrowers (see litellm's http_proxy).
+      TS_OUTBOUND_HTTP_PROXY_LISTEN: 127.0.0.1:1055
+      # Force DERP relay — see portainer/docker-compose.yml for the full write-up.
+      TS_DEBUG_ALWAYS_USE_DERP: 1
 
     # ── Runtime ───────────────────────────────────────────────
     cap_add:

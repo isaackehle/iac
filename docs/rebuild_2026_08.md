@@ -87,8 +87,8 @@ If you prefer to do it manually:
 
 ```shell
 cd ~/code/isaackehle/iac/portainer/
-bash scripts/gen-env.sh pihole
-bash scripts/gen-env.sh syncthing
+bash scripts/deploy.sh env pihole
+bash scripts/deploy.sh env syncthing
 ```
 
 ### 2. Copy files to NAS

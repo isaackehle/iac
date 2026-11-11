@@ -7,7 +7,7 @@
 # is provisioned the same way instead of each having bespoke setup logic.
 #
 # Usage:
-#   scripts/deploy.sh env    <stack>                  # render <stack>/*.tmpl files
+#   scripts/deploy.sh env    <stack>|--all            # render <stack>/*.tmpl files
 #   scripts/deploy.sh dirs   <stack> <ssh-host>       # mkdir -p + chown on the NAS
 #   scripts/deploy.sh push   <stack> <ssh-host>       # scp compose/.env/extra files
 #   scripts/deploy.sh extras <stack> <ssh-host>       # scp ONLY the bind-mounted extra
@@ -50,7 +50,7 @@ usage() {
 Usage: scripts/deploy.sh <command> <stack> [ssh-host]
 
 Commands:
-  env    <stack>               render <stack>/*.tmpl templates
+  env    <stack>|--all         render <stack>/*.tmpl templates ({{KEY}} from .env files)
   dirs   <stack> <ssh-host>    mkdir -p + chown the stack's directories on the NAS
   push   <stack> <ssh-host>    scp compose file, .env, and extra config into place
   extras <stack> <ssh-host>    scp ONLY the extra bind-mounted config (no compose, no
@@ -70,8 +70,19 @@ EOF
   exit 1
 }
 
+# Render <stack>/*.tmpl into their plain names ({{KEY}} from <stack>/.env,
+# then global/.env). `--all` does every enabled stack. Replaces deploy.sh env.
 cmd_env() {
-  "$ROOT_DIR/scripts/gen-env.sh" "$1"
+  local stack="$1"
+  if [[ "$stack" == "--all" ]]; then
+    local s
+    while IFS= read -r s; do
+      render_templates "$s"
+    done < <(enabled_stacks)
+    return
+  fi
+  require_stack "$stack"
+  render_templates "$stack"
 }
 
 cmd_dirs() {
@@ -154,7 +165,7 @@ cmd_extras() {
     local_path="${pair%%:*}"
     remote_rel="${pair#*:}"
     if [[ ! -f "$stack/$local_path" && -f "$stack/$local_path.tmpl" ]]; then
-      echo "ERROR: $stack/$local_path not rendered yet — run 'scripts/gen-env.sh $stack' first" >&2
+      echo "ERROR: $stack/$local_path not rendered yet — run 'scripts/deploy.sh env $stack' first" >&2
       echo "       (it is rendered from $stack/$local_path.tmpl)" >&2
       exit 1
     fi
@@ -230,7 +241,7 @@ portainer_auth() {
     PORTAINER_URL="$(get_secret_value "PORTAINER_URL")"
   fi
   if [[ -z "${PORTAINER_URL:-}" ]]; then
-    echo "ERROR: PORTAINER_URL not set in the environment, $IAC_SECRETS_FILE or $IAC_USER_ENV_FILE" >&2
+    echo "ERROR: PORTAINER_URL not set in the environment, $IAC_GLOBAL_ENV_FILE or $IAC_USER_ENV_FILE" >&2
     exit 1
   fi
 
@@ -240,7 +251,7 @@ portainer_auth() {
     key="$(get_secret_value "PORTAINER_API_KEY")"
   fi
   if [[ -z "$key" ]]; then
-    echo "ERROR: PORTAINER_API_KEY not set in the environment, $IAC_SECRETS_FILE or $IAC_USER_ENV_FILE" >&2
+    echo "ERROR: PORTAINER_API_KEY not set in the environment, $IAC_GLOBAL_ENV_FILE or $IAC_USER_ENV_FILE" >&2
     exit 1
   fi
   PORTAINER_API_KEY="$key"
@@ -409,8 +420,11 @@ cmd_api() {
     while IFS='=' read -r key value || [[ -n "$key" ]]; do
       [[ "$key" =~ ^[[:space:]]*# ]] && continue
       [[ -z "$key" ]] && continue
-      key=$(echo "$key" | xargs)
-      value=$(echo "$value" | xargs)
+      # Trim surrounding whitespace only. (This used xargs, which also strips
+      # quotes and backslashes: it turned JSON values such as LITELLM_ENGINES
+      # into invalid JSON and would corrupt any password containing a quote.)
+      key="${key#"${key%%[![:space:]]*}"}";       key="${key%"${key##*[![:space:]]}"}"
+      value="${value#"${value%%[![:space:]]*}"}"; value="${value%"${value##*[![:space:]]}"}"
       [[ -z "$key" ]] && continue
       value=$(printf '%s' "$value" | sed 's/\\/\\\\/g; s/"/\\"/g')
       

@@ -11,7 +11,7 @@
 #   - db-init (one-shot: lets Nextcloud's own DB user create tables)
 #   - cron (runs Nextcloud background jobs every 5 minutes)
 #
-#   See .env.example for all required variables
+#   See .env.sample for all required variables
 #
 # Deployment:
 #   docker compose -f nextcloud.yaml up -d

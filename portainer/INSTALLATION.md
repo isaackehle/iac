@@ -101,7 +101,7 @@ From your Mac:
 
 ```shell
 cd ~/code/isaackehle/iac
-scripts/gen-env.sh portainer          # renders serve.json from serve.json.tmpl
+scripts/deploy.sh env portainer          # renders serve.json from serve.json.tmpl
 scripts/deploy.sh portainer nas   # pushes compose, .env, serve.json
 ```
 

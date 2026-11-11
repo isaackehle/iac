@@ -71,9 +71,16 @@ docker compose -f /volume1/docker/stacks/openwebui/docker-compose.yml restart op
 
 **Symptom**: `https://openwebui.tail303fda.ts.net/` returns HTTP 000 (connection refused/timed out).
 
-**Root cause**: The `tailscale` service in `docker-compose.yml` was missing `network_mode: host`. Without it, the Tailscale sidecar runs in its own Docker network namespace and cannot reach 127.0.0.1:8080 on the host (it tries to reach port 8080 within the sidecar container itself, not on the host).
+**Root cause**: The `tailscale` service in `docker-compose.yml` was missing `network_mode: host`. Without it, the Tailscale sidecar runs in its own Docker
+network namespace and cannot reach 127.0.0.1:8080 on the host (it tries to reach port 8080 within the sidecar container itself, not on the host).
 
 **Fix**: Add `network_mode: host` to the `tailscale` service in `docker-compose.yml`.
+
+> **Superseded 2026-11-10 — do not re-add host mode.** `primary` borrows the sidecar's
+> namespace, so `127.0.0.1:8080` is reachable without it. Host mode put OpenWebUI in the
+> NAS's own namespace, where it had no route to the fleet LiteLLM gateways on `100.x`
+> (curl from the container returned `000`). The sidecar is back on its pinned bridge and
+> LiteLLM is reached through `TS_OUTBOUND_HTTP_PROXY_LISTEN` (see `docker-compose.yml`).
 
 **Steps**:
 

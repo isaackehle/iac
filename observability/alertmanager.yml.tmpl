@@ -1,16 +1,21 @@
 # Alertmanager config for the observability stack.
-# Rendered by scripts/gen-env.sh to alertmanager.yml (gitignored), pushed to
+# Rendered by scripts/deploy.sh env to alertmanager.yml (gitignored), pushed to
 # config/alertmanager/alertmanager.yml. Only double-brace NAME tokens with no spaces are
-# substituted from iac-secrets.env; Go-template actions below must keep their
+# substituted from observability/.env and global/.env; Go-template actions below must keep their
 # spaces ({{ .Status }}, {{ end }}) or render_templates will try to resolve them.
-# The bot token is never in this file: telegram_bot_token.tmpl renders it to its
-# own file (config/alertmanager/telegram_bot_token).
+# Secrets are never in this file: telegram_bot_token.tmpl and
+# discord_webhook_url.tmpl each render to their own file under
+# config/alertmanager/, read here via bot_token_file / webhook_url_file.
+#
+# One receiver, `chat`, sends every routed alert to BOTH Telegram (home channel)
+# and Discord (the server's alerts channel). The two are independent: one
+# failing does not stop the other.
 
 global:
   resolve_timeout: 5m
 
 route:
-  receiver: telegram
+  receiver: chat
   group_by: [alertname, instance, name, service]
   group_wait: 30s
   group_interval: 5m
@@ -21,12 +26,12 @@ route:
     - matchers: ['severity =~ "info|none"']
       receiver: "null"
     - matchers: ['severity = "warning"']
-      receiver: telegram
+      receiver: chat
       group_by: [alertname]
       group_wait: 2m
       repeat_interval: 24h
     - matchers: ['severity = "critical"']
-      receiver: telegram
+      receiver: chat
 
 inhibit_rules:
   # A critical alert silences the warning of the same name and target.
@@ -41,15 +46,23 @@ inhibit_rules:
 
 receivers:
   - name: "null"
-  - name: telegram
-    telegram_configs:
-      - bot_token_file: /etc/alertmanager/telegram_bot_token
-        chat_id: {{TELEGRAM_HOME_CHANNEL}}
+  - name: chat
+#    telegram_configs:
+#      - bot_token_file: /etc/alertmanager/telegram_bot_token
+#        chat_id: {{TELEGRAM_HOME_CHANNEL}}
+#        send_resolved: true
+#        parse_mode: HTML
+#        # Firing: 🔴 critical, 🟡 warning, with the severity. Resolved: ✅ "cleared"
+#        # and no severity, so a clear never reads like a new critical.
+#        message: |-
+#          {{ if eq .Status "firing" }}{{ if eq .CommonLabels.severity "critical" }}🔴{{ else }}🟡{{ end }} <b>{{ .CommonLabels.alertname }}</b>{{ if .CommonLabels.severity }} [{{ .CommonLabels.severity }}]{{ end }}{{ else }}✅ <b>{{ .CommonLabels.alertname }}</b> cleared{{ end }}
+#          {{ range .Alerts }}• {{ if eq .Status "resolved" }}was: {{ end }}{{ .Annotations.summary | html }}
+#          {{ end }}
+    discord_configs:
+      - webhook_url_file: /etc/alertmanager/discord_webhook_url
         send_resolved: true
-        parse_mode: HTML
-        # Firing: 🔴 critical, 🟡 warning, with the severity. Resolved: ✅ "cleared"
-        # and no severity, so a clear never reads like a new critical.
+        # Same wording as Telegram, in Discord's Markdown instead of HTML.
+        title: '{{ if eq .Status "firing" }}{{ if eq .CommonLabels.severity "critical" }}🔴{{ else }}🟡{{ end }} {{ .CommonLabels.alertname }}{{ if .CommonLabels.severity }} [{{ .CommonLabels.severity }}]{{ end }}{{ else }}✅ {{ .CommonLabels.alertname }} cleared{{ end }}'
         message: |-
-          {{ if eq .Status "firing" }}{{ if eq .CommonLabels.severity "critical" }}🔴{{ else }}🟡{{ end }} <b>{{ .CommonLabels.alertname }}</b>{{ if .CommonLabels.severity }} [{{ .CommonLabels.severity }}]{{ end }}{{ else }}✅ <b>{{ .CommonLabels.alertname }}</b> cleared{{ end }}
-          {{ range .Alerts }}• {{ if eq .Status "resolved" }}was: {{ end }}{{ .Annotations.summary | html }}
+          {{ range .Alerts }}• {{ if eq .Status "resolved" }}was: {{ end }}{{ .Annotations.summary }}
           {{ end }}

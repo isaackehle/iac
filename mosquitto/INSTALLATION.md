@@ -78,8 +78,8 @@ log_type subscription
 ### Prerequisites
 
 - SSH access to the NAS (e.g., `nas` alias in `~/.ssh/config`)
-- The `scripts/deploy.sh` and `scripts/gen-env.sh` tools available on your laptop
-- The central secrets file `iac-secrets.env` with `MQTT_USER` and `MQTT_PASSWORD` set
+- The `scripts/deploy.sh` tool available on your laptop
+- `mosquitto/.env` (copied from `mosquitto/.env.sample`) with `MQTT_USER` and `MQTT_PASSWORD` set
 
 ### One-Line Deployment
 
@@ -90,7 +90,7 @@ scripts/deploy.sh all mosquitto nas
 
 This single command does:
 
-1. Generates `mosquitto/.env` from `iac-secrets.env`
+1. Renders `mosquitto/*.tmpl` (e.g. `serve.json`) from `mosquitto/.env` and `global/.env`
 2. Creates `/volume1/docker/stacks/mosquitto/{config/mosquitto,config/certs,data}` on the NAS
 3. Copies `docker-compose.yml`, `.env`, and any extra files via SCP
 4. Runs `docker compose up -d` on the NAS
@@ -99,7 +99,7 @@ This single command does:
 
 ```shell
 # 1. Generate .env locally
-scripts/gen-env.sh mosquitto
+scripts/deploy.sh env mosquitto
 
 # 2. Create directories on the NAS
 ssh nas "mkdir -p /volume1/docker/stacks/mosquitto/{config/mosquitto,config/certs,data}"

@@ -1,0 +1,52 @@
+# LiteLLM fleet gateway — one OpenAI-compatible endpoint for every fleet host.
+#
+# Runs as the `litellm` service in the openwebui stack, sharing the Tailscale
+# sidecar's namespace: OpenWebUI reaches it at http://127.0.0.1:4000/v1.
+# Pushed to the NAS as config/litellm.yaml by scripts/deploy.sh (STACK_EXTRA_FILES).
+#
+# Each fleet host keeps its own LiteLLM (:4000) in front of its local runtime
+# (homelab DEC-180/185). This gateway does not replace those; it fans out to
+# them with a per-host prefix:
+#
+#   discovery/<model>   -> discovery's LiteLLM, model <model>
+#   ds9/<model>         -> DS9's LiteLLM
+#   enterprise/<model>  -> Enterprise's LiteLLM
+#
+# Nothing here names a model. `check_provider_endpoint` asks each host's
+# /v1/models and lists whatever that host currently serves, so the host's own
+# config (homelab llm-fleet.yaml) stays the single source of truth.
+#
+# The API bases are env references set on the litellm service in
+# docker-compose.yml (http://<host>.tail303fda.ts.net:4000/v1). They are plain
+# http:// on the tailnet and leave the namespace through tailscaled's outbound
+# proxy (http_proxy on the service), which also resolves the *.ts.net names.
+
+model_list:
+  - model_name: "discovery/*"
+    litellm_params:
+      model: "litellm_proxy/*"
+      api_base: os.environ/LITELLM_DISCOVERY_API_BASE
+      api_key: os.environ/LITELLM_SHARED_KEY
+
+  - model_name: "ds9/*"
+    litellm_params:
+      model: "litellm_proxy/*"
+      api_base: os.environ/LITELLM_DS9_API_BASE
+      api_key: os.environ/LITELLM_SHARED_KEY
+
+  - model_name: "enterprise/*"
+    litellm_params:
+      model: "litellm_proxy/*"
+      api_base: os.environ/LITELLM_ENTERPRISE_API_BASE
+      api_key: os.environ/LITELLM_SHARED_KEY
+
+litellm_settings:
+  # List the real models behind each wildcard on /v1/models.
+  check_provider_endpoint: true
+  # Local models can take a while to load on first request.
+  request_timeout: 600
+  drop_params: true
+
+general_settings:
+  # Same tool key every fleet LiteLLM accepts (homelab AGENTS.md rule 6).
+  master_key: os.environ/LITELLM_SHARED_KEY
