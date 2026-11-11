@@ -48,5 +48,7 @@ litellm_settings:
   drop_params: true
 
 general_settings:
-  # Same tool key every fleet LiteLLM accepts (homelab AGENTS.md rule 6).
-  master_key: os.environ/LITELLM_SHARED_KEY
+  # The gateway's OWN key: only OpenWebUI calls it. LiteLLM refuses to start
+  # with an unset or weak master key, so this is a long random sk-... value,
+  # separate from LITELLM_SHARED_KEY (which the gateway uses to call the hosts).
+  master_key: os.environ/LITELLM_MASTER_KEY

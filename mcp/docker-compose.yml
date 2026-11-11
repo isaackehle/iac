@@ -106,11 +106,14 @@ services:
       - tailscale
 
     # ── Runtime ───────────────────────────────────────
+    # The image has npm but no npx, and "mcp@1.4.2" was the wrong package (a
+    # deprecated puppeteer bundle). Install the mcp-proxy wrapper itself and run
+    # its binary; same flags as the weather service, which uses it via npx.
     working_dir: /app
     command:
       - sh
       - -c
-      - "npm install -g --prefix /home/pwuser/.local mcp@1.4.2 && export PATH=/home/pwuser/.local/bin:$PATH && npx mcp-proxy --pass-environment --host 127.0.0.1 --port 8486 -- node dist/index.js"
+      - "npm install -g --prefix /home/pwuser/.local mcp-proxy && exec /home/pwuser/.local/bin/mcp-proxy --pass-environment --host 127.0.0.1 --port 8486 -- node dist/index.js"
 
     network_mode: service:tailscale   # borrow the sidecar's namespace; port 8486
 

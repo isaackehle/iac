@@ -62,7 +62,7 @@ echo "Configuring LiteLLM connections..."
 # Tries json.load first (double-quoted JSON); falls back to ast.literal_eval
 # so the script also accepts single-quoted .env values written by hand.
 readarray -t _result < <(python3 -c "
-import sys, json, ast
+import sys, json, ast, os
 
 raw = sys.argv[1]
 engines = None
@@ -88,7 +88,14 @@ for i, eng in enumerate(engines):
     name  = eng.get('name', f'host-{i}')
     url   = eng.get('url', '').rstrip('/')
     base_urls.append(url)
-    api_keys.append(sys.argv[2])
+    # Optional "key_env": take this connection's key from that env var instead
+    # of the shared fleet key (the in-stack gateway has its own master key).
+    key_env = eng.get('key_env')
+    key = os.environ.get(key_env, '') if key_env else ''
+    if key_env and not key:
+        print(f'ERROR: {name}: key_env {key_env} is not set', file=sys.stderr)
+        sys.exit(1)
+    api_keys.append(key or sys.argv[2])
     # Optional "prefix": the fleet gateway already namespaces models as
     # <host>/<model>, so its entry sets "prefix": "" to avoid a second prefix.
     configs[str(i)] = {'enable': True, 'tags': [], 'prefix_id': eng.get('prefix', name)}
