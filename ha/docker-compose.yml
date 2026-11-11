@@ -80,6 +80,11 @@ services:
       TS_STATE_DIR: /var/lib/tailscale
       TS_AUTH_ONCE: "true"
       TS_SERVE_CONFIG: /config/serve.json
+      # Force DERP relay, as on portainer/pihole/observability: on the NAS a node can
+      # negotiate a bogus "direct" path via NAT hairpin that passes disco pings but
+      # blackholes multi-segment TLS. Here it showed as obs's blackbox probe of
+      # https://ha.<tailnet>/ flapping (EndpointDown) while homeassistant-lan stayed up.
+      TS_DEBUG_ALWAYS_USE_DERP: "1"
 
     # ── Storage ───────────────────────────────────────────────
     volumes:
