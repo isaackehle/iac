@@ -2,6 +2,9 @@
 iac-secrets.env
 .kilo
 .DS_Store
+.omo
+.crush
+.claude
 
 # Rendered output of *.tmpl files (scripts/deploy.sh env; render_templates in scripts/lib.sh).
 # Every sidecar stack keeps its committed source as serve.json.tmpl; the
@@ -20,3 +23,4 @@ observability/laptop-probe.conf
 # Per-user stack overrides (private in a public repo).
 scripts/stacks-local.yaml
 scripts/stacks-local.yaml.example
+
