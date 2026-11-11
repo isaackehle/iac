@@ -247,8 +247,16 @@ portainer_auth() {
 
   local key
   key="${PORTAINER_API_KEY:-}"
-  if [[ -z "$key" ]]; then
+  # A shell that sources ~/.env exports the *unresolved* op:// reference; the
+  # files are then the place to resolve it, so ignore the env copy.
+  if [[ -z "$key" || "$key" == op://* ]]; then
     key="$(get_secret_value "PORTAINER_API_KEY")"
+  fi
+  # Strip stray CR/whitespace (a pasted key or CRLF file breaks the header).
+  key="${key//$'\r'/}"; key="${key#"${key%%[![:space:]]*}"}"; key="${key%"${key##*[![:space:]]}"}"
+  if [[ "$key" == op://* ]]; then
+    echo "ERROR: PORTAINER_API_KEY is still an unresolved op:// reference ($key)" >&2
+    exit 1
   fi
   if [[ -z "$key" ]]; then
     echo "ERROR: PORTAINER_API_KEY not set in the environment, $IAC_GLOBAL_ENV_FILE or $IAC_USER_ENV_FILE" >&2
@@ -257,7 +265,7 @@ portainer_auth() {
   PORTAINER_API_KEY="$key"
 
   echo "   Portainer: $PORTAINER_URL"
-  echo "   API key:   PORTAINER_API_KEY"
+  echo "   API key:   ${PORTAINER_API_KEY:0:4}… (${#PORTAINER_API_KEY} chars)"
 }
 
 # portainer_curl ARGS... — curl with the API key header. The header is passed
