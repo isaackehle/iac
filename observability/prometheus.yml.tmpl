@@ -103,10 +103,7 @@ scrape_configs:
         labels: { service: actualbudget }
       - targets: ["https://mcp.{{TS_TAILNET_DOMAIN}}/"]
         labels: { service: mcp }
-      # Same cheap static file the LAN probe uses (homeassistant-lan), so the two
-      # are comparable: "/" renders the login page and can stall past 10s when HA
-      # is busy (backups, restarts), which looked like the front door flapping.
-      - targets: ["https://ha.{{TS_TAILNET_DOMAIN}}/manifest.json"]
+      - targets: ["https://ha.{{TS_TAILNET_DOMAIN}}/"]
         labels: { service: homeassistant }
       - targets: ["https://obs.{{TS_TAILNET_DOMAIN}}/api/health"]
         labels: { service: grafana }
