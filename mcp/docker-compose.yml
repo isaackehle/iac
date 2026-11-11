@@ -63,6 +63,17 @@ services:
     # ── Network ───────────────────────────────────────────────
     network_mode: service:tailscale   # borrow the sidecar's namespace
 
+    # ── Environment ───────────────────────────────────────────
+    # Restored 2026-11-10: dropped by mistake in 52a76a1, which moved
+    # secrets to env files but deleted these non-secret settings too.
+    environment:
+      SYNOLOGY_TANK_HOST: "${SYNOLOGY_HOST}"
+      SYNOLOGY_TANK_PORT: "${SYNOLOGY_PORT:-5001}"
+      SYNOLOGY_TANK_USERNAME: "${SYNOLOGY_USERNAME}"
+      SYNOLOGY_TANK_PASSWORD: "${SYNOLOGY_PASSWORD}"
+      MCP_PORT: 8485
+      MCP_PERMISSION_TIER: "health"
+
   # ── Identity ──────────────────────────────────────────────
   # Tailscale admin API, read-only (devices, users, policy file, settings).
   # Prefer an OAuth client limited to read scopes over a full API key. Starts

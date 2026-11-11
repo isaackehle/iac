@@ -42,6 +42,16 @@ services:
     volumes:
       - /volume1/docker/stacks/pihole/etc-pihole:/etc/pihole
 
+    # ── Environment ───────────────────────────────────────────
+    # Restored 2026-11-10: dropped by mistake in 52a76a1, which moved
+    # secrets to env files but deleted these non-secret settings too.
+    environment:
+      FTLCONF_webserver_api_password: "${PIHOLE_PASSWORD}"
+      FTLCONF_dns_listeningMode: "all"
+      FTLCONF_dns_upstreams: "${PIHOLE_UPSTREAMS}"
+      FTLCONF_webserver_port: 80
+      FTLCONF_webserver_domain: "${TS_CERT_DOMAIN}"
+
   # ── Identity ──────────────────────────────────────────────
   tailscale:
     image: tailscale/tailscale:latest

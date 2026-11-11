@@ -53,6 +53,13 @@ services:
     mem_limit: 256m
     cpu_shares: 768
 
+    # ── Environment ───────────────────────────────────────────
+    # Restored 2026-11-10: dropped by mistake in 52a76a1, which moved
+    # secrets to env files but deleted these non-secret settings too.
+    environment:
+      POSTGRES_USER: "root"
+      POSTGRES_DB: "thunder_db"
+
   # ── Identity ──────────────────────────────────────────────
   admin:
     image: dpage/pgadmin4:latest
@@ -83,6 +90,12 @@ services:
     mem_limit: 256m
     cpu_shares: 768
     user: "0:0"
+
+    # ── Environment ───────────────────────────────────────────
+    # Restored 2026-11-10: dropped by mistake in 52a76a1, which moved
+    # secrets to env files but deleted these non-secret settings too.
+    environment:
+      PGADMIN_LISTEN_PORT: 5050
 
   # ── Identity ──────────────────────────────────────────────
   tailscale:

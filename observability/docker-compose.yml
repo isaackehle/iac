@@ -201,6 +201,22 @@ services:
     # ── Runtime ───────────────────────────────────────────────
     user: "${OBS_PUID}:${OBS_PGID}"
 
+    # ── Environment ───────────────────────────────────────────
+    # Restored 2026-11-10: dropped by mistake in 52a76a1, which moved
+    # secrets to env files but deleted these non-secret settings too.
+    environment:
+      GF_SERVER_HTTP_ADDR: "127.0.0.1"
+      GF_SERVER_HTTP_PORT: "3000"
+      GF_SERVER_ROOT_URL: "https://${OBS_HOST}/"
+      GF_SECURITY_ADMIN_USER: "admin"
+      GF_SECURITY_ADMIN_PASSWORD: "${GRAFANA_ADMIN_PASSWORD}"
+      GF_SECURITY_COOKIE_SECURE: "true"
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+      GF_ANALYTICS_CHECK_FOR_PLUGIN_UPDATES: "false"
+
   # ── Identity ──────────────────────────────────────────────
   alloy:
     image: grafana/alloy:v1.20.1
@@ -388,6 +404,12 @@ services:
     # ── Runtime ───────────────────────────────────────────────
     user: "${OBS_PUID}:${OBS_PGID}"
     entrypoint: ["/bin/sh", "/opt/laptop-probe/laptop-probe.sh"]
+
+    # ── Environment ───────────────────────────────────────────
+    # Restored 2026-11-10: dropped by mistake in 52a76a1, which moved
+    # secrets to env files but deleted these non-secret settings too.
+    environment:
+      LAPTOPS: "discovery enterprise ds9"
 
 # Pinned, same reason as pihole/portainer/openwebui: DSM's firewall drops
 # forwarded traffic from Docker's default 192.168.x.0/20 pool, which kills

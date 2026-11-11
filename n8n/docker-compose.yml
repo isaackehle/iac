@@ -49,6 +49,17 @@ services:
       - /volume1/docker/stacks/n8n/config:/home/node/.n8n
       - /volume1/docker/stacks/n8n/files:/files
 
+    # ── Environment ───────────────────────────────────────────
+    # Restored 2026-11-10: dropped by mistake in 52a76a1, which moved
+    # secrets to env files but deleted these non-secret settings too.
+    environment:
+      N8N_HOST: "n8n"
+      N8N_PORT: 5678
+      N8N_PROTOCOL: "http"
+      WEBHOOK_URL: "https://n8n.${TS_TAILNET_DOMAIN}/"
+      N8N_BASIC_AUTH_ACTIVE: "true"
+      BROWSERLESS_URL: "http://browserless:3000"
+
   # ── Identity ──────────────────────────────────────────────
   browserless:
     image: browserless/chrome:latest
@@ -61,6 +72,13 @@ services:
     # ── Network ───────────────────────────────────────────────
     networks:
       - n8n-net
+
+    # ── Environment ───────────────────────────────────────────
+    # Restored 2026-11-10: dropped by mistake in 52a76a1, which moved
+    # secrets to env files but deleted these non-secret settings too.
+    environment:
+      MAX_CONCURRENT_SESSIONS: 2
+      CONNECTION_TIMEOUT: 60000
 
   # ── Identity ──────────────────────────────────────────────
   tailscale:

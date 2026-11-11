@@ -65,6 +65,32 @@ services:
     # ── Network ───────────────────────────────────────────────
     network_mode: service:tailscale  # Borrow the sidecar's namespace
 
+    # ── Environment ───────────────────────────────────────────
+    # Restored 2026-11-10: dropped by mistake in 52a76a1, which moved
+    # secrets to env files but deleted these non-secret settings too.
+    environment:
+      DATABASE_URL: "postgresql://langfuse:${LANGFUSE_DB_PASSWORD}@postgresql-tailscale:5432/langfuse"
+      SALT: "${LANGFUSE_SALT}"
+      NEXTAUTH_SECRET: "${LANGFUSE_NEXTAUTH_SECRET}"
+      ENCRYPTION_KEY: "${LANGFUSE_ENCRYPTION_KEY}"
+      NEXTAUTH_URL: "https://${TS_CERT_DOMAIN}"
+      CLICKHOUSE_URL: "http://config:8123"
+      CLICKHOUSE_MIGRATION_URL: "clickhouse://config:9000"
+      CLICKHOUSE_USER: "default"
+      CLICKHOUSE_PASSWORD: "${LANGFUSE_CLICKHOUSE_PASSWORD}"
+      CLICKHOUSE_CLUSTER_ENABLED: "false"
+      REDIS_CONNECTION_STRING: "redis://:${LANGFUSE_REDIS_AUTH}@cache:6379"
+      LANGFUSE_S3_EVENT_UPLOAD_BUCKET: "langfuse"
+      LANGFUSE_S3_EVENT_UPLOAD_REGION: "auto"
+      LANGFUSE_S3_EVENT_UPLOAD_ENDPOINT: "http://storage:9000"
+      LANGFUSE_S3_EVENT_UPLOAD_ACCESS_KEY_ID: "minio"
+      LANGFUSE_S3_EVENT_UPLOAD_SECRET_ACCESS_KEY: "${LANGFUSE_MINIO_ROOT_PASSWORD}"
+      LANGFUSE_S3_EVENT_UPLOAD_FORCE_PATH_STYLE: "true"
+      LANGFUSE_S3_EVENT_UPLOAD_PREFIX: "events/"
+      LANGFUSE_INIT_ORG_ID: "default"
+      LANGFUSE_INIT_PROJECT_ID: "default"
+      TELEMETRY_ENABLED: "false"
+
   # ── Identity ──────────────────────────────────────────────
   # Async ingestion. Traces land here, not in the web container — if traces
   # aren't showing up in the UI, read this container's logs first.
@@ -85,6 +111,28 @@ services:
 
     # ── Network ───────────────────────────────────────────────
     network_mode: service:tailscale  # Borrow the sidecar's namespace
+
+    # ── Environment ───────────────────────────────────────────
+    # Restored 2026-11-10: dropped by mistake in 52a76a1, which moved
+    # secrets to env files but deleted these non-secret settings too.
+    environment:
+      DATABASE_URL: "postgresql://langfuse:${LANGFUSE_DB_PASSWORD}@postgresql-tailscale:5432/langfuse"
+      SALT: "${LANGFUSE_SALT}"
+      ENCRYPTION_KEY: "${LANGFUSE_ENCRYPTION_KEY}"
+      CLICKHOUSE_URL: "http://config:8123"
+      CLICKHOUSE_MIGRATION_URL: "clickhouse://config:9000"
+      CLICKHOUSE_USER: "default"
+      CLICKHOUSE_PASSWORD: "${LANGFUSE_CLICKHOUSE_PASSWORD}"
+      CLICKHOUSE_CLUSTER_ENABLED: "false"
+      REDIS_CONNECTION_STRING: "redis://:${LANGFUSE_REDIS_AUTH}@cache:6379"
+      LANGFUSE_S3_EVENT_UPLOAD_BUCKET: "langfuse"
+      LANGFUSE_S3_EVENT_UPLOAD_REGION: "auto"
+      LANGFUSE_S3_EVENT_UPLOAD_ENDPOINT: "http://storage:9000"
+      LANGFUSE_S3_EVENT_UPLOAD_ACCESS_KEY_ID: "minio"
+      LANGFUSE_S3_EVENT_UPLOAD_SECRET_ACCESS_KEY: "${LANGFUSE_MINIO_ROOT_PASSWORD}"
+      LANGFUSE_S3_EVENT_UPLOAD_FORCE_PATH_STYLE: "true"
+      LANGFUSE_S3_EVENT_UPLOAD_PREFIX: "events/"
+      TELEMETRY_ENABLED: "false"
 
   # ── Identity ──────────────────────────────────────────────
   tailscale:
@@ -155,6 +203,14 @@ services:
       retries: 10
       start_period: 30s
 
+    # ── Environment ───────────────────────────────────────────
+    # Restored 2026-11-10: dropped by mistake in 52a76a1, which moved
+    # secrets to env files but deleted these non-secret settings too.
+    environment:
+      CLICKHOUSE_DB: "default"
+      CLICKHOUSE_USER: "default"
+      CLICKHOUSE_PASSWORD: "${LANGFUSE_CLICKHOUSE_PASSWORD}"
+
   # ── Identity ──────────────────────────────────────────────
   cache:
     image: redis:7-alpine
@@ -179,6 +235,12 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+    # ── Environment ───────────────────────────────────────────
+    # Restored 2026-11-10: dropped by mistake in 52a76a1, which moved
+    # secrets to env files but deleted these non-secret settings too.
+    environment:
+      REDIS_AUTH: "${LANGFUSE_REDIS_AUTH}"
 
   # ── Identity ──────────────────────────────────────────────
   storage:
@@ -208,6 +270,13 @@ services:
       timeout: 5s
       retries: 10
       start_period: 20s
+
+    # ── Environment ───────────────────────────────────────────
+    # Restored 2026-11-10: dropped by mistake in 52a76a1, which moved
+    # secrets to env files but deleted these non-secret settings too.
+    environment:
+      MINIO_ROOT_USER: "minio"
+      MINIO_ROOT_PASSWORD: "${LANGFUSE_MINIO_ROOT_PASSWORD}"
 
 # Pinned: DSM's firewall drops forwarded traffic from Docker's default
 # 192.168.x.0/20 pool, which silently kills outbound access (image pulls,
