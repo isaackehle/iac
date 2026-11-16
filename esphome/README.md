@@ -50,7 +50,6 @@ nas`. Full steps in `INSTALLATION.md`.
 
 - `_template/README.md` for the sidecar pattern this follows.
 - `dsm/docker-compose.yml` for the bridged-sidecar variant.
-- `ha/` for the broader HA-on-Pi context this stack decouples from.
 - `homelab/profiles/ds9/README.md` for the data-plane side downstream
   of these devices (Wyoming STT/TTS calls `ds9` services).
 - `devops/portainer-api-deploy` skill for the Portainer API flow.

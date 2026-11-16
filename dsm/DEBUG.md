@@ -59,9 +59,11 @@ sudo tailscale serve --bg http://127.0.0.1:5080
 
 **Symptom**: `docker ps` shows `dsm-tailscale` as `Created` (not `Running`). Health check reports `ContainerDown`.
 
-**Root cause**: The stack directory on the NAS was empty — `docker-compose.yml` and `serve.json` were missing. The deploy script pushed `serve.json` to `ts-config/serve.json` (correct), but the docker-compose.yml was mounting `./serve.json:/config/serve.json:ro`, expecting the file in the stack root.
+**Root cause**: The stack directory on the NAS was empty — `docker-compose.yml` and `serve.json` were missing. The deploy script pushed `serve.json` to
+`ts-config/serve.json` (correct), but the docker-compose.yml was mounting `./serve.json:/config/serve.json:ro`, expecting the file in the stack root.
 
-**Fix**: Changed the volume mount from `./serve.json:/config/serve.json:ro` to `./ts-config:/config` (matching how other stacks like `ha` handle serve.json). Redeploy with `scripts/deploy.sh all dsm nas`.
+**Fix**: Changed the volume mount from `./serve.json:/config/serve.json:ro` to `./ts-config:/config` (matching how other stacks handle serve.json). Redeploy
+with `scripts/deploy.sh all dsm nas`.
 
 **Verify**:
 
@@ -90,7 +92,8 @@ scripts/deploy.sh all dsm nas
 
 **Symptom**: Deploy fails with `Bind mount failed: '/data/compose/74/dsm/state' does not exist`.
 
-**Root cause**: A Portainer-managed stack (ID 74) was deployed via the Portainer UI with a different path (`/data/compose/74/dsm/`) that conflicts with the manual `docker-compose` stack at `/volume1/docker/stacks/dsm/`. The container gets stuck in "Created" state.
+**Root cause**: A Portainer-managed stack (ID 74) was deployed via the Portainer UI with a different path (`/data/compose/74/dsm/`) that conflicts with the
+manual `docker-compose` stack at `/volume1/docker/stacks/dsm/`. The container gets stuck in "Created" state.
 
 **Fix**: Remove the broken container and redeploy:
 
@@ -107,7 +110,8 @@ scripts/deploy.sh all dsm nas
 
 **Symptom**: Deploy fails with `Bind mount failed: '/data/compose/74/dsm/<dir>' does not exist`.
 
-**Root cause**: A Portainer-managed stack (ID 74) was deployed via the Portainer UI with root path `/data/compose/74/dsm/`. This path doesn't exist on the NAS and can't be created (permission denied). The Portainer stack is separate from the manual docker-compose stack at `/volume1/docker/stacks/dsm/`.
+**Root cause**: A Portainer-managed stack (ID 74) was deployed via the Portainer UI with root path `/data/compose/74/dsm/`. This path doesn't exist on the NAS
+and can't be created (permission denied). The Portainer stack is separate from the manual docker-compose stack at `/volume1/docker/stacks/dsm/`.
 
 **Fix**: Remove the stuck container and redeploy via the deploy script:
 
@@ -118,4 +122,5 @@ ssh nas '/volume1/@appstore/ContainerManager/usr/bin/docker rm -f dsm-tailscale'
 scripts/deploy.sh all dsm nas
 ```
 
-**Note**: The Portainer stack ID 74 cannot be removed via the Portainer API (returns empty). The manual docker-compose stack at `/volume1/docker/stacks/dsm/` works fine once the stuck container is removed.
+**Note**: The Portainer stack ID 74 cannot be removed via the Portainer API (returns empty). The manual docker-compose stack at `/volume1/docker/stacks/dsm/`
+works fine once the stuck container is removed.

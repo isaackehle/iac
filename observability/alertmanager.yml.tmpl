@@ -38,9 +38,6 @@ inhibit_rules:
   - source_matchers: ['severity = "critical"']
     target_matchers: ['severity = "warning"']
     equal: [alertname, instance]
-  # HA itself down on the LAN: don't also page for its tailnet front door.
-  - source_matchers: ['alertname = "EndpointDown"', 'service = "homeassistant-lan"']
-    target_matchers: ['alertname = "EndpointDown"', 'service = "homeassistant"']
   # Container watcher blind: its absence would otherwise look like nothing is down.
   # (No inhibition needed; listed here so nobody adds one.)
 

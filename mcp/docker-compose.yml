@@ -12,9 +12,7 @@
 #     cert and routes by path prefix: /synology -> 127.0.0.1:8485. Tailscale strips
 #     the prefix, so https://mcp.<tailnet>.ts.net/synology/mcp reaches the
 #     server's own /mcp.
-#   - Path routing needs HTTP, so this stack uses Tailscale's Web/Proxy serve mode,
-#     not the TCPForward pattern the other stacks use (like `ha`, see
-#     docs/tailscale_patterns.md). The slower proxy path doesn't matter for MCP.
+#   - Path routing needs HTTP, so this stack uses Tailscale's Web/Proxy serve mode.
 #
 # Servers (one service each; add a row, a service and a serve.json handler):
 #   | Path          | Service         | Port | Image                                  |

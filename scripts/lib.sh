@@ -22,7 +22,7 @@ fi
 # should actually be operated on, use `enabled_stacks` below, which reads
 # scripts/stacks.yaml and skips disabled / _template stacks.
 ALL_STACKS=(
-  actualbudget affine dsm esphome frigate ha langfuse mosquitto n8n nextcloud
+  actualbudget affine dsm esphome frigate langfuse mosquitto n8n nextcloud
   openwebui pihole plex portainer postgresql syncthing mcp observability
 )
 
@@ -139,7 +139,6 @@ declare -A STACK_REMOTE_DIR=(
   [affine]="/volume1/docker/stacks/affine"
   [dsm]="/volume1/docker/stacks/dsm"
   [frigate]="/volume1/docker/stacks/frigate"
-  [ha]="/volume1/docker/stacks/ha"
   [langfuse]="/volume1/docker/stacks/langfuse"
   [mosquitto]="/volume1/docker/stacks/mosquitto"
   [n8n]="/volume1/docker/stacks/n8n"
@@ -162,7 +161,6 @@ declare -A STACK_DIRS=(
   [affine]="data/storage data/config data/postgres ts-state ts-config"
   [dsm]="state ts-config"
   [frigate]="config storage ts-state ts-config"
-  [ha]="ts-state ts-config"   # Tailscale front door for HA (HA_LAN_IP in ha/.env), no app container
   [langfuse]="ts-state ts-config clickhouse-data clickhouse-logs minio-data redis-data"
   [mosquitto]="config data certs ts-state ts-config"
   [mcp]="ts-state ts-config"
@@ -188,7 +186,6 @@ declare -A STACK_EXTRA_FILES=(
   [affine]="serve.json:ts-config/serve.json"
   [dsm]="serve.json:ts-config/serve.json"
   [frigate]="frigate-config.yml:config/config.yml serve.json:ts-config/serve.json"
-  [ha]="serve.json:ts-config/serve.json"
   [langfuse]="serve.json:ts-config/serve.json"
   [mosquitto]="config/mosquitto.conf:config/mosquitto.conf serve.json:ts-config/serve.json"
   [mcp]="serve.json:ts-config/serve.json servers/time/Dockerfile:servers/time/Dockerfile"
@@ -227,8 +224,8 @@ declare -A STACK_CHOWN_OVERRIDES=(
 # No stack uses this any more: every stack serves through its own Tailscale
 # node (docs/tailscale_patterns.md). The NAS's serve config was cleared on
 # 2026-09-26 (`tailscale serve reset`) after affine/frigate moved to sidecars
-# and homeassistant left the repo (Home Assistant runs on its own machine,
-# fronted by the `ha` stack). Only add an entry for a stack that needs host
+# and homeassistant left the repo (Home Assistant runs on its own machine
+# with its own Tailscale node). Only add an entry for a stack that needs host
 # networking.
 declare -A STACK_SERVE_PORTS=(
 )
@@ -268,7 +265,7 @@ require_stack() {
   local stack="$1"
   if [[ -z "$stack" || ! -d "$stack" ]]; then
     # Use a simple list instead of array expansion to avoid bash 3.2 issues
-    local known_stacks="actualbudget affine dsm frigate ha langfuse mosquitto n8n nextcloud openwebui pihole plex portainer postgresql syncthing mcp observability"
+    local known_stacks="actualbudget affine dsm frigate langfuse mosquitto n8n nextcloud openwebui pihole plex portainer postgresql syncthing mcp observability"
     echo "ERROR: unknown stack '$stack' — expected one of: $known_stacks" >&2
     exit 1
   fi

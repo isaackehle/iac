@@ -11,8 +11,8 @@ deployed through Portainer where possible, and over SSH where not.
 - **Agents:** read [AGENTS.md](iac/AGENTS.md) first. It has the conventions and the
   mistakes not to repeat.
 - **Not in this repo:** the local AI fleet (LM Studio, LiteLLM, model roles) lives
-  in the `homelab` repo. Home Assistant runs on its own machine; this repo only
-  gives it a tailnet front door (`ha`).
+  in the `homelab` repo. Home Assistant runs on its own machine with its own
+  Tailscale node.
 
 ## Repo layout
 
@@ -42,7 +42,6 @@ below for why that matters). The next free subnet is `172.20.36.0/24`.
 | --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | -------------- | ------------------------------------------------------------------------- |
 | `portainer`     | Docker management UI; deploys the other stacks                                                                                                                                            | `https://portainer.${TS_TAILNET_DOMAIN}`                                                              | 172.20.21.0/24 | [install](portainer/INSTALLATION.md), [debug](portainer/DEBUG.md)         |
 | `pihole`        | DNS ad blocking for the LAN and tailnet (DNS on 53)                                                                                                                                       | `https://pihole.${TS_TAILNET_DOMAIN}`                                                                 | 172.20.20.0/24 | [install](pihole/INSTALLATION.md), [debug](pihole/DEBUG.md)               |
-| `ha`            | Tailnet front door for Home Assistant, which runs on its own machine. Also relays raw TCP for HA's UI on `:8123`, SSH into the HA box on `:2222`, and the Observer health page on `:4357` | `https://ha.${TS_TAILNET_DOMAIN}`, MCP on `:9584`, Observer on `:4357`, UI on `:8123`, SSH on `:2222` | 172.20.23.0/24 | [install](ha/INSTALLATION.md)                                             |
 | `mcp`           | MCP servers for AI agents, one path each (`/synology`, `/tailscale`, ...). Server catalog: `~/code/isaackehle/mcp-servers/README.md`                                                      | `https://mcp.${TS_TAILNET_DOMAIN}/<server>/...`                                                       | 172.20.27.0/24 | [install](mcp/INSTALLATION.md), [monarch](mcp/MONARCH.md)                 |
 | `observability` | Metrics, logs, endpoint probes and Telegram alerts (Prometheus, Alertmanager, Loki, Grafana, Alloy)                                                                                       | `https://obs.${TS_TAILNET_DOMAIN}` (Grafana); Prometheus `:9090`, Alertmanager `:9093`, Loki `:3100`  | 172.20.35.0/24 | [install](observability/INSTALLATION.md), [debug](observability/DEBUG.md) |
 
@@ -97,8 +96,7 @@ client on the tailnet
   reaches them by service name through the sidecar.
 - **Inverted:** in `n8n`, `nextcloud`, `pihole` and `syncthing` the app owns the
   namespace and the sidecar borrows it. Same result.
-- **Proxy mode:** `ha` (a machine elsewhere on the LAN that only speaks HTTPS) and
-  `mcp` (routing by path) use Tailscale's web proxy mode instead of `TCPForward`.
+- **Proxy mode:** `mcp` (routing by path) uses Tailscale's web proxy mode instead of `TCPForward`.
 - **Non-HTTP:** `mosquitto` forwards raw MQTT ports.
 
 The full explanation, and why there's no Caddy or other reverse proxy:
@@ -227,7 +225,6 @@ Test from another tailnet machine, not the NAS itself.
 | Sidecar logs "UDP is blocked", certificate timeouts | Unpinned network on a `192.168.x.x` subnet                                                                      | Pin the subnet (rules above)                                                               |
 | Container stuck in "Created"                        | A host port is already taken                                                                                    | [docs/port_registry.md](docs/port_registry.md)                                             |
 | Portainer shows the stack as "Limited"              | Started with `docker compose`, not by Portainer                                                                 | Deploying → Portainer-managed                                                              |
-| Home Assistant answers 400 through `ha`             | HA doesn't trust the proxy yet                                                                                  | [ha/INSTALLATION.md](ha/INSTALLATION.md)                                                   |
 
 General Docker commands: [docs/debug_docker_commands.md](docs/debug_docker_commands.md).
 

@@ -33,9 +33,6 @@ stacks:
   frigate:
     type: portainer
     notes: ""
-  ha:
-    type: portainer
-    notes: ""
   langfuse:
     type: portainer
     notes: ""

@@ -3,8 +3,8 @@
 Every stack in this repo gets onto the tailnet through its own Tailscale node
 (Pattern B, a sidecar). Pattern A (the NAS's own `tailscale serve`) is kept below
 for reference; no stack uses it since 2026-09-26, when `affine` and `frigate` got
-sidecars and `homeassistant` left the repo (Home Assistant runs on its own machine,
-fronted by the `ha` node).
+sidecars and `homeassistant` left the repo (Home Assistant runs on its own machine
+with its own Tailscale node).
 
 ## Pattern A — Host-level `tailscale serve` (NAS node)
 
@@ -32,7 +32,7 @@ Backend scheme matters:
 ## Pattern B — Tailscale sidecar container (own tailnet node)
 
 Used by: `affine`, `frigate`, `langfuse`, `mosquitto`, `openwebui`, `plex`,
-`portainer`, `postgresql`, and the special nodes `ha` and `mcp` (below).
+`portainer`, `postgresql`, and the special node `mcp` (below).
 
 Each stack includes a `tailscale/tailscale:latest` sidecar that joins the
 tailnet as its own node (e.g. `plex.${TS_TAILNET_DOMAIN}`). The app container
@@ -121,15 +121,6 @@ Do **not** use:
 **Two exceptions use the `Web`/`Proxy` shape** (with a rendered hostname key, never
 a literal `${TS_CERT_DOMAIN}`):
 
-- **`ha`** fronts Home Assistant, another machine on the LAN. Its UI path speaks HTTPS
-  (HA's own Let's Encrypt cert), so `TCPForward` after `TerminateTLS` would send it
-  plaintext — `ha` proxies the UI to `https+insecure://{{HA_LAN_IP}}:8123` on 80/443 and
-  its MCP server to `http://{{HA_LAN_IP}}:9584`. It additionally carries **raw `TCPForward`
-  with no `TerminateTLS`** for `8123` (HA's UI on its native port) and `2222` (SSH into the
-  HA box): a non-HTTP protocol like SSH needs end-to-end passthrough, and the tailnet is
-  already WireGuard-encrypted. Forwards point at `{{HA_LAN_IP}}:<port>`, never
-  `127.0.0.1` — the HA machine is a *different* host, so a loopback backend would land on
-  the sidecar itself. See `ha/docker-compose.yml` and `ha/serve.json.tmpl`.
 - **`mcp`** routes by path to several MCP servers sharing one node
   (`/synology` → `127.0.0.1:8485`, ...). Path routing needs HTTP, and Tailscale
   strips the prefix. See `mcp/docker-compose.yml`.
