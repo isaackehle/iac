@@ -2,7 +2,8 @@
 # Rendered by scripts/deploy.sh env to alertmanager.yml (gitignored), pushed to
 # config/alertmanager/alertmanager.yml. Only double-brace NAME tokens with no spaces are
 # substituted from observability/.env and global/.env; Go-template actions below must keep their
-# spaces ({{ .Status }}, {{ end }}) or render_templates will try to resolve them.
+# inner spaces (a dot-field or an if/else/end action, written with a space after the
+# opening braces) or render_templates will try to resolve them.
 # Secrets are never in this file: telegram_bot_token.tmpl and
 # discord_webhook_url.tmpl each render to their own file under
 # config/alertmanager/, read here via bot_token_file / webhook_url_file.
@@ -40,6 +41,9 @@ inhibit_rules:
     equal: [alertname, instance]
   # Container watcher blind: its absence would otherwise look like nothing is down.
   # (No inhibition needed; listed here so nobody adds one.)
+  # HA itself down on the LAN: don't also page for its tailnet front door.
+  - source_matchers: ['alertname = "EndpointDown"', 'service = "homeassistant-lan"']
+    target_matchers: ['alertname = "EndpointDown"', 'service = "homeassistant"']
 
 receivers:
   - name: "null"

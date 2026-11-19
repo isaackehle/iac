@@ -105,6 +105,10 @@ scrape_configs:
         labels: { service: mcp }
       - targets: ["https://obs.{{TS_TAILNET_DOMAIN}}/api/health"]
         labels: { service: grafana }
+      # HA's own Tailscale add-on node (serve on 443 -> HA :8123), not a NAS stack.
+      # manifest.json: a static file, so a busy HA doesn't time the probe out.
+      - targets: ["https://homeassistant.{{TS_TAILNET_DOMAIN}}/manifest.json"]
+        labels: { service: homeassistant }
     relabel_configs: &blackbox_relabel
       - source_labels: [__address__]
         target_label: __param_target
